@@ -44,6 +44,7 @@ class DQN(Agent):
         """
         if np.random.rand() > epsilon:
             q_value = sess.run(self.pred, feed_dict={self.state: state})[0]
+            # print(q_value)
             action  = np.argmax(q_value)
         else:
             action = np.random.randint(env.action_space.n)
@@ -68,7 +69,7 @@ class DQN(Agent):
 if __name__ == '__main__':
     env = gym.make("CartPole-v0")
 
-    num_frames  = 30000
+    num_frames  = 10000
     memory_size = 1000
     learning_start = 1000
     sync_freq   = 200
@@ -113,9 +114,10 @@ if __name__ == '__main__':
 
                 if frame_idx > learning_start:
                     if len(replay_buffer) > batch_size:
-                        states, actions, rewards, next_states, done = replay_buffer.sample(batch_size)
+                        states, actions, rewards, next_states, dones = replay_buffer.sample(batch_size)
                         next_Q = target_model.predict(sess, next_states)
-                        Y = rewards + gamma * np.argmax(next_Q, axis=1) * done
+                        Y = rewards + gamma * np.argmax(next_Q, axis=1) * dones
+                        # print(Y)
                         loss = main_model.update(sess, states, actions, Y)
                         losses.append(loss)
                 else:
