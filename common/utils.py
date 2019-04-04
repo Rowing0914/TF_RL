@@ -37,3 +37,14 @@ def huber_loss(x, delta=1.0):
         tf.square(x) * 0.5,
         delta * (tf.abs(x) - 0.5 * delta)
     )
+
+
+def ClipIfNotNone(grad, _min, _max):
+    """
+    reference => https://stackoverflow.com/a/39295309
+    :param grad:
+    :return:
+    """
+    if grad is None:
+        return grad
+    return tf.clip_by_value(grad, _min, _max)

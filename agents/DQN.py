@@ -1,0 +1,173 @@
+import numpy as np
+import tensorflow as tf
+from common.utils import huber_loss, ClipIfNotNone
+
+class Parameters:
+	def __init__(self, mode=None):
+		assert mode != None
+		print("Loading Params for {} Environment".format(mode))
+		if mode == "Atari":
+			self.Atari_Image_shape = (1, 84, 84, 1)
+			self.num_frames = 1000000
+			self.memory_size = 10000
+			self.learning_start = 10000
+			self.sync_freq = 1000
+			self.batch_size = 32
+			self.gamma = 0.99
+			self.epsilon_start = 1.0
+			self.epsilon_end = 0.01
+			self.decay_steps = 1000
+		elif mode == "CartPole":
+			self.num_frames = 20000
+			self.memory_size = 1000
+			self.learning_start = 1000
+			self.sync_freq = 200
+			self.batch_size = 32
+			self.gamma = 0.99
+			self.epsilon_start = 1.0
+			self.epsilon_end = 0.01
+			self.decay_steps = 500
+
+
+class DQN_Atari:
+	"""
+	DQN Agent
+	"""
+
+	def __init__(self, scope, env):
+		self.scope = scope
+		self.num_action = env.action_space.n
+		with tf.variable_scope(scope):
+			self.state = tf.placeholder(shape=[None, 84, 84, 1], dtype=tf.float32, name="X")
+			self.Y = tf.placeholder(shape=[None], dtype=tf.float32, name="Y")
+			self.action = tf.placeholder(shape=[None], dtype=tf.int32, name="action")
+
+			conv1 = tf.keras.layers.Conv2D(32, kernel_size=8, strides=8, activation=tf.nn.relu)(self.state)
+			conv2 = tf.keras.layers.Conv2D(64, kernel_size=4, strides=2, activation=tf.nn.relu)(conv1)
+			conv3 = tf.keras.layers.Conv2D(64, kernel_size=3, strides=1, activation=tf.nn.relu)(conv2)
+			flat = tf.keras.layers.Flatten()(conv3)
+			fc1 = tf.keras.layers.Dense(512, activation=tf.nn.relu)(flat)
+			self.pred = tf.keras.layers.Dense(env.action_space.n, activation=tf.nn.relu)(fc1)
+
+			# indices of the executed actions
+			idx_flattened = tf.range(0, tf.shape(self.pred)[0]) * tf.shape(self.pred)[1] + self.action
+
+			# passing [-1] to tf.reshape means flatten the array
+			# using tf.gather, associate Q-values with the executed actions
+			self.action_probs = tf.gather(tf.reshape(self.pred, [-1]), idx_flattened)
+
+			# MSE loss function
+			self.losses = tf.squared_difference(self.Y, self.action_probs)
+			self.loss = tf.reduce_mean(huber_loss(self.losses))
+
+			# you can choose whatever you want for the optimiser
+			# self.optimizer = tf.train.RMSPropOptimizer(0.00025, 0.99, 0.0, 1e-6)
+			self.optimizer = tf.train.AdamOptimizer()
+
+			# to apply Gradient Clipping, we have to directly operate on the optimiser
+			# check this: https://www.tensorflow.org/api_docs/python/tf/train/Optimizer#processing_gradients_before_applying_them
+			self.grads_and_vars = self.optimizer.compute_gradients(self.loss)
+			self.clipped_grads_and_vars = [(ClipIfNotNone(grad, -1., 1.), var) for grad, var in self.grads_and_vars]
+			self.train_op = self.optimizer.apply_gradients(self.clipped_grads_and_vars)
+
+	def act(self, sess, state, epsilon):
+		"""
+		Given a state, it performs an epsilon-greedy policy
+
+		:param sess:
+		:param state:
+		:param epsilon:
+		:return:
+		"""
+		if np.random.rand() > epsilon:
+			q_value = sess.run(self.pred, feed_dict={self.state: state})[0]
+			action = np.argmax(q_value)
+		else:
+			action = np.random.randint(self.num_action)
+		return action
+
+	def predict(self, sess, state):
+		"""
+		predict q-values given a state
+
+		:param sess:
+		:param state:
+		:return:
+		"""
+		return sess.run(self.pred, feed_dict={self.state: state})
+
+	def update(self, sess, state, action, Y):
+		feed_dict = {self.state: state, self.action: action, self.Y: Y}
+		_, loss = sess.run([self.train_op, self.loss], feed_dict=feed_dict)
+		return loss
+
+
+class DQN_CartPole:
+	"""
+	DQN Agent
+	"""
+
+	def __init__(self, scope, env):
+		self.scope = scope
+		self.num_action = env.action_space.n
+		with tf.variable_scope(scope):
+			self.state = tf.placeholder(shape=[None, 4], dtype=tf.float32, name="X")
+			self.Y = tf.placeholder(shape=[None], dtype=tf.float32, name="Y")
+			self.action = tf.placeholder(shape=[None], dtype=tf.int32, name="action")
+
+			fc1 = tf.keras.layers.Dense(16, activation=tf.nn.relu)(self.state)
+			fc2 = tf.keras.layers.Dense(16, activation=tf.nn.relu)(fc1)
+			self.pred = tf.keras.layers.Dense(env.action_space.n, activation=tf.nn.relu)(fc2)
+
+			# indices of the executed actions
+			idx_flattened = tf.range(0, tf.shape(self.pred)[0]) * tf.shape(self.pred)[1] + self.action
+
+			# passing [-1] to tf.reshape means flatten the array
+			# using tf.gather, associate Q-values with the executed actions
+			self.action_probs = tf.gather(tf.reshape(self.pred, [-1]), idx_flattened)
+
+			# MSE loss function
+			self.losses = tf.squared_difference(self.Y, self.action_probs)
+			self.loss = tf.reduce_mean(huber_loss(self.losses))
+
+			# you can choose whatever you want for the optimiser
+			# self.optimizer = tf.train.RMSPropOptimizer(0.00025, 0.99, 0.0, 1e-6)
+			self.optimizer = tf.train.AdamOptimizer()
+
+			# to apply Gradient Clipping, we have to directly operate on the optimiser
+			# check this: https://www.tensorflow.org/api_docs/python/tf/train/Optimizer#processing_gradients_before_applying_them
+			self.grads_and_vars = self.optimizer.compute_gradients(self.loss)
+			self.clipped_grads_and_vars = [(ClipIfNotNone(grad, -1., 1.), var) for grad, var in self.grads_and_vars]
+			self.train_op = self.optimizer.apply_gradients(self.clipped_grads_and_vars)
+
+	def act(self, sess, state, epsilon):
+		"""
+		Given a state, it performs an epsilon-greedy policy
+
+		:param sess:
+		:param state:
+		:param epsilon:
+		:return:
+		"""
+		if np.random.rand() > epsilon:
+			q_value = sess.run(self.pred, feed_dict={self.state: state})[0]
+			action = np.argmax(q_value)
+		else:
+			action = np.random.randint(self.num_action)
+		return action
+
+	def predict(self, sess, state):
+		"""
+		predict q-values given a state
+
+		:param sess:
+		:param state:
+		:return:
+		"""
+		return sess.run(self.pred, feed_dict={self.state: state})
+
+	def update(self, sess, state, action, Y):
+		feed_dict = {self.state: state, self.action: action, self.Y: Y}
+		_, loss = sess.run([self.train_op, self.loss], feed_dict=feed_dict)
+		return loss
+

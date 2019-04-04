@@ -3,18 +3,18 @@ import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
 
-from common.core import Agent
 from common.memory import ReplayBuffer
-from common.utils import AnnealingEpsilon, sync_main_target, huber_loss
+from common.utils import AnnealingEpsilon, sync_main_target, huber_loss, ClipIfNotNone
 
 
-class Duelling_DQN(Agent):
+class Duelling_DQN:
 	"""
 	DQN Agent
 	"""
 
 	def __init__(self, scope, env):
 		self.scope = scope
+		self.num_action = env.action_space.n
 		with tf.variable_scope(scope):
 			self.state = tf.placeholder(shape=[None, env.observation_space.shape[0]], dtype=tf.float32, name="X")
 			self.Y = tf.placeholder(shape=[None], dtype=tf.float32, name="Y")
@@ -24,16 +24,27 @@ class Duelling_DQN(Agent):
 			fc2 = tf.keras.layers.Dense(16, activation=tf.nn.relu)(fc1)
 			self.pred = tf.keras.layers.Dense(env.action_space.n, activation=tf.nn.relu)(fc2)
 			self.state_value = tf.keras.layers.Dense(1, activation=tf.nn.relu)(fc2)
+
 			# indices of the executed actions
 			idx_flattened = tf.range(0, tf.shape(self.pred)[0]) * tf.shape(self.pred)[1] + self.action
+
 			# passing [-1] to tf.reshape means flatten the array
 			# using tf.gather, associate Q-values with the executed actions
 			self.action_probs = tf.gather(tf.reshape(self.pred, [-1]), idx_flattened)
+
+			# MSE loss function
 			self.losses = tf.squared_difference(self.Y, self.action_probs)
 			self.loss = tf.reduce_mean(huber_loss(self.losses))
+
+			# you can choose whatever you want for the optimiser
 			# self.optimizer = tf.train.RMSPropOptimizer(0.00025, 0.99, 0.0, 1e-6)
 			self.optimizer = tf.train.AdamOptimizer()
-			self.train_op = self.optimizer.minimize(self.loss, global_step=tf.train.get_global_step())
+
+			# to apply Gradient Clipping, we have to directly operate on the optimiser
+			# check this: https://www.tensorflow.org/api_docs/python/tf/train/Optimizer#processing_gradients_before_applying_them
+			self.grads_and_vars = self.optimizer.compute_gradients(self.loss)
+			self.clipped_grads_and_vars = [(ClipIfNotNone(grad, -1., 1.), var) for grad, var in self.grads_and_vars]
+			self.train_op = self.optimizer.apply_gradients(self.clipped_grads_and_vars)
 
 	def act(self, sess, state, epsilon):
 		"""
