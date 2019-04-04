@@ -29,8 +29,8 @@ class DQN(Agent):
             self.action_probs = tf.gather(tf.reshape(self.pred, [-1]), idx_flattened)
             self.losses = tf.squared_difference(self.Y, self.action_probs)
             self.loss = tf.reduce_mean(huber_loss(self.losses))
-            # self.optimizer = tf.train.RMSPropOptimizer(0.00025, 0.99, 0.0, 1e-6)
-            self.optimizer = tf.train.AdamOptimizer()
+            self.optimizer = tf.train.RMSPropOptimizer(0.00025, 0.99, 0.0, 1e-6)
+            # self.optimizer = tf.train.AdamOptimizer()
             self.train_op = self.optimizer.minimize(self.loss, global_step=tf.train.get_global_step())
 
     def act(self, sess, state, epsilon):

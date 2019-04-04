@@ -119,9 +119,10 @@ if __name__ == '__main__':
 
 				if frame_idx > learning_start:
 					if len(replay_buffer) > batch_size:
-						states, actions, rewards, next_states, done = replay_buffer.sample(batch_size)
+						states, actions, rewards, next_states, dones = replay_buffer.sample(batch_size)
 						next_Q = target_model.predict(sess, next_states)
-						Y = rewards + gamma * np.argmax(next_Q, axis=1) * done
+						Y = rewards + gamma * np.argmax(next_Q, axis=1) * dones
+						print(Y)
 						loss = main_model.update(sess, states, actions, Y)
 						losses.append(loss)
 				else:

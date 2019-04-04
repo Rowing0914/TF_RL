@@ -6,9 +6,9 @@ import matplotlib.pyplot as plt
 from common.core import Agent
 from common.memory import ReplayBuffer
 from common.utils import AnnealingEpsilon, sync_main_target, huber_loss
-from common.wrappers_Atari import make_atari, wrap_deepmind
 
-class Double_DQN(Agent):
+
+class Duelling_DQN(Agent):
 	"""
 	DQN Agent
 	"""
@@ -16,16 +16,14 @@ class Double_DQN(Agent):
 	def __init__(self, scope, env):
 		self.scope = scope
 		with tf.variable_scope(scope):
-			self.state = tf.placeholder(shape=[None, 84, 84, 1], dtype=tf.float32, name="X")
+			self.state = tf.placeholder(shape=[None, env.observation_space.shape[0]], dtype=tf.float32, name="X")
 			self.Y = tf.placeholder(shape=[None], dtype=tf.float32, name="Y")
 			self.action = tf.placeholder(shape=[None], dtype=tf.int32, name="action")
 
-			conv1 = tf.keras.layers.Conv2D(32, kernel_size=8, strides=8, activation=tf.nn.relu)(self.state)
-			conv2 = tf.keras.layers.Conv2D(64, kernel_size=4, strides=2, activation=tf.nn.relu)(conv1)
-			conv3 = tf.keras.layers.Conv2D(64, kernel_size=3, strides=1, activation=tf.nn.relu)(conv2)
-			flat = tf.keras.layers.Flatten()(conv3)
-			fc1 = tf.keras.layers.Dense(512, activation=tf.nn.relu)(flat)
-			self.pred = tf.keras.layers.Dense(env.action_space.n, activation=tf.nn.relu)(fc1)
+			fc1 = tf.keras.layers.Dense(16, activation=tf.nn.relu)(self.state)
+			fc2 = tf.keras.layers.Dense(16, activation=tf.nn.relu)(fc1)
+			self.pred = tf.keras.layers.Dense(env.action_space.n, activation=tf.nn.relu)(fc2)
+			self.state_value = tf.keras.layers.Dense(1, activation=tf.nn.relu)(fc2)
 			# indices of the executed actions
 			idx_flattened = tf.range(0, tf.shape(self.pred)[0]) * tf.shape(self.pred)[1] + self.action
 			# passing [-1] to tf.reshape means flatten the array
@@ -48,6 +46,7 @@ class Double_DQN(Agent):
 		"""
 		if np.random.rand() > epsilon:
 			q_value = sess.run(self.pred, feed_dict={self.state: state})[0]
+			# print(q_value)
 			action = np.argmax(q_value)
 		else:
 			action = np.random.randint(env.action_space.n)
@@ -70,14 +69,12 @@ class Double_DQN(Agent):
 
 
 if __name__ == '__main__':
-	env = make_atari("PongNoFrameskip-v4")
-	env = wrap_deepmind(env)
+	env = gym.make("CartPole-v0")
 
-	num_frames = 1000000
-	memory_size = 10000
-	learning_start = 10000
-	sync_freq = 1000
-	decay_steps = 100000
+	num_frames = 10000
+	memory_size = 1000
+	learning_start = 1000
+	sync_freq = 200
 	batch_size = 32
 	gamma = 0.99
 
@@ -93,17 +90,17 @@ if __name__ == '__main__':
 	global_step = tf.Variable(0, name="global_step", trainable=False)
 
 	# initialise models and replay memory
-	main_model = Double_DQN("main", env)
-	target_model = Double_DQN("target", env)
+	main_model = DQN("main", env)
+	target_model = DQN("target", env)
 	replay_buffer = ReplayBuffer(memory_size)
-	Epsilon = AnnealingEpsilon(start=1.0, end=0.01, decay_steps=decay_steps)
+	Epsilon = AnnealingEpsilon(start=1.0, end=0.1, decay_steps=500)
 
 	with tf.Session() as sess:
 		# initialise all variables used in the model
 		sess.run(tf.global_variables_initializer())
 		state = env.reset()
 		for frame_idx in range(1, num_frames + 1):
-			action = target_model.act(sess, state.reshape((1, 84, 84, 1)), Epsilon.get_epsilon(frame_idx))
+			action = target_model.act(sess, state.reshape(1, 4), Epsilon.get_epsilon(frame_idx))
 
 			next_state, reward, done, _ = env.step(action)
 			replay_buffer.store(state, action, reward, next_state, done)
@@ -120,10 +117,9 @@ if __name__ == '__main__':
 				if frame_idx > learning_start:
 					if len(replay_buffer) > batch_size:
 						states, actions, rewards, next_states, dones = replay_buffer.sample(batch_size)
-						next_Q_main = main_model.predict(sess, next_states)
 						next_Q = target_model.predict(sess, next_states)
-						Y = rewards + gamma * next_Q[np.arange(batch_size), np.argmax(next_Q_main, axis=1)] * dones
-						print(Y)
+						Y = rewards + gamma * np.argmax(next_Q, axis=1) * dones
+						# print(Y)
 						loss = main_model.update(sess, states, actions, Y)
 						losses.append(loss)
 				else:
