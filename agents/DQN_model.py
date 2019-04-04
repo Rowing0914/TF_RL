@@ -1,13 +1,14 @@
 import numpy as np
 import tensorflow as tf
-from common.utils import huber_loss, ClipIfNotNone
+from common.utils import sync_main_target, huber_loss, ClipIfNotNone
+
 
 class Parameters:
 	def __init__(self, mode=None):
 		assert mode != None
 		print("Loading Params for {} Environment".format(mode))
 		if mode == "Atari":
-			self.Atari_Image_shape = (1, 84, 84, 1)
+			self.state_reshape = (1, 84, 84, 1)
 			self.num_frames = 1000000
 			self.memory_size = 10000
 			self.learning_start = 10000
@@ -18,6 +19,7 @@ class Parameters:
 			self.epsilon_end = 0.01
 			self.decay_steps = 1000
 		elif mode == "CartPole":
+			self.state_reshape = (1, 4)
 			self.num_frames = 20000
 			self.memory_size = 1000
 			self.learning_start = 1000
@@ -29,9 +31,49 @@ class Parameters:
 			self.decay_steps = 500
 
 
-class DQN_Atari:
+class _DQN:
 	"""
-	DQN Agent
+	Boilerplate for DQN Agent
+	"""
+
+	def __init__(self):
+		pass
+
+	def act(self, sess, state, epsilon):
+		"""
+		Given a state, it performs an epsilon-greedy policy
+
+		:param sess:
+		:param state:
+		:param epsilon:
+		:return:
+		"""
+		if np.random.rand() > epsilon:
+			q_value = sess.run(self.pred, feed_dict={self.state: state})[0]
+			action = np.argmax(q_value)
+		else:
+			action = np.random.randint(self.num_action)
+		return action
+
+	def predict(self, sess, state):
+		"""
+		predict q-values given a state
+
+		:param sess:
+		:param state:
+		:return:
+		"""
+		return sess.run(self.pred, feed_dict={self.state: state})
+
+	def update(self, sess, state, action, Y):
+		feed_dict = {self.state: state, self.action: action, self.Y: Y}
+		_, loss = sess.run([self.train_op, self.loss], feed_dict=feed_dict)
+		return loss
+
+
+class DQN_Atari(_DQN):
+	"""
+	DQN Agent for Atari Games
 	"""
 
 	def __init__(self, scope, env):
@@ -70,41 +112,10 @@ class DQN_Atari:
 			self.clipped_grads_and_vars = [(ClipIfNotNone(grad, -1., 1.), var) for grad, var in self.grads_and_vars]
 			self.train_op = self.optimizer.apply_gradients(self.clipped_grads_and_vars)
 
-	def act(self, sess, state, epsilon):
-		"""
-		Given a state, it performs an epsilon-greedy policy
 
-		:param sess:
-		:param state:
-		:param epsilon:
-		:return:
-		"""
-		if np.random.rand() > epsilon:
-			q_value = sess.run(self.pred, feed_dict={self.state: state})[0]
-			action = np.argmax(q_value)
-		else:
-			action = np.random.randint(self.num_action)
-		return action
-
-	def predict(self, sess, state):
-		"""
-		predict q-values given a state
-
-		:param sess:
-		:param state:
-		:return:
-		"""
-		return sess.run(self.pred, feed_dict={self.state: state})
-
-	def update(self, sess, state, action, Y):
-		feed_dict = {self.state: state, self.action: action, self.Y: Y}
-		_, loss = sess.run([self.train_op, self.loss], feed_dict=feed_dict)
-		return loss
-
-
-class DQN_CartPole:
+class DQN_CartPole(_DQN):
 	"""
-	DQN Agent
+	DQN Agent for CartPole game
 	"""
 
 	def __init__(self, scope, env):
@@ -140,34 +151,60 @@ class DQN_CartPole:
 			self.clipped_grads_and_vars = [(ClipIfNotNone(grad, -1., 1.), var) for grad, var in self.grads_and_vars]
 			self.train_op = self.optimizer.apply_gradients(self.clipped_grads_and_vars)
 
-	def act(self, sess, state, epsilon):
-		"""
-		Given a state, it performs an epsilon-greedy policy
 
-		:param sess:
-		:param state:
-		:param epsilon:
-		:return:
-		"""
-		if np.random.rand() > epsilon:
-			q_value = sess.run(self.pred, feed_dict={self.state: state})[0]
-			action = np.argmax(q_value)
-		else:
-			action = np.random.randint(self.num_action)
-		return action
 
-	def predict(self, sess, state):
-		"""
-		predict q-values given a state
+def train_DQN(main_model, target_model, env, replay_buffer, Epsilon, params):
+	"""
+	Train DQN agent which defined above
 
-		:param sess:
-		:param state:
-		:return:
-		"""
-		return sess.run(self.pred, feed_dict={self.state: state})
+	:param main_model:
+	:param target_model:
+	:param env:
+	:param params:
+	:return:
+	"""
 
-	def update(self, sess, state, action, Y):
-		feed_dict = {self.state: state, self.action: action, self.Y: Y}
-		_, loss = sess.run([self.train_op, self.loss], feed_dict=feed_dict)
-		return loss
+	# log purpose
+	losses = []
+	all_rewards = []
+	episode_reward = 0
 
+	# training epoch
+	global_step = tf.Variable(0, name="global_step", trainable=False)
+
+	with tf.Session() as sess:
+		# initialise all variables used in the model
+		sess.run(tf.global_variables_initializer())
+		state = env.reset()
+		for frame_idx in range(1, params.num_frames + 1):
+			action = target_model.act(sess, state.reshape(1, 4), Epsilon.get_epsilon(frame_idx))
+
+			next_state, reward, done, _ = env.step(action)
+			replay_buffer.store(state, action, reward, next_state, done)
+
+			state = next_state
+			episode_reward += reward
+
+			if done:
+				state = env.reset()
+				all_rewards.append(episode_reward)
+				print("\rGAME OVER AT STEP: {0}, SCORE: {1}".format(frame_idx, episode_reward), end="")
+				episode_reward = 0
+
+				if frame_idx > params.learning_start:
+					if len(replay_buffer) > params.batch_size:
+						states, actions, rewards, next_states, dones = replay_buffer.sample(params.batch_size)
+						next_Q = target_model.predict(sess, next_states)
+						Y = rewards + params.gamma * np.argmax(next_Q, axis=1) * dones
+						# print(Y)
+						loss = main_model.update(sess, states, actions, Y)
+						losses.append(loss)
+				else:
+					pass
+
+			if frame_idx > params.learning_start:
+				if frame_idx % params.sync_freq == 0:
+					print("\nModel Sync")
+					sync_main_target(sess, main_model, target_model)
+
+	return all_rewards, losses
