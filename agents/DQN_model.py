@@ -37,6 +37,10 @@ class _DQN:
 	"""
 
 	def __init__(self):
+		"""
+		define the deep learning model here!
+
+		"""
 		pass
 
 	def act(self, sess, state, epsilon):
@@ -89,7 +93,7 @@ class DQN_Atari(_DQN):
 			conv3 = tf.keras.layers.Conv2D(64, kernel_size=3, strides=1, activation=tf.nn.relu)(conv2)
 			flat = tf.keras.layers.Flatten()(conv3)
 			fc1 = tf.keras.layers.Dense(512, activation=tf.nn.relu)(flat)
-			self.pred = tf.keras.layers.Dense(env.action_space.n, activation=tf.nn.relu)(fc1)
+			self.pred = tf.keras.layers.Dense(self.num_action, activation=tf.nn.relu)(fc1)
 
 			# indices of the executed actions
 			idx_flattened = tf.range(0, tf.shape(self.pred)[0]) * tf.shape(self.pred)[1] + self.action
@@ -128,7 +132,7 @@ class DQN_CartPole(_DQN):
 
 			fc1 = tf.keras.layers.Dense(16, activation=tf.nn.relu)(self.state)
 			fc2 = tf.keras.layers.Dense(16, activation=tf.nn.relu)(fc1)
-			self.pred = tf.keras.layers.Dense(env.action_space.n, activation=tf.nn.relu)(fc2)
+			self.pred = tf.keras.layers.Dense(self.num_action, activation=tf.nn.relu)(fc2)
 
 			# indices of the executed actions
 			idx_flattened = tf.range(0, tf.shape(self.pred)[0]) * tf.shape(self.pred)[1] + self.action
