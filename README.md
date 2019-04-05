@@ -21,6 +21,7 @@ Let me explain main components of this repo.
   - `<filename>_model.py`: for defining the algorithm, so you can modify it if you want
 - common: utility functions
   - `memory.py`: Experience Replay Memory, Prioritised Experience Replay Memory
+  - `utils.py`: AnnealingSchedule(annealing epsilon or beta), etc.. 
   - `core.py`: not sure if I will retain this.....
 - test: test and dev purpose
 - experiment: reproduce a result of a paper
