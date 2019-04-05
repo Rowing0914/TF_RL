@@ -1,6 +1,29 @@
-## Introduction
+## TF-RL(Reinforcement Learning with Tensorflow)
 
-this is the repo for experimenting the RL algorithms
+  This is the repo for implementing and experimenting the variety of RL algorithms. And it aims to focus only on this purpose, hencewise, if you'd like theoretical background of each algorithm, please check the original papers or other great article on the internet!lol
+
+
+
+## Disclaimer: you will see similar codes in different source codes.
+
+  In this repo, I would like to ignore the efficiency in development, because although I have seen a lot of clean and neat implementations of DRL algorithms on the net, I think sometimes they excessively modularise some components by introducing a lot of extra parameters or flags which are not in the original papers, in other words, they are toooo professional for me to play with. 
+
+  So, in this repo I do not hesitate to re-use the same codes here or there. **BUT** I believe this way of organising the algorithms enhances our understanding more compared to try making the algorithms compact.
+
+
+
+## Directory Architecture
+
+Let me explain main components of this repo.
+
+- agents: RL algorithms
+  - `<filename>_train.py`: for training the agent with RL algorithm, so you can specify a game to play
+  - `<filename>_model.py`: for defining the algorithm, so you can modify it if you want
+- common: utility functions
+  - `memory.py`: Experience Replay Memory, Prioritised Experience Replay Memory
+  - `core.py`: not sure if I will retain this.....
+- test: test and dev purpose
+- experiment: reproduce a result of a paper
 
 
 
@@ -17,7 +40,7 @@ this is the repo for experimenting the RL algorithms
 
 ### GPU Env Maintenance on Ubuntu 16.04 (CUDA 10)
 
-Check this link as well: <https://www.tensorflow.org/install/gpu>
+  Check this link as well: <https://www.tensorflow.org/install/gpu>
 
 ```shell
 # Add NVIDIA package repositories
@@ -50,17 +73,6 @@ sudo apt-get update && \
         && sudo apt-get update \
         && sudo apt-get install -y --no-install-recommends libnvinfer-dev=5.0.2-1+cuda10.0
 ```
-
-
-
-
-
-## Directory Architecture
-
-- agents: algorithms
-- common: utility functions
-- test: testing the algorithms
-- experiment: reproduce a result of a paper
 
 
 

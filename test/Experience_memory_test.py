@@ -1,7 +1,6 @@
 import gym
 
-# from common.memory import ReplayBuffer
-from common.test_memory import ReplayBuffer, PrioritizedReplayBuffer
+from common.memory import ReplayBuffer, PrioritizedReplayBuffer
 from common.utils import AnnealingSchedule
 
 env = gym.make("CartPole-v0")

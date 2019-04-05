@@ -2,7 +2,7 @@ import gym
 import tensorflow as tf
 import matplotlib.pyplot as plt
 
-from common.test_memory import ReplayBuffer, PrioritizedReplayBuffer
+from common.memory import ReplayBuffer, PrioritizedReplayBuffer
 from common.utils import AnnealingSchedule
 from common.wrappers_Atari import make_atari, wrap_deepmind
 from agents.DQN_model import Parameters
