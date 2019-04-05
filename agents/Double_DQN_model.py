@@ -25,10 +25,10 @@ def train_Double_DQN(main_model, target_model, env, replay_buffer, Epsilon, para
 		sess.run(tf.global_variables_initializer())
 		state = env.reset()
 		for frame_idx in range(1, params.num_frames + 1):
-			action = target_model.act(sess, state.reshape(params.state_reshape), Epsilon.get_epsilon(frame_idx))
+			action = target_model.act(sess, state.reshape(params.state_reshape), Epsilon.get_value(frame_idx))
 
 			next_state, reward, done, _ = env.step(action)
-			replay_buffer.store(state, action, reward, next_state, done)
+			replay_buffer.add(state, action, reward, next_state, done)
 
 			state = next_state
 			episode_reward += reward

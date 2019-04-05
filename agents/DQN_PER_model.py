@@ -3,43 +3,9 @@ import tensorflow as tf
 from common.utils import sync_main_target, huber_loss, ClipIfNotNone
 
 
-class Parameters:
-	def __init__(self, mode=None):
-		assert mode != None
-		print("Loading Params for {} Environment".format(mode))
-		if mode == "Atari":
-			self.state_reshape = (1, 84, 84, 1)
-			self.num_frames = 1000000
-			self.memory_size = 10000
-			self.learning_start = 10000
-			self.sync_freq = 1000
-			self.batch_size = 32
-			self.gamma = 0.99
-			self.epsilon_start = 1.0
-			self.epsilon_end = 0.01
-			self.decay_steps = 1000
-			self.prioritized_replay_alpha = 0.6
-			self.prioritized_replay_beta_start = 0.4
-			self.prioritized_replay_beta_end = 1.0
-		elif mode == "CartPole":
-			self.state_reshape = (1, 4)
-			self.num_frames = 20000
-			self.memory_size = 1000
-			self.learning_start = 1000
-			self.sync_freq = 200
-			self.batch_size = 32
-			self.gamma = 0.99
-			self.epsilon_start = 1.0
-			self.epsilon_end = 0.01
-			self.decay_steps = 500
-			self.prioritized_replay_alpha = 0.6
-			self.prioritized_replay_beta_start = 0.4
-			self.prioritized_replay_beta_end = 1.0
-
-
-class _DQN:
+class _DQN_PER:
 	"""
-	Boilerplate for DQN Agent
+	Boilerplate for DQN Agent with PER
 	"""
 
 	def __init__(self):
@@ -77,13 +43,13 @@ class _DQN:
 
 	def update(self, sess, state, action, Y):
 		feed_dict = {self.state: state, self.action: action, self.Y: Y}
-		_, loss = sess.run([self.train_op, self.loss], feed_dict=feed_dict)
-		return loss
+		_, loss, batch_loss = sess.run([self.train_op, self.loss, self.losses], feed_dict=feed_dict)
+		return loss, batch_loss
 
 
-class DQN_Atari(_DQN):
+class DQN_PER_Atari(_DQN_PER):
 	"""
-	DQN Agent for Atari Games
+	DQN Agent with PER for Atari Games
 	"""
 
 	def __init__(self, scope, env):
@@ -123,9 +89,9 @@ class DQN_Atari(_DQN):
 			self.train_op = self.optimizer.apply_gradients(self.clipped_grads_and_vars)
 
 
-class DQN_CartPole(_DQN):
+class DQN_PER_CartPole(_DQN_PER):
 	"""
-	DQN Agent for CartPole game
+	DQN Agent with PER for CartPole game
 	"""
 
 	def __init__(self, scope, env):
@@ -163,7 +129,7 @@ class DQN_CartPole(_DQN):
 
 
 
-def train_DQN(main_model, target_model, env, replay_buffer, Epsilon, params):
+def train_DQN_PER(main_model, target_model, env, replay_buffer, Epsilon, Beta, params):
 	"""
 	Train DQN agent which defined above
 
@@ -203,12 +169,15 @@ def train_DQN(main_model, target_model, env, replay_buffer, Epsilon, params):
 
 				if frame_idx > params.learning_start:
 					if len(replay_buffer) > params.batch_size:
-						states, actions, rewards, next_states, dones = replay_buffer.sample(params.batch_size)
+						# PER returns: state, action, reward, next_state, done, weights(a weight for a timestep), indices(indices for a batch of timesteps)
+						states, actions, rewards, next_states, dones, weights, indices = replay_buffer.sample(params.batch_size, Beta.get_value(frame_idx))
 						next_Q = target_model.predict(sess, next_states)
 						Y = rewards + params.gamma * np.argmax(next_Q, axis=1) * dones
 						# print(Y)
-						loss = main_model.update(sess, states, actions, Y)
+						loss, batch_loss = main_model.update(sess, states, actions, Y)
 						losses.append(loss)
+						# Update a prioritised replay buffer using a batch of losses associated with each timestep
+						replay_buffer.update_priorities(indices, batch_loss)
 				else:
 					pass
 

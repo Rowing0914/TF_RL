@@ -1,14 +1,14 @@
 import tensorflow as tf
 import numpy as np
 
-class AnnealingEpsilon:
+class AnnealingSchedule:
     def __init__(self, start=1.0, end=0.1, decay_steps=500):
         self.start       = start
         self.decay_steps = 500
-        self.epsilons = np.linspace(start, end, decay_steps)
+        self.annealed_value = np.linspace(start, end, decay_steps)
 
-    def get_epsilon(self, timestep):
-        return self.epsilons[min(timestep, self.decay_steps - 1)]
+    def get_value(self, timestep):
+        return self.annealed_value[min(timestep, self.decay_steps - 1)]
 
 def sync_main_target(sess, main, target):
     """
