@@ -11,8 +11,8 @@ from agents.DQN_model import train_DQN, DQN_CartPole, DQN_Atari, Parameters
 # initialise a graph in a session
 tf.reset_default_graph()
 
-mode = "CartPole"
-# mode = "Atari"
+# mode = "CartPole"
+mode = "Atari"
 
 if mode == "CartPole":
     env = gym.make("CartPole-v0")
