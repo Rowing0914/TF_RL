@@ -4,6 +4,17 @@ from common.utils import sync_main_target
 
 
 def train_Double_DQN(main_model, target_model, env, replay_buffer, Epsilon, params):
+	"""
+	Train Double DQN agent
+
+	:param main_model:
+	:param target_model:
+	:param env:
+	:param replay_buffer:
+	:param Epsilon:
+	:param params:
+	:return:
+	"""
 	# log purpose
 	losses = []
 	all_rewards = []

@@ -1,17 +1,17 @@
 import gym
-import tensorflow as tf
 import matplotlib.pyplot as plt
-
+import tensorflow as tf
 from common.memory import ReplayBuffer
 from common.utils import AnnealingEpsilon
-from Double_DQN_model import train_Double_DQN
+from common.wrappers_Atari import make_atari, wrap_deepmind
 from DQN_model import DQN_CartPole, DQN_Atari, Parameters
-
+from Double_DQN_model import train_Double_DQN
 
 # initialise a graph in a session
 tf.reset_default_graph()
 
-mode = "CartPole"
+# mode = "CartPole"
+mode = "Atari"
 
 if mode == "CartPole":
     env = gym.make("CartPole-v0")
@@ -21,7 +21,7 @@ if mode == "CartPole":
     replay_buffer = ReplayBuffer(params.memory_size)
     Epsilon = AnnealingEpsilon(start=params.epsilon_start, end=params.epsilon_end, decay_steps=params.decay_steps)
 elif mode == "Atari":
-    env = gym.make("PongNoFrameskip-v0")
+    env = wrap_deepmind(make_atari("PongNoFrameskip-v4"))
     params = Parameters(mode="Atari")
     main_model = DQN_Atari("main", env)
     target_model = DQN_Atari("target", env)
