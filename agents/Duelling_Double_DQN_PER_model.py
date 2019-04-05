@@ -3,15 +3,14 @@ import tensorflow as tf
 from common.utils import sync_main_target, huber_loss, ClipIfNotNone
 
 
-class _DQN_PER:
+class _Duelling_Double_DQN_PER:
 	"""
 	Boilerplate for DQN Agent with PER
 	"""
 
 	def __init__(self):
 		"""
-		define the deep learning model here!
-
+		define your model here!
 		"""
 		pass
 
@@ -25,7 +24,9 @@ class _DQN_PER:
 		:return:
 		"""
 		if np.random.rand() > epsilon:
-			q_value = sess.run(self.pred, feed_dict={self.state: state})[0]
+			q_value = sess.run(self.output, feed_dict={self.state: state})[0]
+			# dummy = sess.run(self.pred, feed_dict={self.state: state})[0]
+			# print(q_value, dummy)
 			action = np.argmax(q_value)
 		else:
 			action = np.random.randint(self.num_action)
@@ -47,12 +48,12 @@ class _DQN_PER:
 		return loss, batch_loss
 
 
-class DQN_PER_Atari(_DQN_PER):
+class Duelling_Double_DQN_PER_Atari(_Duelling_Double_DQN_PER):
 	"""
 	DQN Agent with PER for Atari Games
 	"""
 
-	def __init__(self, scope, env):
+	def __init__(self, scope, dueling_type, env):
 		self.scope = scope
 		self.num_action = env.action_space.n
 		with tf.variable_scope(scope):
@@ -66,6 +67,20 @@ class DQN_PER_Atari(_DQN_PER):
 			flat = tf.keras.layers.Flatten()(conv3)
 			fc1 = tf.keras.layers.Dense(512, activation=tf.nn.relu)(flat)
 			self.pred = tf.keras.layers.Dense(self.num_action, activation=tf.nn.relu)(fc1)
+			self.state_value = tf.keras.layers.Dense(1, activation=tf.nn.relu)(fc1)
+
+			# ===== Duelling DQN part =====
+			if dueling_type == "avg":
+				# Q(s,a;theta) = V(s;theta) + (A(s,a;theta)-Avg_a(A(s,a;theta)))
+				self.output = tf.math.add(self.state_value, tf.math.subtract(self.pred, tf.reduce_mean(self.pred)))
+			elif dueling_type == "max":
+				# Q(s,a;theta) = V(s;theta) + (A(s,a;theta)-max_a(A(s,a;theta)))
+				self.output = tf.math.add(self.state_value, tf.math.subtract(self.pred, tf.math.reduce_max(self.pred)))
+			elif dueling_type == "naive":
+				# Q(s,a;theta) = V(s;theta) + A(s,a;theta)
+				self.output = tf.math.add(self.state_value, self.pred)
+			else:
+				assert False, "dueling_type must be one of {'avg','max','naive'}"
 
 			# indices of the executed actions
 			idx_flattened = tf.range(0, tf.shape(self.pred)[0]) * tf.shape(self.pred)[1] + self.action
@@ -89,12 +104,12 @@ class DQN_PER_Atari(_DQN_PER):
 			self.train_op = self.optimizer.apply_gradients(self.clipped_grads_and_vars)
 
 
-class DQN_PER_CartPole(_DQN_PER):
+class Duelling_Double_DQN_PER_CartPole(_Duelling_Double_DQN_PER):
 	"""
 	DQN Agent with PER for CartPole game
 	"""
 
-	def __init__(self, scope, env):
+	def __init__(self, scope, dueling_type, env):
 		self.scope = scope
 		self.num_action = env.action_space.n
 		with tf.variable_scope(scope):
@@ -105,6 +120,20 @@ class DQN_PER_CartPole(_DQN_PER):
 			fc1 = tf.keras.layers.Dense(16, activation=tf.nn.relu)(self.state)
 			fc2 = tf.keras.layers.Dense(16, activation=tf.nn.relu)(fc1)
 			self.pred = tf.keras.layers.Dense(self.num_action, activation=tf.nn.relu)(fc2)
+			self.state_value = tf.keras.layers.Dense(1, activation=tf.nn.relu)(fc2)
+
+			# ===== Duelling DQN part =====
+			if dueling_type == "avg":
+				# Q(s,a;theta) = V(s;theta) + (A(s,a;theta)-Avg_a(A(s,a;theta)))
+				self.output = tf.math.add(self.state_value, tf.math.subtract( self.pred, tf.reduce_mean(self.pred) ))
+			elif dueling_type == "max":
+				# Q(s,a;theta) = V(s;theta) + (A(s,a;theta)-max_a(A(s,a;theta)))
+				self.output = tf.math.add(self.state_value, tf.math.subtract( self.pred, tf.math.reduce_max(self.pred) ))
+			elif dueling_type == "naive":
+				# Q(s,a;theta) = V(s;theta) + A(s,a;theta)
+				self.output = tf.math.add(self.state_value, self.pred)
+			else:
+				assert False, "dueling_type must be one of {'avg','max','naive'}"
 
 			# indices of the executed actions
 			idx_flattened = tf.range(0, tf.shape(self.pred)[0]) * tf.shape(self.pred)[1] + self.action
@@ -129,7 +158,7 @@ class DQN_PER_CartPole(_DQN_PER):
 
 
 
-def train_DQN_PER(main_model, target_model, env, replay_buffer, Epsilon, Beta, params):
+def train_Duelling_Double_DQN_PER(main_model, target_model, env, replay_buffer, Epsilon, Beta, params):
 	"""
 	Train DQN agent which defined above
 
@@ -169,11 +198,19 @@ def train_DQN_PER(main_model, target_model, env, replay_buffer, Epsilon, Beta, p
 
 				if frame_idx > params.learning_start:
 					if len(replay_buffer) > params.batch_size:
+
+						# ===== Prioritised Experience Replay part =====
 						# PER returns: state, action, reward, next_state, done, weights(a weight for a timestep), indices(indices for a batch of timesteps)
 						states, actions, rewards, next_states, dones, weights, indices = replay_buffer.sample(params.batch_size, Beta.get_value(frame_idx))
+
+						# ===== Double DQN part =====
+						next_Q_main = main_model.predict(sess, next_states)
 						next_Q = target_model.predict(sess, next_states)
-						Y = rewards + params.gamma * np.argmax(next_Q, axis=1) * dones
+						Y = rewards + params.gamma * next_Q[
+							np.arange(params.batch_size), np.argmax(next_Q_main, axis=1)] * dones
 						# print(Y)
+
+						# we get a batch of loss for updating PER memory
 						loss, batch_loss = main_model.update(sess, states, actions, Y)
 
 						# add noise to the priorities

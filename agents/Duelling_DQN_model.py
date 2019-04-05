@@ -111,14 +111,17 @@ class Duelling_DQN_Atari(Duelling_DQN):
 		self.scope = scope
 		self.num_action = env.action_space.n
 		with tf.variable_scope(scope):
-			self.state = tf.placeholder(shape=[None, env.observation_space.shape[0]], dtype=tf.float32, name="X")
+			self.state = tf.placeholder(shape=[None, 84, 84, 1], dtype=tf.float32, name="X")
 			self.Y = tf.placeholder(shape=[None], dtype=tf.float32, name="Y")
 			self.action = tf.placeholder(shape=[None], dtype=tf.int32, name="action")
 
-			fc1 = tf.keras.layers.Dense(16, activation=tf.nn.relu)(self.state)
-			fc2 = tf.keras.layers.Dense(16, activation=tf.nn.relu)(fc1)
-			self.pred = tf.keras.layers.Dense(self.num_action, activation=tf.nn.relu)(fc2)
-			self.state_value = tf.keras.layers.Dense(1, activation=tf.nn.relu)(fc2)
+			conv1 = tf.keras.layers.Conv2D(32, kernel_size=8, strides=8, activation=tf.nn.relu)(self.state)
+			conv2 = tf.keras.layers.Conv2D(64, kernel_size=4, strides=2, activation=tf.nn.relu)(conv1)
+			conv3 = tf.keras.layers.Conv2D(64, kernel_size=3, strides=1, activation=tf.nn.relu)(conv2)
+			flat = tf.keras.layers.Flatten()(conv3)
+			fc1 = tf.keras.layers.Dense(512, activation=tf.nn.relu)(flat)
+			self.pred = tf.keras.layers.Dense(self.num_action, activation=tf.nn.relu)(fc1)
+			self.state_value = tf.keras.layers.Dense(1, activation=tf.nn.relu)(fc1)
 
 			if dueling_type == "avg":
 				# Q(s,a;theta) = V(s;theta) + (A(s,a;theta)-Avg_a(A(s,a;theta)))

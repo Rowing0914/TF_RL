@@ -21,6 +21,7 @@ class Parameters:
 			self.prioritized_replay_alpha = 0.6
 			self.prioritized_replay_beta_start = 0.4
 			self.prioritized_replay_beta_end = 1.0
+			self.prioritized_replay_noise = 1e-6
 		elif mode == "CartPole":
 			self.state_reshape = (1, 4)
 			self.num_frames = 20000
@@ -35,6 +36,7 @@ class Parameters:
 			self.prioritized_replay_alpha = 0.6
 			self.prioritized_replay_beta_start = 0.4
 			self.prioritized_replay_beta_end = 1.0
+			self.prioritized_replay_noise = 1e-6
 
 
 class _DQN:
