@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from common.utils import sync_main_target
+from common.utils import sync_main_target, soft_target_model_update
 
 
 def train_Double_DQN(main_model, target_model, env, replay_buffer, Epsilon, params):
@@ -36,23 +36,24 @@ def train_Double_DQN(main_model, target_model, env, replay_buffer, Epsilon, para
 			if done:
 				state = env.reset()
 				all_rewards.append(episode_reward)
-				print("\rGAME OVER AT STEP: {0}, SCORE: {1}".format(frame_idx, episode_reward), end="")
 				episode_reward = 0
 
-				if frame_idx > params.learning_start:
-					if len(replay_buffer) > params.batch_size:
-						states, actions, rewards, next_states, dones = replay_buffer.sample(params.batch_size)
-						next_Q_main = main_model.predict(sess, next_states)
-						next_Q = target_model.predict(sess, next_states)
-						Y = rewards + params.gamma * next_Q[
-							np.arange(params.batch_size), np.argmax(next_Q_main, axis=1)] * dones
-						# print(Y)
-						loss = main_model.update(sess, states, actions, Y)
-						losses.append(loss)
-				else:
-					pass
+				if frame_idx > params.learning_start and len(replay_buffer) > params.batch_size:
+					states, actions, rewards, next_states, dones = replay_buffer.sample(params.batch_size)
+					next_Q_main = main_model.predict(sess, next_states)
+					next_Q = target_model.predict(sess, next_states)
+					Y = rewards + params.gamma * next_Q[
+						np.arange(params.batch_size), np.argmax(next_Q_main, axis=1)] * dones
+					loss = main_model.update(sess, states, actions, Y)
+					print("GAME OVER AT STEP: {0}, SCORE: {1}, LOSS: {2}".format(frame_idx, episode_reward, loss))
+					losses.append(loss)
 
-			if frame_idx > params.learning_start:
-				if frame_idx % params.sync_freq == 0:
-					print("\nModel Sync")
+			if frame_idx > params.learning_start and frame_idx % params.sync_freq == 0:
+				# soft update means we partially add the original weights of target model instead of completely
+				# sharing the weights among main and target models
+				if params.update_hard_or_soft == "hard":
 					sync_main_target(sess, main_model, target_model)
+				elif params.update_hard_or_soft == "soft":
+					soft_target_model_update(sess, main_model, target_model, tau=params.soft_update_tau)
+
+	return all_rewards, losses

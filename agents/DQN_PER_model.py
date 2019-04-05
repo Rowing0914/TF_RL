@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from common.utils import sync_main_target, huber_loss, ClipIfNotNone
+from common.utils import sync_main_target, soft_target_model_update, huber_loss, ClipIfNotNone
 
 
 class _DQN_PER:
@@ -24,11 +24,11 @@ class _DQN_PER:
 		:param epsilon:
 		:return:
 		"""
-		if np.random.rand() > epsilon:
+		if np.random.uniform() < epsilon:
+			action = np.random.randint(self.num_action)
+		else:
 			q_value = sess.run(self.pred, feed_dict={self.state: state})[0]
 			action = np.argmax(q_value)
-		else:
-			action = np.random.randint(self.num_action)
 		return action
 
 	def predict(self, sess, state):
@@ -167,29 +167,30 @@ def train_DQN_PER(main_model, target_model, env, replay_buffer, Epsilon, Beta, p
 				print("\rGAME OVER AT STEP: {0}, SCORE: {1}".format(frame_idx, episode_reward), end="")
 				episode_reward = 0
 
-				if frame_idx > params.learning_start:
-					if len(replay_buffer) > params.batch_size:
-						# PER returns: state, action, reward, next_state, done, weights(a weight for a timestep), indices(indices for a batch of timesteps)
-						states, actions, rewards, next_states, dones, weights, indices = replay_buffer.sample(params.batch_size, Beta.get_value(frame_idx))
-						next_Q = target_model.predict(sess, next_states)
-						Y = rewards + params.gamma * np.argmax(next_Q, axis=1) * dones
-						# print(Y)
-						loss, batch_loss = main_model.update(sess, states, actions, Y)
+				if frame_idx > params.learning_start and len(replay_buffer) > params.batch_size:
+					# PER returns: state, action, reward, next_state, done, weights(a weight for a timestep), indices(indices for a batch of timesteps)
+					states, actions, rewards, next_states, dones, weights, indices = replay_buffer.sample(params.batch_size, Beta.get_value(frame_idx))
+					next_Q = target_model.predict(sess, next_states)
+					Y = rewards + params.gamma * np.argmax(next_Q, axis=1) * dones
+					loss, batch_loss = main_model.update(sess, states, actions, Y)
 
-						# add noise to the priorities
-						batch_loss = np.abs(batch_loss) + params.prioritized_replay_noise
+					print("GAME OVER AT STEP: {0}, SCORE: {1}, LOSS: {2}".format(frame_idx, episode_reward, loss))
 
-						# Update a prioritised replay buffer using a batch of losses associated with each timestep
-						replay_buffer.update_priorities(indices, batch_loss)
+					# add noise to the priorities
+					batch_loss = np.abs(batch_loss) + params.prioritized_replay_noise
 
-						# log purpose
-						losses.append(loss)
-				else:
-					pass
+					# Update a prioritised replay buffer using a batch of losses associated with each timestep
+					replay_buffer.update_priorities(indices, batch_loss)
 
-			if frame_idx > params.learning_start:
-				if frame_idx % params.sync_freq == 0:
-					print("\nModel Sync")
+					# log purpose
+					losses.append(loss)
+
+			if frame_idx > params.learning_start and frame_idx % params.sync_freq == 0:
+				# soft update means we partially add the original weights of target model instead of completely
+				# sharing the weights among main and target models
+				if params.update_hard_or_soft == "hard":
 					sync_main_target(sess, main_model, target_model)
+				elif params.update_hard_or_soft == "soft":
+					soft_target_model_update(sess, main_model, target_model, tau=params.soft_update_tau)
 
 	return all_rewards, losses

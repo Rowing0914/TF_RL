@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from common.utils import sync_main_target, huber_loss, ClipIfNotNone
+from common.utils import sync_main_target, soft_target_model_update, huber_loss, ClipIfNotNone
 
 
 class Parameters:
@@ -15,6 +15,8 @@ class Parameters:
 			self.sync_freq = 1000
 			self.batch_size = 32
 			self.gamma = 0.99
+			self.update_hard_or_soft = "soft"
+			self.soft_update_tau = 1e-2
 			self.epsilon_start = 1.0
 			self.epsilon_end = 0.01
 			self.decay_steps = 1000
@@ -24,12 +26,14 @@ class Parameters:
 			self.prioritized_replay_noise = 1e-6
 		elif mode == "CartPole":
 			self.state_reshape = (1, 4)
-			self.num_frames = 20000
-			self.memory_size = 1000
-			self.learning_start = 1000
-			self.sync_freq = 200
+			self.num_frames = 10000
+			self.memory_size = 20000
+			self.learning_start = 100
+			self.sync_freq = 100
 			self.batch_size = 32
 			self.gamma = 0.99
+			self.update_hard_or_soft = "soft"
+			self.soft_update_tau = 1e-2
 			self.epsilon_start = 1.0
 			self.epsilon_end = 0.01
 			self.decay_steps = 500
@@ -60,11 +64,11 @@ class _DQN:
 		:param epsilon:
 		:return:
 		"""
-		if np.random.rand() > epsilon:
+		if np.random.uniform() < epsilon:
+			action = np.random.randint(self.num_action)
+		else:
 			q_value = sess.run(self.pred, feed_dict={self.state: state})[0]
 			action = np.argmax(q_value)
-		else:
-			action = np.random.randint(self.num_action)
 		return action
 
 	def predict(self, sess, state):
@@ -140,7 +144,8 @@ class DQN_CartPole(_DQN):
 
 			fc1 = tf.keras.layers.Dense(16, activation=tf.nn.relu)(self.state)
 			fc2 = tf.keras.layers.Dense(16, activation=tf.nn.relu)(fc1)
-			self.pred = tf.keras.layers.Dense(self.num_action, activation=tf.nn.relu)(fc2)
+			fc3 = tf.keras.layers.Dense(16, activation=tf.nn.relu)(fc2)
+			self.pred = tf.keras.layers.Dense(self.num_action, activation=tf.nn.relu)(fc3)
 
 			# indices of the executed actions
 			idx_flattened = tf.range(0, tf.shape(self.pred)[0]) * tf.shape(self.pred)[1] + self.action
@@ -189,7 +194,7 @@ def train_DQN(main_model, target_model, env, replay_buffer, Epsilon, params):
 		sess.run(tf.global_variables_initializer())
 		state = env.reset()
 		for frame_idx in range(1, params.num_frames + 1):
-			action = target_model.act(sess, state.reshape(params.state_reshape), Epsilon.get_value(frame_idx))
+			action = main_model.act(sess, state.reshape(params.state_reshape), Epsilon.get_value(frame_idx))
 
 			next_state, reward, done, _ = env.step(action)
 			replay_buffer.add(state, action, reward, next_state, done)
@@ -200,23 +205,22 @@ def train_DQN(main_model, target_model, env, replay_buffer, Epsilon, params):
 			if done:
 				state = env.reset()
 				all_rewards.append(episode_reward)
-				print("\rGAME OVER AT STEP: {0}, SCORE: {1}".format(frame_idx, episode_reward), end="")
 				episode_reward = 0
 
-				if frame_idx > params.learning_start:
-					if len(replay_buffer) > params.batch_size:
-						states, actions, rewards, next_states, dones = replay_buffer.sample(params.batch_size)
-						next_Q = target_model.predict(sess, next_states)
-						Y = rewards + params.gamma * np.argmax(next_Q, axis=1) * dones
-						# print(Y)
-						loss = main_model.update(sess, states, actions, Y)
-						losses.append(loss)
-				else:
-					pass
+				if frame_idx > params.learning_start and len(replay_buffer) > params.batch_size:
+					states, actions, rewards, next_states, dones = replay_buffer.sample(params.batch_size)
+					next_Q = target_model.predict(sess, next_states)
+					Y = rewards + params.gamma * np.argmax(next_Q, axis=1) * dones
+					loss = main_model.update(sess, states, actions, Y)
+					print("GAME OVER AT STEP: {0}, SCORE: {1}, LOSS: {2}".format(frame_idx, episode_reward, loss))
+					losses.append(loss)
 
-			if frame_idx > params.learning_start:
-				if frame_idx % params.sync_freq == 0:
-					print("\nModel Sync")
+			if frame_idx > params.learning_start and frame_idx % params.sync_freq == 0:
+				# soft update means we partially add the original weights of target model instead of completely
+				# sharing the weights among main and target models
+				if params.update_hard_or_soft == "hard":
 					sync_main_target(sess, main_model, target_model)
+				elif params.update_hard_or_soft == "soft":
+					soft_target_model_update(sess, main_model, target_model, tau=params.soft_update_tau)
 
 	return all_rewards, losses

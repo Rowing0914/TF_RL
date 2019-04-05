@@ -23,13 +23,13 @@ class Duelling_DQN:
 		:param epsilon:
 		:return:
 		"""
-		if np.random.rand() > epsilon:
+		if np.random.uniform() < epsilon:
+			action = np.random.randint(self.num_action)
+		else:
 			q_value = sess.run(self.output, feed_dict={self.state: state})[0]
 			# dummy = sess.run(self.pred, feed_dict={self.state: state})[0]
 			# print(q_value, dummy)
 			action = np.argmax(q_value)
-		else:
-			action = np.random.randint(self.num_action)
 		return action
 
 	def predict(self, sess, state):

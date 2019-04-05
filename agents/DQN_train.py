@@ -2,7 +2,7 @@ import gym
 import tensorflow as tf
 import matplotlib.pyplot as plt
 
-from common.memory import ReplayBuffer, PrioritizedReplayBuffer
+from common.memory import ReplayBuffer
 from common.utils import AnnealingSchedule
 from common.wrappers_Atari import make_atari, wrap_deepmind
 from agents.DQN_model import train_DQN, DQN_CartPole, DQN_Atari, Parameters
@@ -11,8 +11,8 @@ from agents.DQN_model import train_DQN, DQN_CartPole, DQN_Atari, Parameters
 # initialise a graph in a session
 tf.reset_default_graph()
 
-# mode = "CartPole"
-mode = "Atari"
+mode = "CartPole"
+# mode = "Atari"
 
 if mode == "CartPole":
     env = gym.make("CartPole-v0")
