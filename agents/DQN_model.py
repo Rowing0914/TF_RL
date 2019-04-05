@@ -205,15 +205,17 @@ def train_DQN(main_model, target_model, env, replay_buffer, Epsilon, params):
 			if done:
 				state = env.reset()
 				all_rewards.append(episode_reward)
-				episode_reward = 0
 
 				if frame_idx > params.learning_start and len(replay_buffer) > params.batch_size:
 					states, actions, rewards, next_states, dones = replay_buffer.sample(params.batch_size)
 					next_Q = target_model.predict(sess, next_states)
 					Y = rewards + params.gamma * np.argmax(next_Q, axis=1) * dones
 					loss = main_model.update(sess, states, actions, Y)
-					print("GAME OVER AT STEP: {0}, SCORE: {1}, LOSS: {2}".format(frame_idx, episode_reward, loss))
 					losses.append(loss)
+
+					print("GAME OVER AT STEP: {0}, SCORE: {1}, LOSS: {2}".format(frame_idx, episode_reward, loss))
+					episode_reward = 0
+
 
 			if frame_idx > params.learning_start and frame_idx % params.sync_freq == 0:
 				# soft update means we partially add the original weights of target model instead of completely

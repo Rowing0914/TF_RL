@@ -194,8 +194,6 @@ def train_Duelling_Double_DQN_PER(main_model, target_model, env, replay_buffer, 
 			if done:
 				state = env.reset()
 				all_rewards.append(episode_reward)
-				print("\rGAME OVER AT STEP: {0}, SCORE: {1}".format(frame_idx, episode_reward), end="")
-				episode_reward = 0
 
 				if frame_idx > params.learning_start and len(replay_buffer) > params.batch_size:
 					# ===== Prioritised Experience Replay part =====
@@ -211,7 +209,6 @@ def train_Duelling_Double_DQN_PER(main_model, target_model, env, replay_buffer, 
 					# we get a batch of loss for updating PER memory
 					loss, batch_loss = main_model.update(sess, states, actions, Y)
 
-					print("GAME OVER AT STEP: {0}, SCORE: {1}, LOSS: {2}".format(frame_idx, episode_reward, loss))
 
 					# add noise to the priorities
 					batch_loss = np.abs(batch_loss) + params.prioritized_replay_noise
@@ -221,6 +218,9 @@ def train_Duelling_Double_DQN_PER(main_model, target_model, env, replay_buffer, 
 
 					# log purpose
 					losses.append(loss)
+
+					print("GAME OVER AT STEP: {0}, SCORE: {1}, LOSS: {2}".format(frame_idx, episode_reward, loss))
+					episode_reward = 0
 
 			if frame_idx > params.learning_start and frame_idx % params.sync_freq == 0:
 				# soft update means we partially add the original weights of target model instead of completely

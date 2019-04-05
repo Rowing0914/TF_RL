@@ -164,8 +164,6 @@ def train_DQN_PER(main_model, target_model, env, replay_buffer, Epsilon, Beta, p
 			if done:
 				state = env.reset()
 				all_rewards.append(episode_reward)
-				print("\rGAME OVER AT STEP: {0}, SCORE: {1}".format(frame_idx, episode_reward), end="")
-				episode_reward = 0
 
 				if frame_idx > params.learning_start and len(replay_buffer) > params.batch_size:
 					# PER returns: state, action, reward, next_state, done, weights(a weight for a timestep), indices(indices for a batch of timesteps)
@@ -173,8 +171,6 @@ def train_DQN_PER(main_model, target_model, env, replay_buffer, Epsilon, Beta, p
 					next_Q = target_model.predict(sess, next_states)
 					Y = rewards + params.gamma * np.argmax(next_Q, axis=1) * dones
 					loss, batch_loss = main_model.update(sess, states, actions, Y)
-
-					print("GAME OVER AT STEP: {0}, SCORE: {1}, LOSS: {2}".format(frame_idx, episode_reward, loss))
 
 					# add noise to the priorities
 					batch_loss = np.abs(batch_loss) + params.prioritized_replay_noise
@@ -184,6 +180,9 @@ def train_DQN_PER(main_model, target_model, env, replay_buffer, Epsilon, Beta, p
 
 					# log purpose
 					losses.append(loss)
+
+					print("GAME OVER AT STEP: {0}, SCORE: {1}, LOSS: {2}".format(frame_idx, episode_reward, loss))
+					episode_reward = 0
 
 			if frame_idx > params.learning_start and frame_idx % params.sync_freq == 0:
 				# soft update means we partially add the original weights of target model instead of completely
