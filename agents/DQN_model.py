@@ -69,6 +69,7 @@ class _DQN:
 	def update(self, sess, state, action, Y):
 		feed_dict = {self.state: state, self.action: action, self.Y: Y}
 		_, loss = sess.run([self.train_op, self.loss], feed_dict=feed_dict)
+		# print(action, Y, sess.run(self.idx_flattened, feed_dict=feed_dict))
 		return loss
 
 
@@ -99,7 +100,7 @@ class DQN_Atari(_DQN):
 			# using tf.gather, associate Q-values with the executed actions
 			self.action_probs = tf.gather(tf.reshape(self.pred, [-1]), idx_flattened)
 
-			# MSE loss function
+			# MSE with huber loss
 			self.losses = tf.squared_difference(self.Y, self.action_probs)
 			self.loss = tf.reduce_mean(huber_loss(self.losses))
 
@@ -133,13 +134,13 @@ class DQN_CartPole(_DQN):
 			self.pred = tf.keras.layers.Dense(self.num_action, activation=tf.nn.relu)(fc3)
 
 			# indices of the executed actions
-			idx_flattened = tf.range(0, tf.shape(self.pred)[0]) * tf.shape(self.pred)[1] + self.action
+			self.idx_flattened = tf.range(0, tf.shape(self.pred)[0]) * tf.shape(self.pred)[1] + self.action
 
 			# passing [-1] to tf.reshape means flatten the array
 			# using tf.gather, associate Q-values with the executed actions
-			self.action_probs = tf.gather(tf.reshape(self.pred, [-1]), idx_flattened)
+			self.action_probs = tf.gather(tf.reshape(self.pred, [-1]), self.idx_flattened)
 
-			# MSE loss function
+			# MSE with huber loss
 			self.losses = tf.squared_difference(self.Y, self.action_probs)
 			self.loss = tf.reduce_mean(huber_loss(self.losses))
 
@@ -192,7 +193,7 @@ def train_DQN(main_model, target_model, env, replay_buffer, policy, params):
 				if frame_idx > params.learning_start and len(replay_buffer) > params.batch_size:
 					states, actions, rewards, next_states, dones = replay_buffer.sample(params.batch_size)
 					next_Q = target_model.predict(sess, next_states)
-					Y = rewards + params.gamma * np.argmax(next_Q, axis=1) * dones
+					Y = rewards + params.gamma * np.max(next_Q, axis=1) * np.logical_not(dones)
 					loss = main_model.update(sess, states, actions, Y)
 
 					# Logging and refreshing log purpose values
