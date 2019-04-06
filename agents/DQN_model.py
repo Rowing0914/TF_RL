@@ -1,6 +1,7 @@
 import numpy as np
+import time
 import tensorflow as tf
-from common.utils import sync_main_target, soft_target_model_update, huber_loss, ClipIfNotNone
+from common.utils import sync_main_target, soft_target_model_update, huber_loss, ClipIfNotNone, logging
 
 
 class Parameters:
@@ -54,22 +55,6 @@ class _DQN:
 
 		"""
 		pass
-
-	def act(self, sess, state, epsilon):
-		"""
-		Given a state, it performs an epsilon-greedy policy
-
-		:param sess:
-		:param state:
-		:param epsilon:
-		:return:
-		"""
-		if np.random.uniform() < epsilon:
-			action = np.random.randint(self.num_action)
-		else:
-			q_value = sess.run(self.pred, feed_dict={self.state: state})[0]
-			action = np.argmax(q_value)
-		return action
 
 	def predict(self, sess, state):
 		"""
@@ -170,7 +155,7 @@ class DQN_CartPole(_DQN):
 
 
 
-def train_DQN(main_model, target_model, env, replay_buffer, Epsilon, params):
+def train_DQN(main_model, target_model, env, replay_buffer, policy, params):
 	"""
 	Train DQN agent which defined above
 
@@ -182,20 +167,17 @@ def train_DQN(main_model, target_model, env, replay_buffer, Epsilon, params):
 	"""
 
 	# log purpose
-	losses = []
-	all_rewards = []
-	episode_reward = 0
-
-	# training epoch
-	global_step = tf.Variable(0, name="global_step", trainable=False)
+	losses, all_rewards, cnt_action = [], [], []
+	episode_reward, index_episode = 0, 0
 
 	with tf.Session() as sess:
 		# initialise all variables used in the model
 		sess.run(tf.global_variables_initializer())
 		state = env.reset()
+		start = time.time()
 		for frame_idx in range(1, params.num_frames + 1):
-			action = main_model.act(sess, state.reshape(params.state_reshape), Epsilon.get_value(frame_idx))
-
+			action = policy.select_action(sess, main_model, state.reshape(params.state_reshape))
+			cnt_action.append(action)
 			next_state, reward, done, _ = env.step(action)
 			replay_buffer.add(state, action, reward, next_state, done)
 
@@ -203,6 +185,7 @@ def train_DQN(main_model, target_model, env, replay_buffer, Epsilon, params):
 			episode_reward += reward
 
 			if done:
+				index_episode += 1
 				state = env.reset()
 				all_rewards.append(episode_reward)
 
@@ -211,11 +194,13 @@ def train_DQN(main_model, target_model, env, replay_buffer, Epsilon, params):
 					next_Q = target_model.predict(sess, next_states)
 					Y = rewards + params.gamma * np.argmax(next_Q, axis=1) * dones
 					loss = main_model.update(sess, states, actions, Y)
+
+					# Logging and refreshing log purpose values
 					losses.append(loss)
-
-					print("GAME OVER AT STEP: {0}, SCORE: {1}, LOSS: {2}".format(frame_idx, episode_reward, loss))
+					logging(frame_idx, params.num_frames, index_episode, time.time()-start, episode_reward, loss, cnt_action)
 					episode_reward = 0
-
+					cnt_action = []
+					start = time.time()
 
 			if frame_idx > params.learning_start and frame_idx % params.sync_freq == 0:
 				# soft update means we partially add the original weights of target model instead of completely
@@ -224,5 +209,6 @@ def train_DQN(main_model, target_model, env, replay_buffer, Epsilon, params):
 					sync_main_target(sess, main_model, target_model)
 				elif params.update_hard_or_soft == "soft":
 					soft_target_model_update(sess, main_model, target_model, tau=params.soft_update_tau)
+
 
 	return all_rewards, losses

@@ -1,6 +1,7 @@
 import numpy as np
+import time
 import tensorflow as tf
-from common.utils import sync_main_target, soft_target_model_update, huber_loss, ClipIfNotNone
+from common.utils import sync_main_target, soft_target_model_update, huber_loss, ClipIfNotNone, logging
 
 
 class _DQN_PER:
@@ -129,7 +130,7 @@ class DQN_PER_CartPole(_DQN_PER):
 
 
 
-def train_DQN_PER(main_model, target_model, env, replay_buffer, Epsilon, Beta, params):
+def train_DQN_PER(main_model, target_model, env, replay_buffer, policy, Beta, params):
 	"""
 	Train DQN agent which defined above
 
@@ -141,20 +142,16 @@ def train_DQN_PER(main_model, target_model, env, replay_buffer, Epsilon, Beta, p
 	"""
 
 	# log purpose
-	losses = []
-	all_rewards = []
-	episode_reward = 0
-
-	# training epoch
-	global_step = tf.Variable(0, name="global_step", trainable=False)
+	losses, all_rewards, cnt_action = [], [], []
+	episode_reward, index_episode = 0, 0
 
 	with tf.Session() as sess:
 		# initialise all variables used in the model
 		sess.run(tf.global_variables_initializer())
 		state = env.reset()
 		for frame_idx in range(1, params.num_frames + 1):
-			action = target_model.act(sess, state.reshape(params.state_reshape), Epsilon.get_value(frame_idx))
-
+			action = policy.select_action(sess, main_model, state.reshape(params.state_reshape))
+			cnt_action.append(action)
 			next_state, reward, done, _ = env.step(action)
 			replay_buffer.add(state, action, reward, next_state, done)
 
@@ -178,11 +175,12 @@ def train_DQN_PER(main_model, target_model, env, replay_buffer, Epsilon, Beta, p
 					# Update a prioritised replay buffer using a batch of losses associated with each timestep
 					replay_buffer.update_priorities(indices, batch_loss)
 
-					# log purpose
+					# Logging and refreshing log purpose values
 					losses.append(loss)
-
-					print("GAME OVER AT STEP: {0}, SCORE: {1}, LOSS: {2}".format(frame_idx, episode_reward, loss))
+					logging(frame_idx, params.num_frames, index_episode, time.time()-start, episode_reward, loss, cnt_action)
 					episode_reward = 0
+					cnt_action = []
+					start = time.time()
 
 			if frame_idx > params.learning_start and frame_idx % params.sync_freq == 0:
 				# soft update means we partially add the original weights of target model instead of completely

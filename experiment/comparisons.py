@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from common.memory import ReplayBuffer
 from common.utils import AnnealingSchedule
 from common.wrappers_Atari import make_atari, wrap_deepmind
+from common.policy import EpsilonGreedyPolicy, BoltzmannQPolicy
 from agents.Double_DQN_model import train_Double_DQN
 from agents.Duelling_DQN_model import Duelling_DQN_Atari, Duelling_DQN_CartPole
 from agents.DQN_model import train_DQN, DQN_CartPole, DQN_Atari, Parameters
@@ -36,6 +37,8 @@ for model, model_name in zip(models, models_name):
 			replay_buffer = ReplayBuffer(params.memory_size)
 			Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end,
 										decay_steps=params.decay_steps)
+			# policy = EpsilonGreedyPolicy(Epsilon_fn=Epsilon)
+			policy = BoltzmannQPolicy()
 		elif mode == "Atari":
 			env = wrap_deepmind(make_atari("PongNoFrameskip-v4"))
 			params = Parameters(mode="Atari")
@@ -44,6 +47,8 @@ for model, model_name in zip(models, models_name):
 			replay_buffer = ReplayBuffer(params.memory_size)
 			Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end,
 										decay_steps=params.decay_steps)
+			# policy = EpsilonGreedyPolicy(Epsilon_fn=Epsilon)
+			policy = BoltzmannQPolicy()
 		else:
 			print("Select 'mode' either 'Atari' or 'CartPole' !!")
 	else:
@@ -54,6 +59,8 @@ for model, model_name in zip(models, models_name):
 			target_model = model("target", env)
 			replay_buffer = ReplayBuffer(params.memory_size)
 			Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end, decay_steps=params.decay_steps)
+			# policy = EpsilonGreedyPolicy(Epsilon_fn=Epsilon)
+			policy = BoltzmannQPolicy()
 		elif mode == "Atari":
 			env = wrap_deepmind(make_atari("PongNoFrameskip-v4"))
 			params = Parameters(mode="Atari")
@@ -61,15 +68,17 @@ for model, model_name in zip(models, models_name):
 			target_model = model("target", env)
 			replay_buffer = ReplayBuffer(params.memory_size)
 			Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end, decay_steps=params.decay_steps)
+			# policy = EpsilonGreedyPolicy(Epsilon_fn=Epsilon)
+			policy = BoltzmannQPolicy()
 		else:
 			print("Select 'mode' either 'Atari' or 'CartPole' !!")
 
 
 	# in case of Double DQN, we use different training method from DQN
 	if model_name == "Double_DQN":
-		all_rewards, losses = train_Double_DQN(main_model, target_model, env, replay_buffer, Epsilon, params)
+		all_rewards, losses = train_Double_DQN(main_model, target_model, env, replay_buffer, policy, params)
 	else:
-		all_rewards, losses = train_DQN(main_model, target_model, env, replay_buffer, Epsilon, params)
+		all_rewards, losses = train_DQN(main_model, target_model, env, replay_buffer, policy, params)
 
 
 	# temporal visualisation

@@ -1,9 +1,10 @@
 import numpy as np
+import time
 import tensorflow as tf
-from common.utils import sync_main_target, soft_target_model_update
+from common.utils import sync_main_target, soft_target_model_update, logging
 
 
-def train_Double_DQN(main_model, target_model, env, replay_buffer, Epsilon, params):
+def train_Double_DQN(main_model, target_model, env, replay_buffer, policy, params):
 	"""
 	Train Double DQN agent
 
@@ -15,18 +16,18 @@ def train_Double_DQN(main_model, target_model, env, replay_buffer, Epsilon, para
 	:param params:
 	:return:
 	"""
+
 	# log purpose
-	losses = []
-	all_rewards = []
-	episode_reward = 0
+	losses, all_rewards, cnt_action = [], [], []
+	episode_reward, index_episode = 0, 0
 
 	with tf.Session() as sess:
 		# initialise all variables used in the model
 		sess.run(tf.global_variables_initializer())
 		state = env.reset()
 		for frame_idx in range(1, params.num_frames + 1):
-			action = target_model.act(sess, state.reshape(params.state_reshape), Epsilon.get_value(frame_idx))
-
+			action = policy.select_action(sess, target_model, state.reshape(params.state_reshape))
+			cnt_action.append(action)
 			next_state, reward, done, _ = env.step(action)
 			replay_buffer.add(state, action, reward, next_state, done)
 
@@ -44,10 +45,13 @@ def train_Double_DQN(main_model, target_model, env, replay_buffer, Epsilon, para
 					Y = rewards + params.gamma * next_Q[
 						np.arange(params.batch_size), np.argmax(next_Q_main, axis=1)] * dones
 					loss = main_model.update(sess, states, actions, Y)
-					losses.append(loss)
 
-					print("GAME OVER AT STEP: {0}, SCORE: {1}, LOSS: {2}".format(frame_idx, episode_reward, loss))
+					# Logging and refreshing log purpose values
+					losses.append(loss)
+					logging(frame_idx, params.num_frames, index_episode, time.time()-start, episode_reward, loss, cnt_action)
 					episode_reward = 0
+					cnt_action = []
+					start = time.time()
 
 
 			if frame_idx > params.learning_start and frame_idx % params.sync_freq == 0:
