@@ -149,6 +149,7 @@ def train_DQN_PER(main_model, target_model, env, replay_buffer, policy, Beta, pa
 		# initialise all variables used in the model
 		sess.run(tf.global_variables_initializer())
 		state = env.reset()
+		start = time.time()
 		for frame_idx in range(1, params.num_frames + 1):
 			action = policy.select_action(sess, main_model, state.reshape(params.state_reshape))
 			cnt_action.append(action)
@@ -159,6 +160,7 @@ def train_DQN_PER(main_model, target_model, env, replay_buffer, policy, Beta, pa
 			episode_reward += reward
 
 			if done:
+				index_episode += 1
 				state = env.reset()
 				all_rewards.append(episode_reward)
 
