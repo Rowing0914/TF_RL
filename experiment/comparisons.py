@@ -9,6 +9,10 @@ models = [
 	"Duelling_Double_DQN_PER_train",
 ]
 
+# refresh the folder
+os.system("rm ../logs/values/*")
+os.system("rm ../logs/graphs/*")
+
 for model in models:
 	os.system("python3.6 ../agents/{}.py".format(model))
 
@@ -28,5 +32,6 @@ for model in models:
 	plt.xlabel("Timestep")
 	plt.ylabel("Loss")
 
-plt.legend()
+plt.legend(loc='upper right')
+plt.savefig("../logs/graphs/comparison.png")
 plt.show()
