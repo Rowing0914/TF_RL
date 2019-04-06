@@ -10,7 +10,7 @@
 
 ![graphs](<https://github.com/Rowing0914/TF_RL/blob/master/logs/graphs/comparison.png>)
 
-
+**still under development.... I know this is huge failure....
 
 ### Deep Reinforcement Learning
 
