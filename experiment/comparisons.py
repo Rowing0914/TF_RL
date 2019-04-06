@@ -1,103 +1,29 @@
-import gym
-import tensorflow as tf
+import os
+import numpy as np
 import matplotlib.pyplot as plt
 
-from common.memory import ReplayBuffer
-from common.utils import AnnealingSchedule
-from common.wrappers_Atari import make_atari, wrap_deepmind
-from common.policy import EpsilonGreedyPolicy, BoltzmannQPolicy
-from agents.Double_DQN_model import train_Double_DQN
-from agents.Duelling_DQN_model import Duelling_DQN_Atari, Duelling_DQN_CartPole
-from agents.DQN_model import train_DQN, DQN_CartPole, DQN_Atari, Parameters
+models = [
+	"DQN_train",
+	"Double_DQN_train",
+	"DQN_PER_train",
+	"Duelling_Double_DQN_PER_train",
+]
 
+for model in models:
+	os.system("python3.6 ../agents/{}.py".format(model))
 
-mode = "CartPole"
-# mode = "Atari"
-
-# we iterate through the all models implemented in agents
-if mode == "CartPole":
-	models = [DQN_CartPole, Duelling_DQN_CartPole, DQN_CartPole]
-	models_name = ["DQN", "Duelling_DQN", "Double_DQN"]
-elif mode == "Atari":
-	models = [DQN_Atari, Duelling_DQN_Atari, DQN_Atari]
-	models_name = ["DQN", "Duelling_DQN", "Double_DQN"]
-
-
-for model, model_name in zip(models, models_name):
-	print("===== MODEL: {} TRAINING BEGIN =====".format(model_name))
-	# initialise a graph in a session
-	tf.reset_default_graph()
-
-	if model_name == "Duelling_DQN":
-		if mode == "CartPole":
-			env = gym.make("CartPole-v0")
-			params = Parameters(mode="CartPole")
-			main_model = model("main", "max", env, "huber_loss")
-			# main_model = model("main", "max", env, "MSE")
-			target_model = model("target", "max", env, "huber_loss")
-			# target_model = model("target", "max", env, "MSE")
-			replay_buffer = ReplayBuffer(params.memory_size)
-			Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end,
-										decay_steps=params.decay_steps)
-			# policy = EpsilonGreedyPolicy(Epsilon_fn=Epsilon)
-			policy = BoltzmannQPolicy()
-		elif mode == "Atari":
-			env = wrap_deepmind(make_atari("PongNoFrameskip-v4"))
-			params = Parameters(mode="Atari")
-			main_model = model("main", "max", env, "huber_loss")
-			# main_model = model("main", "max", env, "MSE")
-			target_model = model("target", "max", env, "huber_loss")
-			# target_model = model("target", "max", env, "MSE")
-			replay_buffer = ReplayBuffer(params.memory_size)
-			Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end,
-										decay_steps=params.decay_steps)
-			# policy = EpsilonGreedyPolicy(Epsilon_fn=Epsilon)
-			policy = BoltzmannQPolicy()
-		else:
-			print("Select 'mode' either 'Atari' or 'CartPole' !!")
-	else:
-		if mode == "CartPole":
-			env = gym.make("CartPole-v0")
-			params = Parameters(mode="CartPole")
-			main_model = model("main", env, "huber_loss")
-			# main_model = model("main", env, "MSE")
-			target_model = model("target", env, "huber_loss")
-			# target_model = model("target", env, "MSE")
-			replay_buffer = ReplayBuffer(params.memory_size)
-			Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end, decay_steps=params.decay_steps)
-			# policy = EpsilonGreedyPolicy(Epsilon_fn=Epsilon)
-			policy = BoltzmannQPolicy()
-		elif mode == "Atari":
-			env = wrap_deepmind(make_atari("PongNoFrameskip-v4"))
-			params = Parameters(mode="Atari")
-			main_model = model("main", env, "huber_loss")
-			# main_model = model("main", env, "MSE")
-			target_model = model("target", env, "huber_loss")
-			# target_model = model("target", env, "MSE")
-			replay_buffer = ReplayBuffer(params.memory_size)
-			Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end, decay_steps=params.decay_steps)
-			# policy = EpsilonGreedyPolicy(Epsilon_fn=Epsilon)
-			policy = BoltzmannQPolicy()
-		else:
-			print("Select 'mode' either 'Atari' or 'CartPole' !!")
-
-
-	# in case of Double DQN, we use different training method from DQN
-	if model_name == "Double_DQN":
-		all_rewards, losses = train_Double_DQN(main_model, target_model, env, replay_buffer, policy, params)
-	else:
-		all_rewards, losses = train_DQN(main_model, target_model, env, replay_buffer, policy, params)
-
+	reward = np.load("../logs/values/"+model+"_reward.npy")
+	loss = np.load("../logs/values/"+model+"_loss.npy")
 
 	# temporal visualisation
 	plt.subplot(2, 1, 1)
-	plt.plot(all_rewards, label=model_name)
+	plt.plot(reward, label=model)
 	plt.title("Score over time")
 	plt.xlabel("Timestep")
 	plt.ylabel("Score")
 
 	plt.subplot(2, 1, 2)
-	plt.plot(losses, label=model_name)
+	plt.plot(loss, label=model)
 	plt.title("Loss over time")
 	plt.xlabel("Timestep")
 	plt.ylabel("Loss")

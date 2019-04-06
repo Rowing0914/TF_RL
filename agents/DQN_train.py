@@ -53,4 +53,10 @@ plt.plot(losses)
 plt.title("Loss over time")
 plt.xlabel("Timestep")
 plt.ylabel("Loss")
-plt.show()
+
+import numpy as np
+np.save("../logs/values/DQN_train_reward.npy", np.array(all_rewards))
+np.save("../logs/values/DQN_train_loss.npy", np.array(losses))
+plt.savefig("../logs/graphs/DQN_train.png")
+
+# plt.show()
