@@ -19,8 +19,8 @@ mode = "CartPole"
 if mode == "CartPole":
 	env = gym.make("CartPole-v0")
 	params = Parameters(mode="CartPole")
-	main_model = Duelling_Double_DQN_PER_CartPole("main", "naive", env)
-	target_model = Duelling_Double_DQN_PER_CartPole("target", "naive", env)
+	main_model = Duelling_Double_DQN_PER_CartPole("main", "naive", env, loss_fn="huber_loss")
+	target_model = Duelling_Double_DQN_PER_CartPole("target", "naive", env, loss_fn="huber_loss")
 	replay_buffer = PrioritizedReplayBuffer(params.memory_size, alpha=params.prioritized_replay_alpha)
 	Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end, decay_steps=params.decay_steps)
 	# policy = EpsilonGreedyPolicy(Epsilon_fn=Epsilon)
@@ -29,8 +29,8 @@ if mode == "CartPole":
 elif mode == "Atari":
 	env = wrap_deepmind(make_atari("PongNoFrameskip-v4"))
 	params = Parameters(mode="Atari")
-	main_model = Duelling_Double_DQN_PER_Atari("main", "naive", env)
-	target_model = Duelling_Double_DQN_PER_Atari("target", "naive", env)
+	main_model = Duelling_Double_DQN_PER_Atari("main", "naive", env, loss_fn="huber_loss")
+	target_model = Duelling_Double_DQN_PER_Atari("target", "naive", env, loss_fn="huber_loss")
 	replay_buffer = PrioritizedReplayBuffer(params.memory_size, alpha=params.prioritized_replay_alpha)
 	Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end, decay_steps=params.decay_steps)
 	# policy = EpsilonGreedyPolicy(Epsilon_fn=Epsilon)

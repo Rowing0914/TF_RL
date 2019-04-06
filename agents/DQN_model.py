@@ -27,17 +27,17 @@ class Parameters:
 			self.prioritized_replay_noise = 1e-6
 		elif mode == "CartPole":
 			self.state_reshape = (1, 4)
-			self.num_frames = 20000
+			self.num_frames = 10000
 			self.memory_size = 20000
-			self.learning_start = 1000
-			self.sync_freq = 1000
+			self.learning_start = 100
+			self.sync_freq = 100
 			self.batch_size = 32
 			self.gamma = 0.99
 			self.update_hard_or_soft = "soft"
 			self.soft_update_tau = 1e-2
 			self.epsilon_start = 1.0
-			self.epsilon_end = 0.01
-			self.decay_steps = 5000
+			self.epsilon_end = 0.1
+			self.decay_steps = 1000
 			self.prioritized_replay_alpha = 0.6
 			self.prioritized_replay_beta_start = 0.4
 			self.prioritized_replay_beta_end = 1.0
@@ -78,7 +78,7 @@ class DQN_Atari(_DQN):
 	DQN Agent for Atari Games
 	"""
 
-	def __init__(self, scope, env):
+	def __init__(self, scope, env, loss_fn="MSE"):
 		self.scope = scope
 		self.num_action = env.action_space.n
 		with tf.variable_scope(scope):
@@ -100,9 +100,17 @@ class DQN_Atari(_DQN):
 			# using tf.gather, associate Q-values with the executed actions
 			self.action_probs = tf.gather(tf.reshape(self.pred, [-1]), idx_flattened)
 
-			# MSE with huber loss
-			self.losses = tf.squared_difference(self.Y, self.action_probs)
-			self.loss = tf.reduce_mean(huber_loss(self.losses))
+			if loss_fn == "huber_loss":
+				# use huber loss
+				self.losses = tf.subtract(self.Y, self.action_probs)
+				# self.loss = huber_loss(self.losses)
+				self.loss = tf.reduce_mean(huber_loss(self.losses))
+			elif loss_fn == "MSE":
+				# use MSE
+				self.losses = tf.squared_difference(self.Y, self.action_probs)
+				self.loss = tf.reduce_mean(self.losses)
+			else:
+				assert False
 
 			# you can choose whatever you want for the optimiser
 			# self.optimizer = tf.train.RMSPropOptimizer(0.00025, 0.99, 0.0, 1e-6)
@@ -143,7 +151,8 @@ class DQN_CartPole(_DQN):
 			if loss_fn == "huber_loss":
 				# use huber loss
 				self.losses = tf.subtract(self.Y, self.action_probs)
-				self.loss = huber_loss(self.losses)
+				# self.loss = huber_loss(self.losses)
+				self.loss = tf.reduce_mean(huber_loss(self.losses))
 			elif loss_fn == "MSE":
 				# use MSE
 				self.losses = tf.squared_difference(self.Y, self.action_probs)
@@ -204,9 +213,9 @@ def train_DQN(main_model, target_model, env, replay_buffer, policy, params):
 					loss = main_model.update(sess, states, actions, Y)
 
 					# Logging and refreshing log purpose values
-					losses.append(np.mean(loss))
+					losses.append(loss)
 
-					logging(frame_idx, params.num_frames, index_episode, time.time()-start, episode_reward, np.mean(loss), cnt_action)
+					logging(frame_idx, params.num_frames, index_episode, time.time()-start, episode_reward, loss, cnt_action)
 
 				episode_reward = 0
 				cnt_action = []

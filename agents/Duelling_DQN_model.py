@@ -14,24 +14,6 @@ class Duelling_DQN:
 		"""
 		pass
 
-	def act(self, sess, state, epsilon):
-		"""
-		Given a state, it performs an epsilon-greedy policy
-
-		:param sess:
-		:param state:
-		:param epsilon:
-		:return:
-		"""
-		if np.random.uniform() < epsilon:
-			action = np.random.randint(self.num_action)
-		else:
-			q_value = sess.run(self.output, feed_dict={self.state: state})[0]
-			# dummy = sess.run(self.pred, feed_dict={self.state: state})[0]
-			# print(q_value, dummy)
-			action = np.argmax(q_value)
-		return action
-
 	def predict(self, sess, state):
 		"""
 		predict q-values given a state
@@ -48,13 +30,12 @@ class Duelling_DQN:
 		return loss
 
 
-
 class Duelling_DQN_CartPole(Duelling_DQN):
 	"""
 	Duelling DQN Agent
 	"""
 
-	def __init__(self, scope, dueling_type, env):
+	def __init__(self, scope, dueling_type, env, loss_fn="MSE"):
 		self.scope = scope
 		self.num_action = env.action_space.n
 		with tf.variable_scope(scope):
@@ -86,9 +67,17 @@ class Duelling_DQN_CartPole(Duelling_DQN):
 			# using tf.gather, associate Q-values with the executed actions
 			self.action_probs = tf.gather(tf.reshape(self.output, [-1]), idx_flattened)
 
-			# MSE loss function
-			self.losses = tf.squared_difference(self.Y, self.action_probs)
-			self.loss = tf.reduce_mean(huber_loss(self.losses))
+			if loss_fn == "huber_loss":
+				# use huber loss
+				self.losses = tf.subtract(self.Y, self.action_probs)
+				# self.loss = huber_loss(self.losses)
+				self.loss = tf.reduce_mean(huber_loss(self.losses))
+			elif loss_fn == "MSE":
+				# use MSE
+				self.losses = tf.squared_difference(self.Y, self.action_probs)
+				self.loss = tf.reduce_mean(self.losses)
+			else:
+				assert False
 
 			# you can choose whatever you want for the optimiser
 			# self.optimizer = tf.train.RMSPropOptimizer(0.00025, 0.99, 0.0, 1e-6)
@@ -107,7 +96,7 @@ class Duelling_DQN_Atari(Duelling_DQN):
 	Duelling DQN Agent
 	"""
 
-	def __init__(self, scope, dueling_type, env):
+	def __init__(self, scope, dueling_type, env, loss_fn="MSE"):
 		self.scope = scope
 		self.num_action = env.action_space.n
 		with tf.variable_scope(scope):
@@ -142,9 +131,17 @@ class Duelling_DQN_Atari(Duelling_DQN):
 			# using tf.gather, associate Q-values with the executed actions
 			self.action_probs = tf.gather(tf.reshape(self.output, [-1]), idx_flattened)
 
-			# MSE loss function
-			self.losses = tf.squared_difference(self.Y, self.action_probs)
-			self.loss = tf.reduce_mean(huber_loss(self.losses))
+			if loss_fn == "huber_loss":
+				# use huber loss
+				self.losses = tf.subtract(self.Y, self.action_probs)
+				# self.loss = huber_loss(self.losses)
+				self.loss = tf.reduce_mean(huber_loss(self.losses))
+			elif loss_fn == "MSE":
+				# use MSE
+				self.losses = tf.squared_difference(self.Y, self.action_probs)
+				self.loss = tf.reduce_mean(self.losses)
+			else:
+				assert False
 
 			# you can choose whatever you want for the optimiser
 			# self.optimizer = tf.train.RMSPropOptimizer(0.00025, 0.99, 0.0, 1e-6)
