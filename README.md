@@ -10,7 +10,16 @@
 
 ![graphs](<https://github.com/Rowing0914/TF_RL/blob/master/logs/graphs/comparison.png>)
 
-**still under development.... I know this is huge failure....
+
+
+**still under development.... maybe this can be the worst graph you've ever seen..
+
+```shell
+$ cd experiment
+$ python3.6 comparisons.py
+```
+
+
 
 ### Deep Reinforcement Learning
 
