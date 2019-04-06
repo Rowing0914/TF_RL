@@ -168,7 +168,7 @@ def train_DQN_PER(main_model, target_model, env, replay_buffer, policy, Beta, pa
 					# PER returns: state, action, reward, next_state, done, weights(a weight for a timestep), indices(indices for a batch of timesteps)
 					states, actions, rewards, next_states, dones, weights, indices = replay_buffer.sample(params.batch_size, Beta.get_value(frame_idx))
 					next_Q = target_model.predict(sess, next_states)
-					Y = rewards + params.gamma * np.max(next_Q, axis=1) * dones
+					Y = rewards + params.gamma * np.max(next_Q, axis=1) * np.logical_not(dones)
 					loss, batch_loss = main_model.update(sess, states, actions, Y)
 
 					# add noise to the priorities

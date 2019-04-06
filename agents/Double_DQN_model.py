@@ -45,7 +45,7 @@ def train_Double_DQN(main_model, target_model, env, replay_buffer, policy, param
 					next_Q_main = main_model.predict(sess, next_states)
 					next_Q = target_model.predict(sess, next_states)
 					Y = rewards + params.gamma * next_Q[
-						np.arange(params.batch_size), np.max(next_Q_main, axis=1)] * dones
+						np.arange(params.batch_size), np.argmax(next_Q_main, axis=1)] * np.logical_not(dones)
 					loss = main_model.update(sess, states, actions, Y)
 
 					# Logging and refreshing log purpose values
