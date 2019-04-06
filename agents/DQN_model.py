@@ -27,17 +27,17 @@ class Parameters:
 			self.prioritized_replay_noise = 1e-6
 		elif mode == "CartPole":
 			self.state_reshape = (1, 4)
-			self.num_frames = 10000
+			self.num_frames = 20000
 			self.memory_size = 20000
-			self.learning_start = 100
-			self.sync_freq = 100
+			self.learning_start = 1000
+			self.sync_freq = 1000
 			self.batch_size = 32
 			self.gamma = 0.99
 			self.update_hard_or_soft = "soft"
 			self.soft_update_tau = 1e-2
 			self.epsilon_start = 1.0
 			self.epsilon_end = 0.01
-			self.decay_steps = 500
+			self.decay_steps = 5000
 			self.prioritized_replay_alpha = 0.6
 			self.prioritized_replay_beta_start = 0.4
 			self.prioritized_replay_beta_end = 1.0
@@ -177,7 +177,7 @@ def train_DQN(main_model, target_model, env, replay_buffer, policy, params):
 		state = env.reset()
 		start = time.time()
 		for frame_idx in range(1, params.num_frames + 1):
-			action = policy.select_action(sess, main_model, state.reshape(params.state_reshape))
+			action = policy.select_action(sess, target_model, state.reshape(params.state_reshape))
 			cnt_action.append(action)
 			next_state, reward, done, _ = env.step(action)
 			replay_buffer.add(state, action, reward, next_state, done)
@@ -198,10 +198,12 @@ def train_DQN(main_model, target_model, env, replay_buffer, policy, params):
 
 					# Logging and refreshing log purpose values
 					losses.append(loss)
+
 					logging(frame_idx, params.num_frames, index_episode, time.time()-start, episode_reward, loss, cnt_action)
-					episode_reward = 0
-					cnt_action = []
-					start = time.time()
+
+				episode_reward = 0
+				cnt_action = []
+				start = time.time()
 
 			if frame_idx > params.learning_start and frame_idx % params.sync_freq == 0:
 				# soft update means we partially add the original weights of target model instead of completely
