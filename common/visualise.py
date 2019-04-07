@@ -1,5 +1,6 @@
 import datetime
 import numpy as np
+from matplotlib import cm
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 
@@ -15,6 +16,18 @@ def running_mean(x, n):
 
 
 def plot_all(env, memory, trace, print_=False):
+	"""
+	Plot all visualisation
+
+	TODO: i will put PCA or t-SNE to reduce the dimensionality of the state
+		and make all visualisation available on any stataes
+
+	:param env:
+	:param memory:
+	:param trace:
+	:param print_:
+	:return:
+	"""
 	st = trace.states[-1]
 	eps = trace.epsilons[-1]
 
@@ -42,6 +55,13 @@ def plot_all(env, memory, trace, print_=False):
 
 
 def plot_generic_environment(trace):
+	"""
+	it will be deprecated soon
+
+	:param trace:
+	:return:
+	"""
+
 	# Plot test states
 	fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, ncols=1, figsize=[16, 12])
 	tmp_x = np.array(list(trace.q_values.keys()))
@@ -78,6 +98,27 @@ def plot_generic_environment(trace):
 
 def plot_2d_environment(env, steps_to_plot, trace, mem,
 						axis_labels, action_labels, action_colors):
+	"""
+	Plot all necessary visualisation
+
+	1. 3D plot of Q max values
+	2. Scatter plot of Trajectory
+	3. Line graph of Q values over epsiodes
+	4. Region map of policy filling with its values
+	5. Scatter plot of observations in the replay memory
+	6. Scatter plot of Epsisode rewards over Episodes with Trend line
+
+	:param env:
+	:param steps_to_plot:
+	:param trace:
+	:param mem:
+	:param axis_labels:
+	:param action_labels:
+	:param action_colors:
+	:return:
+	"""
+
+	# final Q-values
 	q_arr = trace.q_values[list(trace.q_values.keys())[-1]]
 	states = trace.states[-steps_to_plot:]
 	actions = trace.actions[-steps_to_plot:]
@@ -140,27 +181,21 @@ def plot_trajectory(states, actions, env, title, labels, alpha=1.0, axis=None):
 	if not isinstance(states, np.ndarray): states = np.array(states)
 	if not isinstance(actions, np.ndarray): actions = np.array(actions)
 
-	if axis is None:
-		fig = plt.figure()
-		axis = fig.add_subplot(111)
+	colours = cm.rainbow(np.linspace(0, 1, num=env.action_space.n))
 
-	if len(states) == 0:
-		axis.scatter(np.array([]), np.array([]))
-	else:
-		axis.scatter(states[actions == 0, 0], states[actions == 0, 1], marker='.', s=1, color='red', alpha=alpha)
-		axis.scatter(states[actions == 1, 0], states[actions == 1, 1], marker='.', s=1, color='blue', alpha=alpha)
-		axis.scatter(states[actions == 2, 0], states[actions == 2, 1], marker='.', s=1, color='green', alpha=alpha)
+	for action, colour in zip(range(0, env.action_space.n + 1), colours):
+		axis.scatter(states[actions == action, 0], states[actions == action, 1], marker='.', s=1, color=colour,
+					 alpha=1., label="A_{}".format(action))
 
 	x_min, x_max = env.observation_space.low[0], env.observation_space.high[0]
 	y_min, y_max = env.observation_space.low[1], env.observation_space.high[1]
-	axis.set_xticks([x_min, x_max])
-	# axis.set_xticklabels([x_min,x_max])
-	axis.set_yticks([y_min, y_max])
-	# axis.set_yticklabels([y_min,y_max])
+	axis.set_xticks(np.linspace(x_min, x_max, 5))
+	axis.set_yticks(np.linspace(y_min, y_max, 5))
 
-	axis.set_xlabel(labels[0])
-	axis.set_ylabel(labels[1])
-	axis.set_title(title)
+	axis.set_xlabel('x')
+	axis.set_ylabel('y')
+	axis.set_title('Policy')
+	axis.legend()
 
 
 def plot_policy(q_arr, env, labels, colors, collab, axis=None):
@@ -190,21 +225,15 @@ def plot_policy(q_arr, env, labels, colors, collab, axis=None):
 	axis.set_title('Policy')
 
 
-def plot_q_max_3d(q_arr, env, color='#1f77b4', alpha=1.,
-				  title='', labels=['x', 'y'], axis=None):
-	"""Plot 3D wireframe
-
-	Params:
-		q_arr     - 2d array with dim: [state_x, state_y]
-		env       - environment with members:
-					  st_low - state space low boundry e.g. [-1.2, -0.07]
-					  st_high - state space high boundry
-		color     - plot color
-		alpha     - plot transparency
-		labels    - string array [label_x, label_y, label_z], len=3, empty str to omit
-		axis      - axis to plot to, if None create new figure
+def plot_q_max_3d(q_arr, env, color='#1f77b4', alpha=1., title='', labels=['x', 'y'], axis=None):
 	"""
-	q_max = np.max(q_arr, axis=-1)  # calc max and inverse
+
+	Plot the final Q-values over states space
+
+	we can see what kind state has high Q-value
+
+	"""
+	q_max = np.max(q_arr, axis=-1)  # calculate the maximum value w.r.t the most right feature in Q values
 
 	x_min, x_max = env.observation_space.low[0], env.observation_space.high[0]
 	y_min, y_max = env.observation_space.low[1], env.observation_space.high[1]
@@ -212,17 +241,12 @@ def plot_q_max_3d(q_arr, env, color='#1f77b4', alpha=1.,
 	y_space = np.linspace(y_min, y_max, num=q_max.shape[1])
 	Y, X = np.meshgrid(y_space, x_space)
 
-	if axis is None:
-		fig = plt.figure()
-		axis = fig.add_subplot(111, projection='3d')
-
-	axis.plot_wireframe(X, Y, q_max, color=color, alpha=alpha)
-	axis.set_xlabel(labels[0])
-	axis.set_ylabel(labels[1])
-	axis.set_xticks([x_min, x_max])
-	axis.set_yticks([y_min, y_max])
-	axis.set_title(title)
-
+	axis.plot_surface(X, Y, q_max, cmap=cm.coolwarm, alpha=1.)
+	axis.set_xlabel('x')
+	axis.set_ylabel('y')
+	axis.set_xticks(np.linspace(x_min, x_max, 5))
+	axis.set_yticks(np.linspace(y_min, y_max, 5))
+	axis.set_title('Q max')
 	axis.view_init(40, -70)
 
 
