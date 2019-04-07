@@ -21,11 +21,15 @@ def train_Double_DQN(main_model, target_model, env, replay_buffer, policy, param
 	losses, all_rewards, cnt_action = [], [], []
 	episode_reward, index_episode = 0, 0
 
+	# Create a glboal step variable
+	global_step = tf.Variable(0, name='global_step', trainable=False)
+
 	with tf.Session() as sess:
 		# initialise all variables used in the model
 		sess.run(tf.global_variables_initializer())
 		state = env.reset()
 		start = time.time()
+		global_step = sess.run(tf.train.get_global_step())
 		for frame_idx in range(1, params.num_frames + 1):
 			action = policy.select_action(sess, target_model, state.reshape(params.state_reshape))
 			cnt_action.append(action)
@@ -34,6 +38,7 @@ def train_Double_DQN(main_model, target_model, env, replay_buffer, policy, param
 
 			state = next_state
 			episode_reward += reward
+			global_step += 1
 
 			if done:
 				index_episode += 1
@@ -54,6 +59,13 @@ def train_Double_DQN(main_model, target_model, env, replay_buffer, policy, param
 					episode_reward = 0
 					cnt_action = []
 					start = time.time()
+
+					episode_summary = tf.Summary()
+					episode_summary.value.add(simple_value=episode_reward, node_name="episode_reward",
+											  tag="episode_reward")
+					episode_summary.value.add(simple_value=index_episode, node_name="episode_length",
+											  tag="episode_length")
+					main_model.summary_writer.add_summary(episode_summary, global_step)
 
 
 			if frame_idx > params.learning_start and frame_idx % params.sync_freq == 0:

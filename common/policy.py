@@ -24,8 +24,8 @@ class EpsilonGreedyPolicy(Policy):
 		if np.random.uniform() < self.Epsilon.get_value(self.timestep):
 			action = np.random.randint(agent.num_action)
 		else:
-			q_value = sess.run(agent.pred, feed_dict={agent.state: state})[0]
-			action = np.argmax(q_value)
+			q_values = sess.run(agent.pred, feed_dict={agent.state: state})[0]
+			action = np.argmax(q_values)
 		self.timestep += 1
 		return action
 

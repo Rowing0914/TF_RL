@@ -24,7 +24,6 @@ for i in range(100):
 		tracker.store('reward', reward)
 		tracker.store('done', done)
 		tracker.store('loss', 0.3)
-		tracker.store('gradient', 0.01)
 
 		if done:
 			print("Episode finished after {} timesteps".format(t+1))

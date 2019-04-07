@@ -10,12 +10,12 @@ class Plotting:
 		self.nb_plots = 6 # number of currently available visualisation methods
 		self.window_size = 1000 # window size of rolling mean
 
-		self.x_min, self.x_max = self.env.observation_space.low[0], self.env.observation_space.high[0]
-		self.y_min, self.y_max = self.env.observation_space.low[1], self.env.observation_space.high[1]
+		self.x_min, self.x_max = env.observation_space.low[0], env.observation_space.high[0]
+		self.y_min, self.y_max = env.observation_space.low[1], env.observation_space.high[1]
 
 		# associating colours with each action in the env
-		self.colous = plt.get_cmap('jet', self.nb_actions)
-		self.colous.set_under('gray')
+		self.colours = plt.get_cmap('jet', self.nb_actions)
+		self.colours.set_under('gray')
 
 		fig, ax = plt.subplots()
 

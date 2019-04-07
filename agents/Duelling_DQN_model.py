@@ -1,5 +1,5 @@
-import numpy as np
 import tensorflow as tf
+import os
 from common.utils import huber_loss, ClipIfNotNone
 
 
@@ -26,7 +26,9 @@ class Duelling_DQN:
 
 	def update(self, sess, state, action, Y):
 		feed_dict = {self.state: state, self.action: action, self.Y: Y}
-		_, loss = sess.run([self.train_op, self.loss], feed_dict=feed_dict)
+		summaries, total_t, _, loss = sess.run([self.summaries, tf.train.get_global_step(), self.train_op, self.loss], feed_dict=feed_dict)
+		# print(action, Y, sess.run(self.idx_flattened, feed_dict=feed_dict))
+		self.summary_writer.add_summary(summaries, total_t)
 		return loss
 
 
@@ -38,6 +40,7 @@ class Duelling_DQN_CartPole(Duelling_DQN):
 	def __init__(self, scope, dueling_type, env, loss_fn="MSE"):
 		self.scope = scope
 		self.num_action = env.action_space.n
+		self.summaries_dir = "../logs/summary_{}".format(scope)
 		with tf.variable_scope(scope):
 			self.state = tf.placeholder(shape=[None, env.observation_space.shape[0]], dtype=tf.float32, name="X")
 			self.Y = tf.placeholder(shape=[None], dtype=tf.float32, name="Y")
@@ -89,6 +92,20 @@ class Duelling_DQN_CartPole(Duelling_DQN):
 			self.clipped_grads_and_vars = [(ClipIfNotNone(grad, -1., 1.), var) for grad, var in self.grads_and_vars]
 			self.train_op = self.optimizer.apply_gradients(self.clipped_grads_and_vars)
 
+			if self.summaries_dir:
+				summary_dir = os.path.join(self.summaries_dir, "summaries_{}".format(scope))
+				if not os.path.exists(summary_dir):
+					os.makedirs(summary_dir)
+				self.summary_writer = tf.summary.FileWriter(summary_dir)
+
+			self.summaries = tf.summary.merge([
+				tf.summary.scalar("loss", self.loss),
+				tf.summary.histogram("loss_hist", self.losses),
+				tf.summary.histogram("q_values_hist", self.pred),
+				tf.summary.scalar("mean_q_value", tf.math.reduce_mean(self.pred)),
+				tf.summary.scalar("var_q_value", tf.math.reduce_variance(self.pred)),
+				tf.summary.scalar("max_q_value", tf.reduce_max(self.pred))
+			])
 
 
 class Duelling_DQN_Atari(Duelling_DQN):
@@ -99,6 +116,7 @@ class Duelling_DQN_Atari(Duelling_DQN):
 	def __init__(self, scope, dueling_type, env, loss_fn="MSE"):
 		self.scope = scope
 		self.num_action = env.action_space.n
+		self.summaries_dir = "../logs/summary_{}".format(scope)
 		with tf.variable_scope(scope):
 			self.state = tf.placeholder(shape=[None, 84, 84, 1], dtype=tf.float32, name="X")
 			self.Y = tf.placeholder(shape=[None], dtype=tf.float32, name="Y")
@@ -153,3 +171,17 @@ class Duelling_DQN_Atari(Duelling_DQN):
 			self.clipped_grads_and_vars = [(ClipIfNotNone(grad, -1., 1.), var) for grad, var in self.grads_and_vars]
 			self.train_op = self.optimizer.apply_gradients(self.clipped_grads_and_vars)
 
+			if self.summaries_dir:
+				summary_dir = os.path.join(self.summaries_dir, "summaries_{}".format(scope))
+				if not os.path.exists(summary_dir):
+					os.makedirs(summary_dir)
+				self.summary_writer = tf.summary.FileWriter(summary_dir)
+
+			self.summaries = tf.summary.merge([
+				tf.summary.scalar("loss", self.loss),
+				tf.summary.histogram("loss_hist", self.losses),
+				tf.summary.histogram("q_values_hist", self.pred),
+				tf.summary.scalar("mean_q_value", tf.math.reduce_mean(self.pred)),
+				tf.summary.scalar("var_q_value", tf.math.reduce_variance(self.pred)),
+				tf.summary.scalar("max_q_value", tf.reduce_max(self.pred))
+			])

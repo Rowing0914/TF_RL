@@ -1,5 +1,6 @@
 import numpy as np
 import time
+import os
 import tensorflow as tf
 from common.utils import sync_main_target, soft_target_model_update, huber_loss, ClipIfNotNone, logging
 
@@ -27,7 +28,8 @@ class _Duelling_Double_DQN_PER:
 
 	def update(self, sess, state, action, Y):
 		feed_dict = {self.state: state, self.action: action, self.Y: Y}
-		_, loss, batch_loss = sess.run([self.train_op, self.loss, self.losses], feed_dict=feed_dict)
+		summaries, total_t, _, loss, batch_loss = sess.run([self.summaries, tf.train.get_global_step(), self.train_op, self.loss, self.losses], feed_dict=feed_dict)
+		self.summary_writer.add_summary(summaries, total_t)
 		return loss, batch_loss
 
 
@@ -39,6 +41,7 @@ class Duelling_Double_DQN_PER_Atari(_Duelling_Double_DQN_PER):
 	def __init__(self, scope, dueling_type, env, loss_fn="MSE"):
 		self.scope = scope
 		self.num_action = env.action_space.n
+		self.summaries_dir = "../logs/summary_{}".format(scope)
 		with tf.variable_scope(scope):
 			self.state = tf.placeholder(shape=[None, 84, 84, 1], dtype=tf.float32, name="X")
 			self.Y = tf.placeholder(shape=[None], dtype=tf.float32, name="Y")
@@ -94,6 +97,22 @@ class Duelling_Double_DQN_PER_Atari(_Duelling_Double_DQN_PER):
 			self.clipped_grads_and_vars = [(ClipIfNotNone(grad, -1., 1.), var) for grad, var in self.grads_and_vars]
 			self.train_op = self.optimizer.apply_gradients(self.clipped_grads_and_vars)
 
+			if self.summaries_dir:
+				summary_dir = os.path.join(self.summaries_dir, "summaries_{}".format(scope))
+				if not os.path.exists(summary_dir):
+					os.makedirs(summary_dir)
+				self.summary_writer = tf.summary.FileWriter(summary_dir)
+
+			self.summaries = tf.summary.merge([
+				tf.summary.scalar("loss", self.loss),
+				tf.summary.histogram("loss_hist", self.losses),
+				tf.summary.histogram("q_values_hist", self.pred),
+				tf.summary.scalar("mean_q_value", tf.math.reduce_mean(self.pred)),
+				tf.summary.scalar("var_q_value", tf.math.reduce_variance(self.pred)),
+				tf.summary.scalar("max_q_value", tf.reduce_max(self.pred))
+			])
+
+
 
 class Duelling_Double_DQN_PER_CartPole(_Duelling_Double_DQN_PER):
 	"""
@@ -103,6 +122,7 @@ class Duelling_Double_DQN_PER_CartPole(_Duelling_Double_DQN_PER):
 	def __init__(self, scope, dueling_type, env, loss_fn="MSE"):
 		self.scope = scope
 		self.num_action = env.action_space.n
+		self.summaries_dir = "../logs/summary_{}".format(scope)
 		with tf.variable_scope(scope):
 			self.state = tf.placeholder(shape=[None, 4], dtype=tf.float32, name="X")
 			self.Y = tf.placeholder(shape=[None], dtype=tf.float32, name="Y")
@@ -155,6 +175,22 @@ class Duelling_Double_DQN_PER_CartPole(_Duelling_Double_DQN_PER):
 			self.clipped_grads_and_vars = [(ClipIfNotNone(grad, -1., 1.), var) for grad, var in self.grads_and_vars]
 			self.train_op = self.optimizer.apply_gradients(self.clipped_grads_and_vars)
 
+			if self.summaries_dir:
+				summary_dir = os.path.join(self.summaries_dir, "summaries_{}".format(scope))
+				if not os.path.exists(summary_dir):
+					os.makedirs(summary_dir)
+				self.summary_writer = tf.summary.FileWriter(summary_dir)
+
+			self.summaries = tf.summary.merge([
+				tf.summary.scalar("loss", self.loss),
+				tf.summary.histogram("loss_hist", self.losses),
+				tf.summary.histogram("q_values_hist", self.pred),
+				tf.summary.scalar("mean_q_value", tf.math.reduce_mean(self.pred)),
+				tf.summary.scalar("var_q_value", tf.math.reduce_variance(self.pred)),
+				tf.summary.scalar("max_q_value", tf.reduce_max(self.pred))
+			])
+
+
 
 
 def train_Duelling_Double_DQN_PER(main_model, target_model, env, replay_buffer, policy, Beta, params):
@@ -172,11 +208,15 @@ def train_Duelling_Double_DQN_PER(main_model, target_model, env, replay_buffer, 
 	losses, all_rewards, cnt_action = [], [], []
 	episode_reward, index_episode = 0, 0
 
+	# Create a glboal step variable
+	global_step = tf.Variable(0, name='global_step', trainable=False)
+
 	with tf.Session() as sess:
 		# initialise all variables used in the model
 		sess.run(tf.global_variables_initializer())
 		state = env.reset()
 		start = time.time()
+		global_step = sess.run(tf.train.get_global_step())
 		for frame_idx in range(1, params.num_frames + 1):
 			action = policy.select_action(sess, main_model, state.reshape(params.state_reshape))
 			cnt_action.append(action)
@@ -186,6 +226,7 @@ def train_Duelling_Double_DQN_PER(main_model, target_model, env, replay_buffer, 
 
 			state = next_state
 			episode_reward += reward
+			global_step += 1
 
 			if done:
 				index_episode += 1
@@ -219,6 +260,13 @@ def train_Duelling_Double_DQN_PER(main_model, target_model, env, replay_buffer, 
 					episode_reward = 0
 					cnt_action = []
 					start = time.time()
+
+					episode_summary = tf.Summary()
+					episode_summary.value.add(simple_value=episode_reward, node_name="episode_reward",
+											  tag="episode_reward")
+					episode_summary.value.add(simple_value=index_episode, node_name="episode_length",
+											  tag="episode_length")
+					main_model.summary_writer.add_summary(episode_summary, global_step)
 
 			if frame_idx > params.learning_start and frame_idx % params.sync_freq == 0:
 				# soft update means we partially add the original weights of target model instead of completely

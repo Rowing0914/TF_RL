@@ -25,7 +25,9 @@ class AnnealingSchedule:
 
 
 """
-Logging functions and base class for logging
+Logging functions
+
+.... maybe I don't use Tracker class...
 
 """
 
@@ -44,13 +46,13 @@ class Tracker:
     # instantiate
     tracker = Tracker(save_freq=100)
 
-    # put the values in it
+    # you can freely put the values in it
     tracker.store('state', state)
     ```
 
     """
-    def __init__(self, file="../logs/data/log.npy", save_freq=1000):
-        self.file = file
+    def __init__(self, play_data_file="../logs/data/log.npy", save_freq=1000):
+        self.file = play_data_file
         self.save_freq = save_freq
         self.cnt = 0
         self.saved_cnt = 0
@@ -62,8 +64,10 @@ class Tracker:
             "reward",
             "done",
             "loss",
-            "gradient"
         ]
+        self.storage_for_batch_names = ["loss"]
+
+        self.storage_for_batch = {}
         self.storage = {}
 
         # refresh the content of target file
@@ -85,6 +89,11 @@ class Tracker:
         if len(self.storage) == len(self.value_names):
             self.add()
             self.storage = {}
+        elif _key in self.storage_for_batch_names:
+            if len(self.storage) == len(self.value_names):
+                self.add()
+                self.storage = {}
+            self.storage_for_batch[_key] = value
 
         self.storage[_key] = value
 
@@ -92,25 +101,10 @@ class Tracker:
         """
         We store data for visualising them later on!
 
-        :param state:
-        :param q_value:
-        :param action:
-        :param reward:
-        :param done:
-        :param loss:
-        :param gradient:
-        :return:
         """
         if self.cnt == self.save_freq:
             self._save_file()
         else:
-            # if isinstance(state, np.ndarray): state = state.flatten()
-            # if isinstance(q_value, np.ndarray): q_value = q_value.flatten()
-            # if isinstance(action, np.ndarray): action = action.flatten()
-            # if isinstance(reward, np.ndarray): reward = reward.flatten()
-            # if isinstance(done, np.ndarray): done = done.flatten()
-            # if isinstance(loss, np.ndarray): loss = loss.flatten()
-            # if isinstance(gradient, np.ndarray): gradient = gradient.flatten()
             self.data.append(list(self.storage.values()))
             self.cnt += 1
 
