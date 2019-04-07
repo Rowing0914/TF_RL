@@ -40,21 +40,16 @@ else:
 all_rewards, losses = train_DQN(main_model, target_model, env, replay_buffer, policy, params)
 
 # temporal visualisation
-plt.subplot(2, 1, 1)
-plt.plot(all_rewards)
-plt.title("Score over time")
-plt.xlabel("Timestep")
-plt.ylabel("Score")
-
-plt.subplot(2, 1, 2)
-plt.plot(losses)
-plt.title("Loss over time")
-plt.xlabel("Timestep")
-plt.ylabel("Loss")
-
-import numpy as np
-np.save("../logs/values/Duelling_DQN_train_reward.npy", np.array(all_rewards))
-np.save("../logs/values/Duelling_DQN_train_loss.npy", np.array(losses))
-plt.savefig("../logs/graphs/Duelling_DQN_train.png")
+# plt.subplot(2, 1, 1)
+# plt.plot(all_rewards)
+# plt.title("Score over time")
+# plt.xlabel("Timestep")
+# plt.ylabel("Score")
+# plt.subplot(2, 1, 2)
+# plt.plot(losses)
+# plt.title("Loss over time")
+# plt.xlabel("Timestep")
+# plt.ylabel("Loss")
+# plt.savefig("../logs/graphs/Duelling_DQN_train.png")
 
 # plt.show()

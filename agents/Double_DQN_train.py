@@ -39,17 +39,17 @@ else:
 
 all_rewards, losses = train_Double_DQN(main_model, target_model, env, replay_buffer, policy, params)
 
-# temporal visualisation
-plt.subplot(2, 1, 1)
-plt.plot(all_rewards)
-plt.title("Score over time")
-plt.xlabel("Timestep")
-plt.ylabel("Score")
-plt.subplot(2, 1, 2)
-plt.plot(losses)
-plt.title("Loss over time")
-plt.xlabel("Timestep")
-plt.ylabel("Loss")
-plt.savefig("../logs/graphs/Double_DQN_train.png")
-
-# plt.show()
+# # temporal visualisation
+# plt.subplot(2, 1, 1)
+# plt.plot(all_rewards)
+# plt.title("Score over time")
+# plt.xlabel("Timestep")
+# plt.ylabel("Score")
+# plt.subplot(2, 1, 2)
+# plt.plot(losses)
+# plt.title("Loss over time")
+# plt.xlabel("Timestep")
+# plt.ylabel("Loss")
+# plt.savefig("../logs/graphs/Double_DQN_train.png")
+#
+# # plt.show()
