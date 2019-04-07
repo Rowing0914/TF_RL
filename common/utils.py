@@ -1,6 +1,5 @@
 import tensorflow as tf
 import numpy as np
-import json
 import os
 
 """
@@ -35,7 +34,19 @@ class Tracker:
     """
 
     Tracking the data coming from the env and store them into a target file
-    in Numpy Array for data visualisation purpose
+    in Numpy Array for data visualisation purpose.
+
+    Use store API to store the values, and since it does keep tracking the content of self.store
+    whenever it gets full, this class adds those values to self.data and in the end, converts them into Numpy array
+    and save them into a target file
+
+    ```python
+    # instantiate
+    tracker = Tracker(save_freq=100)
+
+    # put the values in it
+    tracker.store('state', state)
+    ```
 
     """
     def __init__(self, file="../logs/data/log.npy", save_freq=1000):
@@ -44,13 +55,40 @@ class Tracker:
         self.cnt = 0
         self.saved_cnt = 0
         self.data = list()
+        self.value_names = [
+            "state",
+            "q_value",
+            "action",
+            "reward",
+            "done",
+            "loss",
+            "gradient"
+        ]
+        self.storage = {}
 
         # refresh the content of target file
-        os.remove(self.file)
+        try:
+            os.remove(self.file)
+        except: pass
         with open(self.file, "w"): pass
 
+    def store(self, _key, value):
+        """
+        Gets a value with a key and put them into a dictionary(self.storage)
 
-    def add(self, state, q_value, action, reward, done, loss, gradient):
+        :param _key:
+        :param value:
+        :return:
+        """
+        assert _key in self.value_names, "choose the value to store from {}".format(str(self.value_names))
+
+        if len(self.storage) == len(self.value_names):
+            self.add()
+            self.storage = {}
+
+        self.storage[_key] = value
+
+    def add(self):
         """
         We store data for visualising them later on!
 
@@ -73,16 +111,20 @@ class Tracker:
             # if isinstance(done, np.ndarray): done = done.flatten()
             # if isinstance(loss, np.ndarray): loss = loss.flatten()
             # if isinstance(gradient, np.ndarray): gradient = gradient.flatten()
-            self.data.append([state, q_value, action, reward, done, loss, gradient])
+            self.data.append(list(self.storage.values()))
             self.cnt += 1
 
     def _save_file(self):
+        """
+        Save data into a file by Numpy array
+        :return:
+        """
         print("WE SAVE THE PLAY DATA INTO {}".format(self.file))
         self.saved_cnt += 1
         try:
             prev_data = np.load(self.file)
         except:
-            prev_data = np.zeros(len(self.data[0]))
+            prev_data = np.zeros(len(self.storage))
 
         prev_data = np.vstack([prev_data, np.array(self.data)])
         self.cnt = 0
@@ -94,6 +136,18 @@ class Tracker:
 
 
 def logging(time_step, max_steps, current_episode, exec_time, reward, loss, cnt_action):
+    """
+    Logging function
+
+    :param time_step:
+    :param max_steps:
+    :param current_episode:
+    :param exec_time:
+    :param reward:
+    :param loss:
+    :param cnt_action:
+    :return:
+    """
     cnt_actions = dict((x, cnt_action.count(x)) for x in set(cnt_action))
     print("{0}/{1}: episode: {2}, duration: {3:.3f}s, episode reward: {4}, loss: {5:.6f}, taken actions: {6}".format(
         time_step, max_steps, current_episode, exec_time, reward, loss, cnt_actions

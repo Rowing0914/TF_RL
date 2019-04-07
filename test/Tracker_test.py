@@ -18,7 +18,13 @@ for i in range(100):
 		memory.add(state, action, reward, next_state, done)
 
 		# format is: state, q_value, action, reward, done, loss, gradient
-		tracker.add(state, 0.2, action, reward, done, 0.3, 0.01)
+		tracker.store('state', state)
+		tracker.store('q_value', 0.2)
+		tracker.store('action', action)
+		tracker.store('reward', reward)
+		tracker.store('done', done)
+		tracker.store('loss', 0.3)
+		tracker.store('gradient', 0.01)
 
 		if done:
 			print("Episode finished after {} timesteps".format(t+1))
