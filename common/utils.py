@@ -1,7 +1,7 @@
 import tensorflow as tf
 import numpy as np
-from collections import OrderedDict
-
+import json
+import os
 
 """
 
@@ -26,31 +26,71 @@ class AnnealingSchedule:
 
 
 """
-Logging functions and base class(Trace)
+Logging functions and base class for logging
 
 """
 
 
-class Trace():
-    def __init__(self, tf_summary_writer, log_metrics_every=None, test_states=None):
-        self.tf_summary_writer = tf_summary_writer
+class Tracker:
+    """
 
-        self.log_metrics_every = log_metrics_every
-        self.test_states = test_states
+    Tracking the data coming from the env and store them into a target file
+    in Numpy Array for data visualisation purpose
 
-        self.total_step = 0
-        self.ep_rewards = OrderedDict()
-        self.ep_lengths = OrderedDict()
-        self.ep_steps_per_sec = OrderedDict()
+    """
+    def __init__(self, file="../logs/data/log.npy", save_freq=1000):
+        self.file = file
+        self.save_freq = save_freq
+        self.cnt = 0
+        self.saved_cnt = 0
+        self.data = list()
 
-        self.ep_start_time = None
+        # refresh the content of target file
+        os.remove(self.file)
+        with open(self.file, "w"): pass
 
-    def push_summary(self, tag, simple_value, flush=False):
-        summary = tf.Summary()
-        summary.value.add(tag=tag, simple_value=simple_value)
-        self.tf_summary_writer.add_summary(summary, self.total_step)
-        if flush:
-            self.tf_summary_writer.flush()
+
+    def add(self, state, q_value, action, reward, done, loss, gradient):
+        """
+        We store data for visualising them later on!
+
+        :param state:
+        :param q_value:
+        :param action:
+        :param reward:
+        :param done:
+        :param loss:
+        :param gradient:
+        :return:
+        """
+        if self.cnt == self.save_freq:
+            self._save_file()
+        else:
+            # if isinstance(state, np.ndarray): state = state.flatten()
+            # if isinstance(q_value, np.ndarray): q_value = q_value.flatten()
+            # if isinstance(action, np.ndarray): action = action.flatten()
+            # if isinstance(reward, np.ndarray): reward = reward.flatten()
+            # if isinstance(done, np.ndarray): done = done.flatten()
+            # if isinstance(loss, np.ndarray): loss = loss.flatten()
+            # if isinstance(gradient, np.ndarray): gradient = gradient.flatten()
+            self.data.append([state, q_value, action, reward, done, loss, gradient])
+            self.cnt += 1
+
+    def _save_file(self):
+        print("WE SAVE THE PLAY DATA INTO {}".format(self.file))
+        self.saved_cnt += 1
+        try:
+            prev_data = np.load(self.file)
+        except:
+            prev_data = np.zeros(len(self.data[0]))
+
+        prev_data = np.vstack([prev_data, np.array(self.data)])
+        self.cnt = 0
+        self.data = list()
+
+        np.save(self.file, prev_data)
+        del prev_data
+
 
 
 def logging(time_step, max_steps, current_episode, exec_time, reward, loss, cnt_action):

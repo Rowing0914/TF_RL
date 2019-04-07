@@ -6,8 +6,6 @@ import matplotlib.pyplot as plt
 class Plotting:
 	def __init__(self, nb_actions, env, model, tracker):
 		self.nb_actions = nb_actions
-		self.env = env # game env
-		self.model = model # model/agent
 		self.tracker = tracker # tracking method to contain all important values arise in training phase
 		self.nb_plots = 6 # number of currently available visualisation methods
 		self.window_size = 1000 # window size of rolling mean
@@ -20,10 +18,11 @@ class Plotting:
 		self.colous.set_under('gray')
 
 		fig, ax = plt.subplots()
+
 		self.Q_max_3D_plot(ax)
 		self.State_spcace_2D_scatter(ax)
 		self.Q_values_line_graph(ax)
-		self.Policy_reggion_map(ax)
+		self.Policy_region_map(ax)
 		self.Rewards_with_trend(ax)
 		self.Loss_line_graph(ax)
 
@@ -72,7 +71,7 @@ class Plotting:
 		ax.set_title('Q values over episodes')
 		ax.legend()
 
-	def Policy_reggion_map(self, ax):
+	def Policy_region_map(self, ax):
 		q_values = self.tracker.q_values
 
 		heatmap = ax.pcolormesh(q_values.T, cmap=self.colous)
