@@ -8,15 +8,10 @@
 
 ### Comparison: Performance of 1-4 algorithms below on CartPole
 
-![graphs](<https://github.com/Rowing0914/TF_RL/blob/master/logs/graphs/comparison.png>)
-
-
-
-**still under development.... maybe this can be the worst graph you've ever seen..
-
 ```shell
 $ cd experiment
 $ python3.6 comparisons.py
+$ tensorboard --logdir=./logs/
 ```
 
 
