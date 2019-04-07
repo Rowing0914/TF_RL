@@ -1,5 +1,6 @@
 import tensorflow as tf
 import numpy as np
+from collections import OrderedDict
 
 
 """
@@ -20,6 +21,36 @@ class AnnealingSchedule:
 
     def get_value(self, timestep):
         return self.annealed_value[min(timestep, self.decay_steps - 1)]
+
+
+
+
+"""
+Logging functions and base class(Trace)
+
+"""
+
+
+class Trace():
+    def __init__(self, tf_summary_writer, log_metrics_every=None, test_states=None):
+        self.tf_summary_writer = tf_summary_writer
+
+        self.log_metrics_every = log_metrics_every
+        self.test_states = test_states
+
+        self.total_step = 0
+        self.ep_rewards = OrderedDict()
+        self.ep_lengths = OrderedDict()
+        self.ep_steps_per_sec = OrderedDict()
+
+        self.ep_start_time = None
+
+    def push_summary(self, tag, simple_value, flush=False):
+        summary = tf.Summary()
+        summary.value.add(tag=tag, simple_value=simple_value)
+        self.tf_summary_writer.add_summary(summary, self.total_step)
+        if flush:
+            self.tf_summary_writer.flush()
 
 
 def logging(time_step, max_steps, current_episode, exec_time, reward, loss, cnt_action):
