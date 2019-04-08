@@ -1,14 +1,17 @@
 import gym
 import tensorflow as tf
-import matplotlib.pyplot as plt
-
+import os
 from common.memory import PrioritizedReplayBuffer
 from common.utils import AnnealingSchedule
-from common.wrappers import make_atari, wrap_deepmind
+from common.wrappers import make_atari, wrap_deepmind, MyWrapper
 from common.policy import EpsilonGreedyPolicy, BoltzmannQPolicy
 from agents.DQN_model import Parameters
 from agents.DQN_PER_model import train_DQN_PER, DQN_PER_CartPole, DQN_PER_Atari
 
+try:
+	os.system("rm -rf ../logs/summary_PER_main")
+except:
+	pass
 
 # initialise a graph in a session
 tf.reset_default_graph()
@@ -17,7 +20,7 @@ mode = "CartPole"
 # mode = "Atari"
 
 if mode == "CartPole":
-	env = gym.make("CartPole-v0")
+	env = MyWrapper(gym.make("CartPole-v0"))
 	params = Parameters(mode="CartPole")
 	main_model = DQN_PER_CartPole("PER_main", env, loss_fn="huber_loss")
 	target_model = DQN_PER_CartPole("PER_target", env, loss_fn="huber_loss")

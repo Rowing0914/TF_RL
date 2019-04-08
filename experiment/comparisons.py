@@ -8,8 +8,5 @@ models = [
 	"Duelling_Double_DQN_PER_train",
 ]
 
-# refresh the folder
-os.system("rm -rf ../logs/*")
-
 for model in models:
 	os.system("python3.6 ../agents/{}.py".format(model))
