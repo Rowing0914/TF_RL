@@ -5,7 +5,8 @@ from common.memory import ReplayBuffer
 from common.utils import AnnealingSchedule
 from common.wrappers import make_atari, wrap_deepmind, MyWrapper
 from common.policy import EpsilonGreedyPolicy, BoltzmannQPolicy
-from agents.DQN_model import train_DQN, DQN_CartPole, DQN_Atari, Parameters
+from common.params import Parameters
+from agents.DQN_model import train_DQN, DQN_CartPole, DQN_Atari
 
 
 try:

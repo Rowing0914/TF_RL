@@ -2,47 +2,7 @@ import numpy as np
 import time
 import os
 import tensorflow as tf
-from common.utils import sync_main_target, soft_target_model_update, huber_loss, ClipIfNotNone, logging
-
-
-class Parameters:
-	def __init__(self, mode=None):
-		assert mode != None
-		print("Loading Params for {} Environment".format(mode))
-		if mode == "Atari":
-			self.state_reshape = (1, 84, 84, 1)
-			self.num_frames = 1000000
-			self.memory_size = 10000
-			self.learning_start = 10000
-			self.sync_freq = 1000
-			self.batch_size = 32
-			self.gamma = 0.99
-			self.update_hard_or_soft = "soft"
-			self.soft_update_tau = 1e-2
-			self.epsilon_start = 1.0
-			self.epsilon_end = 0.01
-			self.decay_steps = 1000
-			self.prioritized_replay_alpha = 0.6
-			self.prioritized_replay_beta_start = 0.4
-			self.prioritized_replay_beta_end = 1.0
-			self.prioritized_replay_noise = 1e-6
-		elif mode == "CartPole":
-			self.state_reshape = (1, 4)
-			self.num_frames = 10000
-			self.memory_size = 5000              # does not affect the performance
-			self.learning_start = 100            # does not affect the performance
-			self.sync_freq = 100                 # as you increase, a loss gets to not converge
-			self.batch_size = 32
-			self.gamma = 0.99                    # gamma > 1.0 or negative => does not converge!!
-			self.update_hard_or_soft = "soft"    # don't use hard update method!! horrible,, cause a surge of loss
-			self.soft_update_tau = 1e-2          # seems 1e-2 is the optimal ratio for tau!!
-			self.epsilon_start = 1.0
-			self.epsilon_end = 0.1
-			self.decay_steps = 500               # this defines the frequency of the interatcion of models
-			self.prioritized_replay_alpha = 0.6
-			self.prioritized_replay_beta_start = 0.4
-			self.prioritized_replay_beta_end = 1.0
-			self.prioritized_replay_noise = 1e-6
+from common.utils import sync_main_target, soft_target_model_update, huber_loss, logging
 
 
 class _DQN:
@@ -112,8 +72,8 @@ class DQN_Atari(_DQN):
 			if loss_fn == "huber_loss":
 				# use huber loss
 				self.losses = tf.subtract(self.Y, self.action_probs)
-				# self.loss = huber_loss(self.losses)
-				self.loss = tf.reduce_mean(huber_loss(self.losses))
+				self.loss = huber_loss(self.losses)
+				# self.loss = tf.reduce_mean(huber_loss(self.losses))
 			elif loss_fn == "MSE":
 				# use MSE
 				self.losses = tf.squared_difference(self.Y, self.action_probs)
@@ -142,7 +102,7 @@ class DQN_Atari(_DQN):
 			else:
 				self.train_op = self.optimizer.minimize(self.loss)
 
-			tf.summary.scalar("loss", self.loss)
+			tf.summary.scalar("loss", tf.reduce_mean(self.loss))
 			tf.summary.histogram("loss_hist", self.losses)
 			tf.summary.histogram("q_values_hist", self.pred)
 			tf.summary.scalar("mean_q_value", tf.math.reduce_mean(self.pred))
@@ -156,7 +116,7 @@ class DQN_CartPole(_DQN):
 	DQN Agent for CartPole game
 	"""
 
-	def __init__(self, scope, env, loss_fn="MSE", grad_clip_flg=None):
+	def __init__(self, scope, env, loss_fn="MSE", grad_clip_flg=True):
 		self.scope = scope
 		self.num_action = env.action_space.n
 		self.summaries_dir = "../logs/summary_{}".format(scope)
@@ -188,8 +148,8 @@ class DQN_CartPole(_DQN):
 			if loss_fn == "huber_loss":
 				# use huber loss
 				self.losses = tf.subtract(self.Y, self.action_probs)
-				# self.loss = huber_loss(self.losses)
-				self.loss = tf.reduce_mean(huber_loss(self.losses))
+				self.loss = huber_loss(self.losses)
+				# self.loss = tf.reduce_mean(huber_loss(self.losses))
 			elif loss_fn == "MSE":
 				# use MSE
 				self.losses = tf.squared_difference(self.Y, self.action_probs)
@@ -199,6 +159,7 @@ class DQN_CartPole(_DQN):
 
 			# you can choose whatever you want for the optimiser
 			# self.optimizer = tf.train.RMSPropOptimizer(0.00025, 0.99, 0.0, 1e-6)
+			# self.optimizer = tf.train.AdamOptimizer(learning_rate=1e-3)
 			self.optimizer = tf.train.AdamOptimizer()
 
 			if self.grad_clip_flg:
@@ -218,7 +179,7 @@ class DQN_CartPole(_DQN):
 			else:
 				self.train_op = self.optimizer.minimize(self.loss)
 
-			tf.summary.scalar("loss", self.loss)
+			tf.summary.scalar("loss", tf.reduce_mean(self.loss))
 			tf.summary.histogram("loss_hist", self.losses)
 			tf.summary.histogram("q_values_hist", self.pred)
 			tf.summary.scalar("mean_q_value", tf.math.reduce_mean(self.pred))
@@ -276,7 +237,7 @@ def train_DQN(main_model, target_model, env, replay_buffer, policy, params):
 
 					# Logging and refreshing log purpose values
 					losses.append(loss)
-					logging(frame_idx, params.num_frames, index_episode, time.time()-start, episode_reward, loss, cnt_action)
+					logging(frame_idx, params.num_frames, index_episode, time.time()-start, episode_reward, np.mean(loss), cnt_action)
 
 					episode_summary = tf.Summary()
 					episode_summary.value.add(simple_value=episode_reward, node_name="episode_reward",

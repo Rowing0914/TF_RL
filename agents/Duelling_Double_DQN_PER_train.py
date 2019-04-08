@@ -5,7 +5,7 @@ from common.memory import PrioritizedReplayBuffer
 from common.utils import AnnealingSchedule
 from common.wrappers import make_atari, wrap_deepmind, MyWrapper
 from common.policy import EpsilonGreedyPolicy, BoltzmannQPolicy
-from agents.DQN_model import Parameters
+from common.params import Parameters
 from agents.Duelling_Double_DQN_PER_model import train_Duelling_Double_DQN_PER, Duelling_Double_DQN_PER_CartPole, Duelling_Double_DQN_PER_Atari
 
 try:

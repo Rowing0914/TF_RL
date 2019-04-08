@@ -26,6 +26,7 @@ class MyWrapper(gym.Wrapper):
     def __init__(self, env):
         gym.Wrapper.__init__(self, env)
         self.env = env
+        self.env.seed(123) # fix the randomness for reproducibility purpose
 
     def step(self, ac):
         observation, reward, done, info = self.env.step(ac)
