@@ -15,7 +15,7 @@ cv2.ocl.setUseOpenCL(False)
 
 """
 Wrapper for Cartpole
-When the game ends, the reward is -1.0, but originally it is set as 1.0
+This is to change the reward at the terminal state because originally it is set as 1.0
 
 check here: https://github.com/openai/gym/blob/master/gym/envs/classic_control/cartpole.py
 
@@ -31,7 +31,7 @@ class MyWrapper(gym.Wrapper):
     def step(self, ac):
         observation, reward, done, info = self.env.step(ac)
         if done:
-            reward = -1.0
+            reward = -1.0 # reward at a terminal state
         return observation, reward, done, info
 
     def reset(self, **kwargs):
