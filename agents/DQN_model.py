@@ -28,17 +28,17 @@ class Parameters:
 			self.prioritized_replay_noise = 1e-6
 		elif mode == "CartPole":
 			self.state_reshape = (1, 4)
-			self.num_frames = 20000
-			self.memory_size = 20000
-			self.learning_start = 100
-			self.sync_freq = 100
+			self.num_frames = 10000
+			self.memory_size = 5000              # does not affect the performance
+			self.learning_start = 100            # does not affect the performance
+			self.sync_freq = 100                 # as you increase, a loss gets to not converge
 			self.batch_size = 32
-			self.gamma = 0.99
-			self.update_hard_or_soft = "soft"
-			self.soft_update_tau = 1e-2
+			self.gamma = 0.99                    # gamma > 1.0 or negative => does not converge!!
+			self.update_hard_or_soft = "soft"    # don't use hard update method!! horrible,, cause a surge of loss
+			self.soft_update_tau = 1e-2          # seems 1e-2 is the optimal ratio for tau!!
 			self.epsilon_start = 1.0
 			self.epsilon_end = 0.1
-			self.decay_steps = 1000
+			self.decay_steps = 500               # this defines the frequency of the interatcion of models
 			self.prioritized_replay_alpha = 0.6
 			self.prioritized_replay_beta_start = 0.4
 			self.prioritized_replay_beta_end = 1.0
@@ -69,7 +69,6 @@ class _DQN:
 	def update(self, sess, state, action, Y):
 		feed_dict = {self.state: state, self.action: action, self.Y: Y}
 		summaries, total_t, _, loss = sess.run([self.summaries, tf.train.get_global_step(), self.train_op, self.loss], feed_dict=feed_dict)
-		# print(action, Y, sess.run(self.idx_flattened, feed_dict=feed_dict))
 		self.summary_writer.add_summary(summaries, total_t)
 		return loss
 
@@ -79,10 +78,18 @@ class DQN_Atari(_DQN):
 	DQN Agent for Atari Games
 	"""
 
-	def __init__(self, scope, env, loss_fn="MSE"):
+	def __init__(self, scope, env, loss_fn="MSE", grad_clip_flg=None):
 		self.scope = scope
 		self.num_action = env.action_space.n
 		self.summaries_dir = "../logs/summary_{}".format(scope)
+		self.grad_clip_flg = grad_clip_flg
+
+		if self.summaries_dir:
+			summary_dir = os.path.join(self.summaries_dir, "summaries_{}".format(scope))
+			if not os.path.exists(summary_dir):
+				os.makedirs(summary_dir)
+			self.summary_writer = tf.summary.FileWriter(summary_dir)
+
 		with tf.variable_scope(scope):
 			self.state = tf.placeholder(shape=[None, 84, 84, 1], dtype=tf.float32, name="X")
 			self.Y = tf.placeholder(shape=[None], dtype=tf.float32, name="Y")
@@ -118,25 +125,22 @@ class DQN_Atari(_DQN):
 			# self.optimizer = tf.train.RMSPropOptimizer(0.00025, 0.99, 0.0, 1e-6)
 			self.optimizer = tf.train.AdamOptimizer()
 
-			# to apply Gradient Clipping, we have to directly operate on the optimiser
-			# check this: https://www.tensorflow.org/api_docs/python/tf/train/Optimizer#processing_gradients_before_applying_them
-			#             https://stackoverflow.com/questions/49987839/how-to-handle-none-in-tf-clip-by-global-norm
-			self.gradients, self.variables = zip(*self.optimizer.compute_gradients(self.loss))
-			# self.clipped_grads_and_vars = [(ClipIfNotNone(grad, -1., 1.), var) for grad, var in self.grads_and_vars]
-			self.gradients, _ = tf.clip_by_global_norm(self.gradients, 2.5)
-			self.train_op = self.optimizer.apply_gradients(zip(self.gradients, self.variables))
+			if self.grad_clip_flg:
+				# to apply Gradient Clipping, we have to directly operate on the optimiser
+				# check this: https://www.tensorflow.org/api_docs/python/tf/train/Optimizer#processing_gradients_before_applying_them
+				#             https://stackoverflow.com/questions/49987839/how-to-handle-none-in-tf-clip-by-global-norm
+				self.gradients, self.variables = zip(*self.optimizer.compute_gradients(self.loss))
+				# self.clipped_grads_and_vars = [(ClipIfNotNone(grad, -1., 1.), var) for grad, var in self.grads_and_vars]
+				self.gradients, _ = tf.clip_by_global_norm(self.gradients, 2.5)
+				self.train_op = self.optimizer.apply_gradients(zip(self.gradients, self.variables))
 
-			if self.summaries_dir:
-				summary_dir = os.path.join(self.summaries_dir, "summaries_{}".format(scope))
-				if not os.path.exists(summary_dir):
-					os.makedirs(summary_dir)
-				self.summary_writer = tf.summary.FileWriter(summary_dir)
-
-			for i, grad in enumerate(self.gradients):
-				if grad is not None:
-					mean = tf.reduce_mean(tf.abs(grad))
-					tf.summary.scalar('mean_{}'.format(i + 1), mean)
-					tf.summary.histogram('histogram_{}'.format(i + 1), grad)
+				for i, grad in enumerate(self.gradients):
+					if grad is not None:
+						mean = tf.reduce_mean(tf.abs(grad))
+						tf.summary.scalar('mean_{}'.format(i + 1), mean)
+						tf.summary.histogram('histogram_{}'.format(i + 1), grad)
+			else:
+				self.train_op = self.optimizer.minimize(self.loss)
 
 			tf.summary.scalar("loss", self.loss)
 			tf.summary.histogram("loss_hist", self.losses)
@@ -152,10 +156,18 @@ class DQN_CartPole(_DQN):
 	DQN Agent for CartPole game
 	"""
 
-	def __init__(self, scope, env, loss_fn="MSE"):
+	def __init__(self, scope, env, loss_fn="MSE", grad_clip_flg=None):
 		self.scope = scope
 		self.num_action = env.action_space.n
 		self.summaries_dir = "../logs/summary_{}".format(scope)
+		self.grad_clip_flg = grad_clip_flg
+
+		if self.summaries_dir:
+			summary_dir = os.path.join(self.summaries_dir, "summaries_{}".format(scope))
+			if not os.path.exists(summary_dir):
+				os.makedirs(summary_dir)
+			self.summary_writer = tf.summary.FileWriter(summary_dir)
+
 		with tf.variable_scope(scope):
 			self.state = tf.placeholder(shape=[None, 4], dtype=tf.float32, name="X")
 			self.Y = tf.placeholder(shape=[None], dtype=tf.float32, name="Y")
@@ -189,25 +201,22 @@ class DQN_CartPole(_DQN):
 			# self.optimizer = tf.train.RMSPropOptimizer(0.00025, 0.99, 0.0, 1e-6)
 			self.optimizer = tf.train.AdamOptimizer()
 
-			# to apply Gradient Clipping, we have to directly operate on the optimiser
-			# check this: https://www.tensorflow.org/api_docs/python/tf/train/Optimizer#processing_gradients_before_applying_them
-			#             https://stackoverflow.com/questions/49987839/how-to-handle-none-in-tf-clip-by-global-norm
-			self.gradients, self.variables = zip(*self.optimizer.compute_gradients(self.loss))
-			# self.clipped_grads_and_vars = [(ClipIfNotNone(grad, -1., 1.), var) for grad, var in self.grads_and_vars]
-			self.gradients, _ = tf.clip_by_global_norm(self.gradients, 2.5)
-			self.train_op = self.optimizer.apply_gradients(zip(self.gradients, self.variables))
+			if self.grad_clip_flg:
+				# to apply Gradient Clipping, we have to directly operate on the optimiser
+				# check this: https://www.tensorflow.org/api_docs/python/tf/train/Optimizer#processing_gradients_before_applying_them
+				#             https://stackoverflow.com/questions/49987839/how-to-handle-none-in-tf-clip-by-global-norm
+				self.gradients, self.variables = zip(*self.optimizer.compute_gradients(self.loss))
+				# self.clipped_grads_and_vars = [(ClipIfNotNone(grad, -1., 1.), var) for grad, var in self.grads_and_vars]
+				self.gradients, _ = tf.clip_by_global_norm(self.gradients, 2.5)
+				self.train_op = self.optimizer.apply_gradients(zip(self.gradients, self.variables))
 
-			if self.summaries_dir:
-				summary_dir = os.path.join(self.summaries_dir, "summaries_{}".format(scope))
-				if not os.path.exists(summary_dir):
-					os.makedirs(summary_dir)
-				self.summary_writer = tf.summary.FileWriter(summary_dir)
-
-			for i, grad in enumerate(self.gradients):
-				if grad is not None:
-					mean = tf.reduce_mean(tf.abs(grad))
-					tf.summary.scalar('mean_{}'.format(i + 1), mean)
-					tf.summary.histogram('histogram_{}'.format(i + 1), grad)
+				for i, grad in enumerate(self.gradients):
+					if grad is not None:
+						mean = tf.reduce_mean(tf.abs(grad))
+						tf.summary.scalar('mean_{}'.format(i + 1), mean)
+						tf.summary.histogram('histogram_{}'.format(i + 1), grad)
+			else:
+				self.train_op = self.optimizer.minimize(self.loss)
 
 			tf.summary.scalar("loss", self.loss)
 			tf.summary.histogram("loss_hist", self.losses)

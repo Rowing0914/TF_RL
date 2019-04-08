@@ -25,7 +25,7 @@ if mode == "CartPole":
     main_model = DQN_CartPole("DQN_main", env, "huber_loss")
     target_model = DQN_CartPole("DQN_target", env, "huber_loss")
     replay_buffer = ReplayBuffer(params.memory_size)
-    Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end, decay_steps=params.decay_steps)
+    # Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end, decay_steps=params.decay_steps)
     # policy = EpsilonGreedyPolicy(Epsilon_fn=Epsilon)
     policy = BoltzmannQPolicy()
 elif mode == "Atari":

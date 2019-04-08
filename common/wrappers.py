@@ -33,6 +33,9 @@ class MyWrapper(gym.Wrapper):
             reward = -1.0
         return observation, reward, done, info
 
+    def reset(self, **kwargs):
+        return self.env.reset()
+
 
 
 """
