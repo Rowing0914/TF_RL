@@ -39,10 +39,18 @@ class DQN_PER_Atari(_DQN_PER):
 	DQN Agent with PER for Atari Games
 	"""
 
-	def __init__(self, scope, env, loss_fn="MSE"):
+	def __init__(self, scope, env, loss_fn="MSE", grad_clip_flg=True):
 		self.scope = scope
 		self.num_action = env.action_space.n
 		self.summaries_dir = "../logs/summary_{}".format(scope)
+		self.grad_clip_flg = grad_clip_flg
+
+		if self.summaries_dir:
+			summary_dir = os.path.join(self.summaries_dir, "summaries_{}".format(scope))
+			if not os.path.exists(summary_dir):
+				os.makedirs(summary_dir)
+			self.summary_writer = tf.summary.FileWriter(summary_dir)
+
 		with tf.variable_scope(scope):
 			self.state = tf.placeholder(shape=[None, 84, 84, 1], dtype=tf.float32, name="X")
 			self.Y = tf.placeholder(shape=[None], dtype=tf.float32, name="Y")
@@ -78,27 +86,24 @@ class DQN_PER_Atari(_DQN_PER):
 			# self.optimizer = tf.train.RMSPropOptimizer(0.00025, 0.99, 0.0, 1e-6)
 			self.optimizer = tf.train.AdamOptimizer()
 
-			# to apply Gradient Clipping, we have to directly operate on the optimiser
-			# check this: https://www.tensorflow.org/api_docs/python/tf/train/Optimizer#processing_gradients_before_applying_them
-			#             https://stackoverflow.com/questions/49987839/how-to-handle-none-in-tf-clip-by-global-norm
-			self.gradients, self.variables = zip(*self.optimizer.compute_gradients(self.loss))
-			# self.clipped_grads_and_vars = [(ClipIfNotNone(grad, -1., 1.), var) for grad, var in self.grads_and_vars]
-			self.gradients, _ = tf.clip_by_global_norm(self.gradients, 2.5)
-			self.train_op = self.optimizer.apply_gradients(zip(self.gradients, self.variables))
+			if self.grad_clip_flg:
+				# to apply Gradient Clipping, we have to directly operate on the optimiser
+				# check this: https://www.tensorflow.org/api_docs/python/tf/train/Optimizer#processing_gradients_before_applying_them
+				#             https://stackoverflow.com/questions/49987839/how-to-handle-none-in-tf-clip-by-global-norm
+				self.gradients, self.variables = zip(*self.optimizer.compute_gradients(self.loss))
+				# self.clipped_grads_and_vars = [(ClipIfNotNone(grad, -1., 1.), var) for grad, var in self.grads_and_vars]
+				self.gradients, _ = tf.clip_by_global_norm(self.gradients, 2.5)
+				self.train_op = self.optimizer.apply_gradients(zip(self.gradients, self.variables))
 
-			if self.summaries_dir:
-				summary_dir = os.path.join(self.summaries_dir, "summaries_{}".format(scope))
-				if not os.path.exists(summary_dir):
-					os.makedirs(summary_dir)
-				self.summary_writer = tf.summary.FileWriter(summary_dir)
+				for i, grad in enumerate(self.gradients):
+					if grad is not None:
+						mean = tf.reduce_mean(tf.abs(grad))
+						tf.summary.scalar('mean_{}'.format(i + 1), mean)
+						tf.summary.histogram('histogram_{}'.format(i + 1), grad)
+			else:
+				self.train_op = self.optimizer.minimize(self.loss)
 
-			for i, grad in enumerate(self.gradients):
-				if grad is not None:
-					mean = tf.reduce_mean(tf.abs(grad))
-					tf.summary.scalar('mean_{}'.format(i + 1), mean)
-					tf.summary.histogram('histogram_{}'.format(i + 1), grad)
-
-			tf.summary.scalar("loss", self.loss)
+			tf.summary.scalar("loss", tf.reduce_mean(self.loss))
 			tf.summary.histogram("loss_hist", self.losses)
 			tf.summary.histogram("q_values_hist", self.pred)
 			tf.summary.scalar("mean_q_value", tf.math.reduce_mean(self.pred))
@@ -112,10 +117,18 @@ class DQN_PER_CartPole(_DQN_PER):
 	DQN Agent with PER for CartPole game
 	"""
 
-	def __init__(self, scope, env, loss_fn="MSE"):
+	def __init__(self, scope, env, loss_fn="MSE", grad_clip_flg=True):
 		self.scope = scope
 		self.num_action = env.action_space.n
 		self.summaries_dir = "../logs/summary_{}".format(scope)
+		self.grad_clip_flg = grad_clip_flg
+
+		if self.summaries_dir:
+			summary_dir = os.path.join(self.summaries_dir, "summaries_{}".format(scope))
+			if not os.path.exists(summary_dir):
+				os.makedirs(summary_dir)
+			self.summary_writer = tf.summary.FileWriter(summary_dir)
+
 		with tf.variable_scope(scope):
 			self.state = tf.placeholder(shape=[None, 4], dtype=tf.float32, name="X")
 			self.Y = tf.placeholder(shape=[None], dtype=tf.float32, name="Y")
@@ -148,27 +161,24 @@ class DQN_PER_CartPole(_DQN_PER):
 			# self.optimizer = tf.train.RMSPropOptimizer(0.00025, 0.99, 0.0, 1e-6)
 			self.optimizer = tf.train.AdamOptimizer()
 
-			# to apply Gradient Clipping, we have to directly operate on the optimiser
-			# check this: https://www.tensorflow.org/api_docs/python/tf/train/Optimizer#processing_gradients_before_applying_them
-			#             https://stackoverflow.com/questions/49987839/how-to-handle-none-in-tf-clip-by-global-norm
-			self.gradients, self.variables = zip(*self.optimizer.compute_gradients(self.loss))
-			# self.clipped_grads_and_vars = [(ClipIfNotNone(grad, -1., 1.), var) for grad, var in self.grads_and_vars]
-			self.gradients, _ = tf.clip_by_global_norm(self.gradients, 2.5)
-			self.train_op = self.optimizer.apply_gradients(zip(self.gradients, self.variables))
+			if self.grad_clip_flg:
+				# to apply Gradient Clipping, we have to directly operate on the optimiser
+				# check this: https://www.tensorflow.org/api_docs/python/tf/train/Optimizer#processing_gradients_before_applying_them
+				#             https://stackoverflow.com/questions/49987839/how-to-handle-none-in-tf-clip-by-global-norm
+				self.gradients, self.variables = zip(*self.optimizer.compute_gradients(self.loss))
+				# self.clipped_grads_and_vars = [(ClipIfNotNone(grad, -1., 1.), var) for grad, var in self.grads_and_vars]
+				self.gradients, _ = tf.clip_by_global_norm(self.gradients, 2.5)
+				self.train_op = self.optimizer.apply_gradients(zip(self.gradients, self.variables))
 
-			if self.summaries_dir:
-				summary_dir = os.path.join(self.summaries_dir, "summaries_{}".format(scope))
-				if not os.path.exists(summary_dir):
-					os.makedirs(summary_dir)
-				self.summary_writer = tf.summary.FileWriter(summary_dir)
+				for i, grad in enumerate(self.gradients):
+					if grad is not None:
+						mean = tf.reduce_mean(tf.abs(grad))
+						tf.summary.scalar('mean_{}'.format(i + 1), mean)
+						tf.summary.histogram('histogram_{}'.format(i + 1), grad)
+			else:
+				self.train_op = self.optimizer.minimize(self.loss)
 
-			for i, grad in enumerate(self.gradients):
-				if grad is not None:
-					mean = tf.reduce_mean(tf.abs(grad))
-					tf.summary.scalar('mean_{}'.format(i + 1), mean)
-					tf.summary.histogram('histogram_{}'.format(i + 1), grad)
-
-			tf.summary.scalar("loss", self.loss)
+			tf.summary.scalar("loss", tf.reduce_mean(self.loss))
 			tf.summary.histogram("loss_hist", self.losses)
 			tf.summary.histogram("q_values_hist", self.pred)
 			tf.summary.scalar("mean_q_value", tf.math.reduce_mean(self.pred))
