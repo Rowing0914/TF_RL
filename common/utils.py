@@ -227,4 +227,5 @@ def ClipIfNotNone(grad, _min, _max):
     """
     if grad is None:
         return grad
-    return tf.clip_by_value(grad, _min, _max)
+    # return tf.clip_by_value(grad, _min, _max)
+    return tf.clip_by_global_norm(grad, 5.0)

@@ -120,9 +120,11 @@ class DQN_Atari(_DQN):
 
 			# to apply Gradient Clipping, we have to directly operate on the optimiser
 			# check this: https://www.tensorflow.org/api_docs/python/tf/train/Optimizer#processing_gradients_before_applying_them
-			self.grads_and_vars = self.optimizer.compute_gradients(self.loss)
-			self.clipped_grads_and_vars = [(ClipIfNotNone(grad, -1., 1.), var) for grad, var in self.grads_and_vars]
-			self.train_op = self.optimizer.apply_gradients(self.clipped_grads_and_vars, global_step=tf.train.get_global_step())
+			#             https://stackoverflow.com/questions/49987839/how-to-handle-none-in-tf-clip-by-global-norm
+			self.gradients, self.variables = zip(*self.optimizer.compute_gradients(self.loss))
+			# self.clipped_grads_and_vars = [(ClipIfNotNone(grad, -1., 1.), var) for grad, var in self.grads_and_vars]
+			self.gradients, _ = tf.clip_by_global_norm(self.gradients, 2.5)
+			self.train_op = self.optimizer.apply_gradients(zip(self.gradients, self.variables))
 
 			if self.summaries_dir:
 				summary_dir = os.path.join(self.summaries_dir, "summaries_{}".format(scope))
@@ -130,14 +132,20 @@ class DQN_Atari(_DQN):
 					os.makedirs(summary_dir)
 				self.summary_writer = tf.summary.FileWriter(summary_dir)
 
-			self.summaries = tf.summary.merge([
-				tf.summary.scalar("loss", self.loss),
-				tf.summary.histogram("loss_hist", self.losses),
-				tf.summary.histogram("q_values_hist", self.pred),
-				tf.summary.scalar("mean_q_value", tf.math.reduce_mean(self.pred)),
-				tf.summary.scalar("var_q_value", tf.math.reduce_variance(self.pred)),
-				tf.summary.scalar("max_q_value", tf.reduce_max(self.pred))
-			])
+			for i, grad in enumerate(self.gradients):
+				if grad is not None:
+					mean = tf.reduce_mean(tf.abs(grad))
+					tf.summary.scalar('mean_{}'.format(i + 1), mean)
+					tf.summary.histogram('histogram_{}'.format(i + 1), grad)
+
+			tf.summary.scalar("loss", self.loss)
+			tf.summary.histogram("loss_hist", self.losses)
+			tf.summary.histogram("q_values_hist", self.pred)
+			tf.summary.scalar("mean_q_value", tf.math.reduce_mean(self.pred))
+			tf.summary.scalar("var_q_value", tf.math.reduce_variance(self.pred))
+			tf.summary.scalar("max_q_value", tf.reduce_max(self.pred))
+			self.summaries = tf.summary.merge_all()
+
 
 class DQN_CartPole(_DQN):
 	"""
@@ -153,10 +161,10 @@ class DQN_CartPole(_DQN):
 			self.Y = tf.placeholder(shape=[None], dtype=tf.float32, name="Y")
 			self.action = tf.placeholder(shape=[None], dtype=tf.int32, name="action")
 
-			fc1 = tf.keras.layers.Dense(16, activation=tf.nn.relu)(self.state)
-			fc2 = tf.keras.layers.Dense(16, activation=tf.nn.relu)(fc1)
-			fc3 = tf.keras.layers.Dense(16, activation=tf.nn.relu)(fc2)
-			self.pred = tf.keras.layers.Dense(self.num_action, activation=tf.nn.relu)(fc3)
+			fc1 = tf.keras.layers.Dense(16, activation=tf.nn.relu, name="layer0")(self.state)
+			fc2 = tf.keras.layers.Dense(16, activation=tf.nn.relu, name="layer1")(fc1)
+			fc3 = tf.keras.layers.Dense(16, activation=tf.nn.relu, name="layer2")(fc2)
+			self.pred = tf.keras.layers.Dense(self.num_action, activation=tf.nn.relu, name="layer3")(fc3)
 
 			# indices of the executed actions
 			self.idx_flattened = tf.range(0, tf.shape(self.pred)[0]) * tf.shape(self.pred)[1] + self.action
@@ -183,9 +191,11 @@ class DQN_CartPole(_DQN):
 
 			# to apply Gradient Clipping, we have to directly operate on the optimiser
 			# check this: https://www.tensorflow.org/api_docs/python/tf/train/Optimizer#processing_gradients_before_applying_them
-			self.grads_and_vars = self.optimizer.compute_gradients(self.loss)
-			self.clipped_grads_and_vars = [(ClipIfNotNone(grad, -1., 1.), var) for grad, var in self.grads_and_vars]
-			self.train_op = self.optimizer.apply_gradients(self.clipped_grads_and_vars)
+			#             https://stackoverflow.com/questions/49987839/how-to-handle-none-in-tf-clip-by-global-norm
+			self.gradients, self.variables = zip(*self.optimizer.compute_gradients(self.loss))
+			# self.clipped_grads_and_vars = [(ClipIfNotNone(grad, -1., 1.), var) for grad, var in self.grads_and_vars]
+			self.gradients, _ = tf.clip_by_global_norm(self.gradients, 2.5)
+			self.train_op = self.optimizer.apply_gradients(zip(self.gradients, self.variables))
 
 			if self.summaries_dir:
 				summary_dir = os.path.join(self.summaries_dir, "summaries_{}".format(scope))
@@ -193,15 +203,19 @@ class DQN_CartPole(_DQN):
 					os.makedirs(summary_dir)
 				self.summary_writer = tf.summary.FileWriter(summary_dir)
 
-			self.summaries = tf.summary.merge([
-				tf.summary.scalar("loss", self.loss),
-				tf.summary.histogram("loss_hist", self.losses),
-				tf.summary.histogram("q_values_hist", self.pred),
-				tf.summary.scalar("mean_q_value", tf.math.reduce_mean(self.pred)),
-				tf.summary.scalar("var_q_value", tf.math.reduce_variance(self.pred)),
-				tf.summary.scalar("max_q_value", tf.reduce_max(self.pred))
-			])
+			for i, grad in enumerate(self.gradients):
+				if grad is not None:
+					mean = tf.reduce_mean(tf.abs(grad))
+					tf.summary.scalar('mean_{}'.format(i + 1), mean)
+					tf.summary.histogram('histogram_{}'.format(i + 1), grad)
 
+			tf.summary.scalar("loss", self.loss)
+			tf.summary.histogram("loss_hist", self.losses)
+			tf.summary.histogram("q_values_hist", self.pred)
+			tf.summary.scalar("mean_q_value", tf.math.reduce_mean(self.pred))
+			tf.summary.scalar("var_q_value", tf.math.reduce_variance(self.pred))
+			tf.summary.scalar("max_q_value", tf.reduce_max(self.pred))
+			self.summaries = tf.summary.merge_all()
 
 
 def train_DQN(main_model, target_model, env, replay_buffer, policy, params):

@@ -88,9 +88,11 @@ class Duelling_DQN_CartPole(Duelling_DQN):
 
 			# to apply Gradient Clipping, we have to directly operate on the optimiser
 			# check this: https://www.tensorflow.org/api_docs/python/tf/train/Optimizer#processing_gradients_before_applying_them
-			self.grads_and_vars = self.optimizer.compute_gradients(self.loss)
-			self.clipped_grads_and_vars = [(ClipIfNotNone(grad, -1., 1.), var) for grad, var in self.grads_and_vars]
-			self.train_op = self.optimizer.apply_gradients(self.clipped_grads_and_vars)
+			#             https://stackoverflow.com/questions/49987839/how-to-handle-none-in-tf-clip-by-global-norm
+			self.gradients, self.variables = zip(*self.optimizer.compute_gradients(self.loss))
+			# self.clipped_grads_and_vars = [(ClipIfNotNone(grad, -1., 1.), var) for grad, var in self.grads_and_vars]
+			self.gradients, _ = tf.clip_by_global_norm(self.gradients, 2.5)
+			self.train_op = self.optimizer.apply_gradients(zip(self.gradients, self.variables))
 
 			if self.summaries_dir:
 				summary_dir = os.path.join(self.summaries_dir, "summaries_{}".format(scope))
@@ -98,14 +100,19 @@ class Duelling_DQN_CartPole(Duelling_DQN):
 					os.makedirs(summary_dir)
 				self.summary_writer = tf.summary.FileWriter(summary_dir)
 
-			self.summaries = tf.summary.merge([
-				tf.summary.scalar("loss", self.loss),
-				tf.summary.histogram("loss_hist", self.losses),
-				tf.summary.histogram("q_values_hist", self.pred),
-				tf.summary.scalar("mean_q_value", tf.math.reduce_mean(self.pred)),
-				tf.summary.scalar("var_q_value", tf.math.reduce_variance(self.pred)),
-				tf.summary.scalar("max_q_value", tf.reduce_max(self.pred))
-			])
+			for i, grad in enumerate(self.gradients):
+				if grad is not None:
+					mean = tf.reduce_mean(tf.abs(grad))
+					tf.summary.scalar('mean_{}'.format(i + 1), mean)
+					tf.summary.histogram('histogram_{}'.format(i + 1), grad)
+
+			tf.summary.scalar("loss", self.loss)
+			tf.summary.histogram("loss_hist", self.losses)
+			tf.summary.histogram("q_values_hist", self.pred)
+			tf.summary.scalar("mean_q_value", tf.math.reduce_mean(self.pred))
+			tf.summary.scalar("var_q_value", tf.math.reduce_variance(self.pred))
+			tf.summary.scalar("max_q_value", tf.reduce_max(self.pred))
+			self.summaries = tf.summary.merge_all()
 
 
 class Duelling_DQN_Atari(Duelling_DQN):
@@ -167,9 +174,11 @@ class Duelling_DQN_Atari(Duelling_DQN):
 
 			# to apply Gradient Clipping, we have to directly operate on the optimiser
 			# check this: https://www.tensorflow.org/api_docs/python/tf/train/Optimizer#processing_gradients_before_applying_them
-			self.grads_and_vars = self.optimizer.compute_gradients(self.loss)
-			self.clipped_grads_and_vars = [(ClipIfNotNone(grad, -1., 1.), var) for grad, var in self.grads_and_vars]
-			self.train_op = self.optimizer.apply_gradients(self.clipped_grads_and_vars)
+			#             https://stackoverflow.com/questions/49987839/how-to-handle-none-in-tf-clip-by-global-norm
+			self.gradients, self.variables = zip(*self.optimizer.compute_gradients(self.loss))
+			# self.clipped_grads_and_vars = [(ClipIfNotNone(grad, -1., 1.), var) for grad, var in self.grads_and_vars]
+			self.gradients, _ = tf.clip_by_global_norm(self.gradients, 2.5)
+			self.train_op = self.optimizer.apply_gradients(zip(self.gradients, self.variables))
 
 			if self.summaries_dir:
 				summary_dir = os.path.join(self.summaries_dir, "summaries_{}".format(scope))
@@ -177,11 +186,16 @@ class Duelling_DQN_Atari(Duelling_DQN):
 					os.makedirs(summary_dir)
 				self.summary_writer = tf.summary.FileWriter(summary_dir)
 
-			self.summaries = tf.summary.merge([
-				tf.summary.scalar("loss", self.loss),
-				tf.summary.histogram("loss_hist", self.losses),
-				tf.summary.histogram("q_values_hist", self.pred),
-				tf.summary.scalar("mean_q_value", tf.math.reduce_mean(self.pred)),
-				tf.summary.scalar("var_q_value", tf.math.reduce_variance(self.pred)),
-				tf.summary.scalar("max_q_value", tf.reduce_max(self.pred))
-			])
+			for i, grad in enumerate(self.gradients):
+				if grad is not None:
+					mean = tf.reduce_mean(tf.abs(grad))
+					tf.summary.scalar('mean_{}'.format(i + 1), mean)
+					tf.summary.histogram('histogram_{}'.format(i + 1), grad)
+
+			tf.summary.scalar("loss", self.loss)
+			tf.summary.histogram("loss_hist", self.losses)
+			tf.summary.histogram("q_values_hist", self.pred)
+			tf.summary.scalar("mean_q_value", tf.math.reduce_mean(self.pred))
+			tf.summary.scalar("var_q_value", tf.math.reduce_variance(self.pred))
+			tf.summary.scalar("max_q_value", tf.reduce_max(self.pred))
+			self.summaries = tf.summary.merge_all()

@@ -56,9 +56,6 @@ def train_Double_DQN(main_model, target_model, env, replay_buffer, policy, param
 					# Logging and refreshing log purpose values
 					losses.append(loss)
 					logging(frame_idx, params.num_frames, index_episode, time.time()-start, episode_reward, loss, cnt_action)
-					episode_reward = 0
-					cnt_action = []
-					start = time.time()
 
 					episode_summary = tf.Summary()
 					episode_summary.value.add(simple_value=episode_reward, node_name="episode_reward",
@@ -67,6 +64,9 @@ def train_Double_DQN(main_model, target_model, env, replay_buffer, policy, param
 											  tag="episode_length")
 					main_model.summary_writer.add_summary(episode_summary, global_step)
 
+					episode_reward = 0
+					cnt_action = []
+					start = time.time()
 
 			if frame_idx > params.learning_start and frame_idx % params.sync_freq == 0:
 				# soft update means we partially add the original weights of target model instead of completely
