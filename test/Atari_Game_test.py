@@ -7,7 +7,6 @@ Author: Norio Kosaka
 """
 
 import gym
-import time
 
 env = gym.make("BreakoutDeterministic-v4")
 

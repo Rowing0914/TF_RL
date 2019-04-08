@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 from common.memory import PrioritizedReplayBuffer
 from common.utils import AnnealingSchedule
-from common.wrappers_Atari import make_atari, wrap_deepmind
+from common.wrappers import make_atari, wrap_deepmind
 from common.policy import EpsilonGreedyPolicy, BoltzmannQPolicy
 from agents.DQN_model import Parameters
 from agents.Duelling_Double_DQN_PER_model import train_Duelling_Double_DQN_PER, Duelling_Double_DQN_PER_CartPole, Duelling_Double_DQN_PER_Atari

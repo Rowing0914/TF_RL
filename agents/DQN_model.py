@@ -28,7 +28,7 @@ class Parameters:
 			self.prioritized_replay_noise = 1e-6
 		elif mode == "CartPole":
 			self.state_reshape = (1, 4)
-			self.num_frames = 10000
+			self.num_frames = 20000
 			self.memory_size = 20000
 			self.learning_start = 100
 			self.sync_freq = 100
@@ -246,6 +246,7 @@ def train_DQN(main_model, target_model, env, replay_buffer, policy, params):
 			action = policy.select_action(sess, target_model, state.reshape(params.state_reshape))
 			cnt_action.append(action)
 			next_state, reward, done, _ = env.step(action)
+
 			replay_buffer.add(state, action, reward, next_state, done)
 
 			state = next_state
@@ -260,6 +261,7 @@ def train_DQN(main_model, target_model, env, replay_buffer, policy, params):
 				if frame_idx > params.learning_start and len(replay_buffer) > params.batch_size:
 					states, actions, rewards, next_states, dones = replay_buffer.sample(params.batch_size)
 					next_Q = target_model.predict(sess, next_states)
+					# Y = rewards + params.gamma * np.max(next_Q, axis=1)
 					Y = rewards + params.gamma * np.max(next_Q, axis=1) * np.logical_not(dones)
 					loss = main_model.update(sess, states, actions, Y)
 

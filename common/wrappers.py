@@ -1,10 +1,3 @@
-"""
-Borrowed from OpenAI Baselines at 4/4/2019
-
-https://github.com/openai/baselines/blob/master/baselines/common/wrappers.py
-
-"""
-
 import numpy as np
 import os
 os.environ.setdefault('PATH', '')
@@ -18,6 +11,36 @@ from gym import spaces
 
 import cv2
 cv2.ocl.setUseOpenCL(False)
+
+
+"""
+Wrapper for Cartpole
+When the game ends, the reward is -1.0, but originally it is set as 1.0
+
+check here: https://github.com/openai/gym/blob/master/gym/envs/classic_control/cartpole.py
+
+"""
+
+
+class MyWrapper(gym.Wrapper):
+    def __init__(self, env):
+        gym.Wrapper.__init__(self, env)
+        self.env = env
+
+    def step(self, ac):
+        observation, reward, done, info = self.env.step(ac)
+        if done:
+            reward = -1.0
+        return observation, reward, done, info
+
+
+
+"""
+Borrowed from OpenAI Baselines at 4/4/2019
+
+https://github.com/openai/baselines/blob/master/baselines/common/wrappers.py
+
+"""
 
 # I moved the source code of this module just below
 # from .wrappers import TimeLimit
