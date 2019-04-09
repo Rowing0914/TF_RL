@@ -5,10 +5,10 @@ class Policy:
 	"""
 	boilterplate for policy class
 	"""
-	def __init__(self):
+	def __init__(self, Epsilon_fn):
 		pass
 
-	def select_action(self):
+	def select_action(self, sess, agent, state):
 		raise NotImplementedError()
 
 
@@ -18,15 +18,14 @@ class EpsilonGreedyPolicy(Policy):
 	"""
 	def __init__(self, Epsilon_fn):
 		self.Epsilon = Epsilon_fn
-		self.timestep = 0
+		self.index_episode = 0
 
 	def select_action(self, sess, agent, state):
-		if np.random.uniform() < self.Epsilon.get_value(self.timestep):
+		if np.random.uniform() < self.Epsilon.get_value(self.index_episode):
 			action = np.random.randint(agent.num_action)
 		else:
 			q_values = sess.run(agent.pred, feed_dict={agent.state: state})[0]
 			action = np.argmax(q_values)
-		self.timestep += 1
 		return action
 
 
@@ -40,6 +39,7 @@ class BoltzmannQPolicy(Policy):
 	def __init__(self, tau=1., clip=(-500., 500.)):
 		self.tau = tau
 		self.clip = clip
+		self.index_episode = 0
 
 	def select_action(self, sess, agent, state):
 		"""Return the selected action

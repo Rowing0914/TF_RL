@@ -1,5 +1,5 @@
 import numpy as np
-import os
+import os, math
 os.environ.setdefault('PATH', '')
 from collections import deque
 import gym
@@ -21,7 +21,6 @@ check here: https://github.com/openai/gym/blob/master/gym/envs/classic_control/c
 
 """
 
-
 class MyWrapper(gym.Wrapper):
     def __init__(self, env):
         gym.Wrapper.__init__(self, env)
@@ -37,6 +36,35 @@ class MyWrapper(gym.Wrapper):
     def reset(self, **kwargs):
         return self.env.reset()
 
+
+class DiscretisedEnv(gym.Wrapper):
+    def __init__(self, env):
+        gym.Wrapper.__init__(self, env)
+        self.env = env
+        self.high1 = env.observation_space.high[0]
+        self.high2 = env.observation_space.high[2]
+        self.low1 = env.observation_space.low[0]
+        self.low2 = env.observation_space.low[2]
+        self.buckets = (1, 1, 6, 12,)
+        self.env.seed(123)  # fix the randomness for reproducibility purpose
+
+    def step(self, ac):
+        observation, reward, done, info = self.env.step(ac)
+        if done:
+            reward = -1.0  # reward at a terminal state
+        return self._discretise(observation), reward, done, info
+
+    def reset(self, **kwargs):
+        return self._discretise(self.env.reset())
+
+    def _discretise(self, obs):
+        upper_bounds = [self.high1, 0.5, self.high2, math.radians(50)]
+        lower_bounds = [self.low1, -0.5, self.low2, -math.radians(50)]
+        ratios = [(obs[i] + abs(lower_bounds[i])) / (upper_bounds[i] - lower_bounds[i]) for i in
+                  range(len(obs))]
+        new_obs = [int(round((self.buckets[i] - 1) * ratios[i])) for i in range(len(obs))]
+        new_obs = [min(self.buckets[i] - 1, max(0, new_obs[i])) for i in range(len(obs))]
+        return tuple(new_obs)
 
 
 """
