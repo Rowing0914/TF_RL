@@ -18,8 +18,8 @@ class Policy_Network:
 			self.action = tf.placeholder(shape=[None], dtype=tf.int32, name="action")
 
 			x = tf.keras.layers.Dense(16, activation=tf.nn.relu)(self.state)
-			# x = tf.keras.layers.Dense(16, activation=tf.nn.relu)(x)
-			# x = tf.keras.layers.Dense(16, activation=tf.nn.relu)(x)
+			x = tf.keras.layers.Dense(16, activation=tf.nn.relu)(x)
+			x = tf.keras.layers.Dense(16, activation=tf.nn.relu)(x)
 			self.pred = tf.keras.layers.Dense(self.num_action, activation=tf.nn.relu)(x)
 
 			self.action_probs = tf.squeeze(tf.nn.softmax(self.pred))
@@ -46,8 +46,8 @@ class Value_Network:
 			self.Y = tf.placeholder(shape=[None], dtype=tf.float32, name="Y")
 
 			x = tf.keras.layers.Dense(16, activation=tf.nn.relu)(self.state)
-			# x = tf.keras.layers.Dense(16, activation=tf.nn.relu)(x)
-			# x = tf.keras.layers.Dense(16, activation=tf.nn.relu)(x)
+			x = tf.keras.layers.Dense(16, activation=tf.nn.relu)(x)
+			x = tf.keras.layers.Dense(16, activation=tf.nn.relu)(x)
 			self.pred = tf.keras.layers.Dense(1, activation=tf.nn.relu)(x)
 
 			# use MSE
@@ -117,7 +117,8 @@ with tf.Session() as sess:
 			policy_net.update(sess, state.reshape(params.state_reshape), [action], advantage)
 
 		# stopping condition: if the agent has achieved the goal twice successively then we stop this!!
-		if sum(episode_reward[-2:]) == 400:
+		# at the terminal state, you reward is -1.0 so that (200-1)+(200-1) = 398
+		if sum(episode_reward[-2:]) == 398:
 			break
 
 	env.close()
