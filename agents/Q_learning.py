@@ -1,4 +1,3 @@
-""" Q-Learning implementation for Cartpole """
 import gym
 import numpy as np
 import collections
@@ -18,6 +17,7 @@ class Q_Agent:
 	def choose_action(self, state, epsilon):
 		if self.policy_type == "Eps":
 			return self.env.action_space.sample() if (np.random.random() <= epsilon) else np.argmax(self.Q[state])
+		# I have tried Boltzmann policy tho, it didn't converge...
 		elif self.policy_type == "Boltz":
 			q_values = self.Q[state]
 			exp_values = np.exp(np.clip(q_values / self.tau, self.clip[0], self.clip[1]))

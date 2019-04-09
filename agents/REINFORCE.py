@@ -69,8 +69,12 @@ env = MyWrapper(gym.make("CartPole-v0"))
 policy_net = Policy_Network(num_action=env.action_space.n)
 value_net = Value_Network()
 params = Parameters(mode="CartPole")
+
+# Epsilon Greedy policy does not converge
 # Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end, decay_steps=params.decay_steps)
 # policy = EpsilonGreedyPolicy(Epsilon_fn=Epsilon)
+
+# please use Boltzmann policy instead!!
 policy = BoltzmannQPolicy()
 
 # Create a glboal step variable
@@ -84,6 +88,7 @@ with tf.Session() as sess:
 	for i in range(400):
 		state = env.reset()
 		memory = list()
+		policy.index_episode = i
 
 		# generate an episode
 		for t in itertools.count():
