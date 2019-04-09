@@ -147,7 +147,7 @@ def logging(time_step, max_steps, current_episode, exec_time, reward, loss, epsi
 	:return:
 	"""
 	cnt_actions = dict((x, cnt_action.count(x)) for x in set(cnt_action))
-	print("{0}/{1}: episode: {2}, duration: {3:.3f}s, episode reward: {4}, loss: {5:.6f}, epsilon: {6}, taken actions: {7}".format(
+	print("{0}/{1}: episode: {2}, duration: {3:.3f}s, episode reward: {4}, loss: {5:.6f}, epsilon: {6:.6f}, taken actions: {7}".format(
 		time_step, max_steps, current_episode, exec_time, reward, loss, epsilon, cnt_actions
 	))
 

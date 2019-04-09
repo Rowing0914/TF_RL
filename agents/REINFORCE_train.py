@@ -128,8 +128,5 @@ with tf.Session() as sess:
 
 	env.close()
 
-import matplotlib.pyplot as plt
-
-plt.plot(episode_reward)
-plt.title("Reward over episode")
-plt.show()
+import numpy as np
+np.save("../logs/value/rewards_REINFORCE.npy", episode_reward)

@@ -1,3 +1,4 @@
+import argparse
 import gym
 import tensorflow as tf
 import os
@@ -17,14 +18,15 @@ except:
 # initialise a graph in a session
 tf.reset_default_graph()
 
-mode = "CartPole"
-# mode = "Atari"
+parser = argparse.ArgumentParser()
+parser.add_argument("--mode", default="CartPole", help="game env type")
+args = parser.parse_args()
 
-if mode == "CartPole":
+if args.mode == "CartPole":
 	env = MyWrapper(gym.make("CartPole-v0"))
 	params = Parameters(mode="CartPole")
-	main_model = DQN_PER_CartPole("PER_main", env, loss_fn="huber_loss")
-	target_model = DQN_PER_CartPole("PER_target", env, loss_fn="huber_loss")
+	main_model = DQN_PER_CartPole("PER_main", env, loss_fn="huber_loss", grad_clip_flg=params.grad_clip_flg)
+	target_model = DQN_PER_CartPole("PER_target", env, loss_fn="huber_loss", grad_clip_flg=params.grad_clip_flg)
 	replay_buffer = PrioritizedReplayBuffer(params.memory_size, alpha=params.prioritized_replay_alpha)
 	if params.policy_fn == "Eps":
 		Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end, decay_steps=params.decay_steps)
@@ -33,11 +35,11 @@ if mode == "CartPole":
 		policy = BoltzmannQPolicy()
 	Beta = AnnealingSchedule(start=params.prioritized_replay_beta_start, end=params.prioritized_replay_beta_end,
 	                         decay_steps=params.decay_steps)
-elif mode == "Atari":
+elif args.mode == "Atari":
 	env = wrap_deepmind(make_atari("PongNoFrameskip-v4"))
 	params = Parameters(mode="Atari")
-	main_model = DQN_PER_Atari("PER_main", env, loss_fn="huber_loss")
-	target_model = DQN_PER_Atari("PER_target", env, loss_fn="huber_loss")
+	main_model = DQN_PER_Atari("PER_main", env, loss_fn="huber_loss", grad_clip_flg=params.grad_clip_flg)
+	target_model = DQN_PER_Atari("PER_target", env, loss_fn="huber_loss", grad_clip_flg=params.grad_clip_flg)
 	replay_buffer = PrioritizedReplayBuffer(params.memory_size, alpha=params.prioritized_replay_alpha)
 	if params.policy_fn == "Eps":
 		Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end, decay_steps=params.decay_steps)

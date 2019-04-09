@@ -48,7 +48,7 @@ if __name__ == '__main__':
 	# hyperparameters
 	n_episodes = 1000
 	goal_duration = 198
-
+	all_rewards = list()
 	durations = collections.deque(maxlen=100)
 	params = Parameters(mode="CartPole")
 	Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end, decay_steps=params.decay_steps)
@@ -72,6 +72,7 @@ if __name__ == '__main__':
 
 		# mean duration of last 100 episodes
 		durations.append(duration)
+		all_rewards.append(duration)
 		mean_duration = np.mean(durations)
 
 		# check if our policy is good
@@ -83,3 +84,5 @@ if __name__ == '__main__':
 
 		elif episode % 100 == 0:
 			print('[Episode {}] - Mean time over last 100 episodes was {} frames.'.format(episode, mean_duration))
+
+	np.save("../logs/value/rewards_Q_learning.npy", all_rewards)
