@@ -43,7 +43,6 @@ class BoltzmannQPolicy(Policy):
 		self.tau = tau
 		self.clip = clip
 		self.index_episode = 0
-		self.current_epsilon = 0
 
 	def select_action(self, sess, agent, state):
 		"""Return the selected action
@@ -60,3 +59,6 @@ class BoltzmannQPolicy(Policy):
 		probs = exp_values / np.sum(exp_values)
 		action = np.random.choice(range(nb_actions), p=probs)
 		return action
+
+	def current_epsilon(self):
+		return 0
