@@ -1,5 +1,4 @@
 """ Q-Learning implementation for Cartpole """
-
 import gym
 import numpy as np
 import collections
@@ -21,26 +20,25 @@ class Q_Agent:
 			return self.env.action_space.sample() if (np.random.random() <= epsilon) else np.argmax(self.Q[state])
 		elif self.policy_type == "Boltz":
 			q_values = self.Q[state]
-			nb_actions = q_values.shape[0]
-
 			exp_values = np.exp(np.clip(q_values / self.tau, self.clip[0], self.clip[1]))
 			probs = exp_values / np.sum(exp_values)
-			return np.random.choice(range(nb_actions), p=probs)
+			return np.random.choice(range(q_values.shape[0]), p=probs)
 
 	def update(self, state, action, reward, next_state, alpha):
-		self.Q[state][action] += alpha * (reward + self.gamma * np.max(self.Q[next_state]) - self.Q[state][action])
+		# === I don't know why tho, self.gamma = 0.99 does not converge in Q-learning ===
+		# self.Q[state][action] += alpha * (reward + self.gamma * np.max(self.Q[next_state]) - self.Q[state][action])
+		self.Q[state][action] += alpha * (reward + 1. * np.max(self.Q[next_state]) - self.Q[state][action])
 
+	def test(self):
+		current_state = env.reset()
+		done = False
 
-def test(agent):
-	current_state = env.reset()
-	done = False
-
-	while not done:
-		action = agent.choose_action(current_state, 0)
-		obs, reward, done, _ = env.step(action)
-		env.render()
-		current_state = obs
-	return
+		while not done:
+			action = self.choose_action(current_state, 0)
+			obs, reward, done, _ = env.step(action)
+			env.render()
+			current_state = obs
+		return
 
 
 if __name__ == '__main__':
@@ -48,8 +46,8 @@ if __name__ == '__main__':
 	env = DiscretisedEnv(gym.make('CartPole-v0'))
 
 	# hyperparameters
-	n_episodes = 2000
-	goal_duration = 195
+	n_episodes = 1000
+	goal_duration = 198
 
 	durations = collections.deque(maxlen=100)
 	params = Parameters(mode="CartPole")
@@ -58,7 +56,6 @@ if __name__ == '__main__':
 	agent = Q_Agent(env, params)
 
 	for episode in range(n_episodes):
-
 		current_state = env.reset()
 
 		done = False
@@ -81,7 +78,7 @@ if __name__ == '__main__':
 		# check if our policy is good
 		if mean_duration >= goal_duration and episode >= 100:
 			print('Ran {} episodes. Solved after {} trials'.format(episode, episode - 100))
-			# test()
+			# agent.test()
 			env.close()
 			break
 
