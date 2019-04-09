@@ -1,3 +1,6 @@
+# Algorithm: on page 333 of the Sutton's RL book
+# Design pattern: followed Dennybritz => https://github.com/dennybritz/reinforcement-learning/blob/master/PolicyGradient/CliffWalk%20REINFORCE%20with%20Baseline%20Solution.ipynb
+
 import gym
 import itertools
 from common.wrappers import MyWrapper
@@ -102,7 +105,11 @@ with tf.Session() as sess:
 		# after an episode, we update networks(Policy and Value)
 		for step, data in enumerate(memory):
 			state, action, next_state, reward, done = data
+
+			# calculate discounted G
 			total_return = sum(params.gamma**i * t[3] for i, t in enumerate(memory[step:]))
+
+			# calculate an advantage
 			advantage = total_return - value_net.predict(sess, state.reshape(params.state_reshape))
 
 			# update models
