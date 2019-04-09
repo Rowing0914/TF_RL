@@ -253,6 +253,7 @@ def train_Duelling_Double_DQN_PER(main_model, target_model, env, replay_buffer, 
 
 			if done:
 				index_episode += 1
+				policy.index_episode = index_episode
 				state = env.reset()
 				all_rewards.append(episode_reward)
 

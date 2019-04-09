@@ -65,8 +65,7 @@ if __name__ == '__main__':
 		while not done:
 			# env.render()
 			action = agent.choose_action(current_state, Epsilon.get_value(episode))
-			obs, reward, done, _ = env.step(action)
-			new_state = obs
+			new_state, reward, done, _ = env.step(action)
 			agent.update(current_state, action, reward, new_state, Alpha.get_value(episode))
 			current_state = new_state
 			duration += 1

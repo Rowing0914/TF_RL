@@ -38,7 +38,7 @@ class Parameters:
 			self.soft_update_tau = 1e-2          # seems 1e-2 is the optimal ratio for tau!!
 			self.epsilon_start = 1.0
 			self.epsilon_end = 0.1
-			self.decay_steps = 500               # this defines the frequency of the interatcion of models
+			self.decay_steps = 500               # this defines the frequency of the interaction of models
 			self.prioritized_replay_alpha = 0.6
 			self.prioritized_replay_beta_start = 0.4
 			self.prioritized_replay_beta_end = 1.0

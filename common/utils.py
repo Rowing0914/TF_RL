@@ -13,14 +13,18 @@ class AnnealingSchedule:
 	Scheduling the gradually decreasign value, e.g., epsilon or beta params
 
 	"""
-	def __init__(self, start=1.0, end=0.1, decay_steps=500):
+	def __init__(self, start=1.0, end=0.1, decay_steps=500, decay_type="linear"):
 		self.start       = start
+		self.end = end
 		self.decay_steps = 500
 		self.annealed_value = np.linspace(start, end, decay_steps)
+		self.decay_type = decay_type
 
 	def get_value(self, timestep):
-		return self.annealed_value[min(timestep, self.decay_steps - 1)]
-
+		if self.decay_type == "linear":
+			return self.annealed_value[min(timestep, self.decay_steps - 1)]
+		elif self.decay_type == "curved":
+			return max(self.end, min(1, 1.0 - np.log10((timestep + 1) / 25)))
 
 
 
