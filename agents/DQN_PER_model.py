@@ -243,7 +243,7 @@ def train_DQN_PER(main_model, target_model, env, replay_buffer, policy, Beta, pa
 
 					# Logging and refreshing log purpose values
 					losses.append(loss)
-					logging(frame_idx, params.num_frames, index_episode, time.time()-start, episode_reward, loss, cnt_action)
+					logging(frame_idx, params.num_frames, index_episode, time.time()-start, episode_reward, loss, policy.current_epsilon(), cnt_action)
 
 					episode_summary = tf.Summary()
 					episode_summary.value.add(simple_value=episode_reward, node_name="episode_reward",

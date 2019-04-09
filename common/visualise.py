@@ -3,6 +3,17 @@ from matplotlib import cm
 import matplotlib.pyplot as plt
 
 
+def plot_comparison_graph(model_names):
+	for model_name in model_names:
+		rewards = np.load("../logs/value/rewards_{}.npy".format(model_name))
+		plt.plot(rewards, label=model_name)
+		plt.title("Score over Episodes")
+		plt.xlabel("Episodes")
+		plt.ylabel("Score")
+	plt.legend()
+	plt.show()
+
+
 class Plotting:
 	def __init__(self, nb_actions, env, model, tracker):
 		self.nb_actions = nb_actions

@@ -28,6 +28,9 @@ class EpsilonGreedyPolicy(Policy):
 			action = np.argmax(q_values)
 		return action
 
+	def current_epsilon(self):
+		return self.Epsilon.get_value(self.index_episode)
+
 
 class BoltzmannQPolicy(Policy):
 	"""
@@ -40,6 +43,7 @@ class BoltzmannQPolicy(Policy):
 		self.tau = tau
 		self.clip = clip
 		self.index_episode = 0
+		self.current_epsilon = 0
 
 	def select_action(self, sess, agent, state):
 		"""Return the selected action

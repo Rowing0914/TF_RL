@@ -16,13 +16,13 @@ class AnnealingSchedule:
 	def __init__(self, start=1.0, end=0.1, decay_steps=500, decay_type="linear"):
 		self.start       = start
 		self.end = end
-		self.decay_steps = 500
+		self.decay_steps = decay_steps
 		self.annealed_value = np.linspace(start, end, decay_steps)
 		self.decay_type = decay_type
 
 	def get_value(self, timestep):
 		if self.decay_type == "linear":
-			return self.annealed_value[min(timestep, self.decay_steps - 1)]
+			return self.annealed_value[min(timestep, self.decay_steps) - 1]
 		elif self.decay_type == "curved":
 			return max(self.end, min(1, 1.0 - np.log10((timestep + 1) / 25)))
 
@@ -133,7 +133,7 @@ class Tracker:
 
 
 
-def logging(time_step, max_steps, current_episode, exec_time, reward, loss, cnt_action):
+def logging(time_step, max_steps, current_episode, exec_time, reward, loss, epsilon, cnt_action):
 	"""
 	Logging function
 
@@ -147,8 +147,8 @@ def logging(time_step, max_steps, current_episode, exec_time, reward, loss, cnt_
 	:return:
 	"""
 	cnt_actions = dict((x, cnt_action.count(x)) for x in set(cnt_action))
-	print("{0}/{1}: episode: {2}, duration: {3:.3f}s, episode reward: {4}, loss: {5:.6f}, taken actions: {6}".format(
-		time_step, max_steps, current_episode, exec_time, reward, loss, cnt_actions
+	print("{0}/{1}: episode: {2}, duration: {3:.3f}s, episode reward: {4}, loss: {5:.6f}, epsilon: {6}, taken actions: {7}".format(
+		time_step, max_steps, current_episode, exec_time, reward, loss, epsilon, cnt_actions
 	))
 
 
