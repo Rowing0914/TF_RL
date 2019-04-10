@@ -14,6 +14,8 @@
 
 ### 1. Comparison: Performance of algorithms below
 
+![](<https://github.com/Rowing0914/TF_RL/blob/master/assets/result.gif>)
+
 ```shell
 $ cd experiment
 $ python3.6 comparisons.py
