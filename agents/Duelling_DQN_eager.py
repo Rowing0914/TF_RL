@@ -16,30 +16,48 @@ from common.visualise import plot_Q_values
 tf.enable_eager_execution()
 
 class Model_CartPole(tf.keras.Model):
-	def __init__(self, num_action):
+	def __init__(self, num_action, duelling_type="avg"):
 		super(Model_CartPole, self).__init__()
+		self.duelling_type = duelling_type
 		self.dense1 = tf.keras.layers.Dense(16, activation='relu')
 		self.dense2 = tf.keras.layers.Dense(16, activation='relu')
 		self.dense3 = tf.keras.layers.Dense(16, activation='relu')
-		self.pred = tf.keras.layers.Dense(num_action, activation='linear')
+		self.q_value = tf.keras.layers.Dense(num_action, activation='linear')
+		self.v_value = tf.keras.layers.Dense(1, activation='linear')
 
 	def call(self, inputs):
 		x = self.dense1(inputs)
 		x = self.dense2(x)
 		x = self.dense3(x)
-		pred = self.pred(x)
-		return pred
+		q_value = self.q_value(x)
+		v_value = self.v_value(x)
+
+		if self.duelling_type == "avg":
+			# Q(s,a;theta) = V(s;theta) + (A(s,a;theta)-Avg_a(A(s,a;theta)))
+			output = tf.math.add(v_value, tf.math.subtract(q_value, tf.reduce_mean(q_value)))
+		elif self.duelling_type == "max":
+			# Q(s,a;theta) = V(s;theta) + (A(s,a;theta)-max_a(A(s,a;theta)))
+			output = tf.math.add(v_value, tf.math.subtract(q_value, tf.math.reduce_max(q_value)))
+		elif self.duelling_type == "naive":
+			# Q(s,a;theta) = V(s;theta) + A(s,a;theta)
+			output = tf.math.add(v_value, q_value)
+		else:
+			assert False, "dueling_type must be one of {'avg','max','naive'}"
+		return output
 
 
 class Model_Atari(tf.keras.Model):
-	def __init__(self, num_action):
+	def __init__(self, num_action, duelling_type="avg"):
 		super(Model_Atari, self).__init__()
+		self.duelling_type = duelling_type
 		self.conv1 = tf.keras.layers.Conv2D(32, kernel_size=8, strides=8, activation='relu')
 		self.conv2 = tf.keras.layers.Conv2D(64, kernel_size=4, strides=2, activation='relu')
 		self.conv3 = tf.keras.layers.Conv2D(64, kernel_size=3, strides=1, activation='relu')
 		self.flat = tf.keras.layers.Flatten()
 		self.fc1 = tf.keras.layers.Dense(512, activation='relu')
-		self.pred = tf.keras.layers.Dense(num_action, activation='linear')
+		self.q_value = tf.keras.layers.Dense(num_action, activation='linear')
+		self.v_value = tf.keras.layers.Dense(1, activation='linear')
+
 
 	def call(self, inputs):
 		x = self.conv1(inputs)
@@ -47,13 +65,26 @@ class Model_Atari(tf.keras.Model):
 		x = self.conv3(x)
 		x = self.flat(x)
 		x = self.fc1(x)
-		pred = self.pred(x)
-		return pred
+		q_value = self.q_value(x)
+		v_value = self.v_value(x)
+
+		if self.duelling_type == "avg":
+			# Q(s,a;theta) = V(s;theta) + (A(s,a;theta)-Avg_a(A(s,a;theta)))
+			output = tf.math.add(v_value, tf.math.subtract(q_value, tf.reduce_mean(q_value)))
+		elif self.duelling_type == "max":
+			# Q(s,a;theta) = V(s;theta) + (A(s,a;theta)-max_a(A(s,a;theta)))
+			output = tf.math.add(v_value, tf.math.subtract(q_value, tf.math.reduce_max(q_value)))
+		elif self.duelling_type == "naive":
+			# Q(s,a;theta) = V(s;theta) + A(s,a;theta)
+			output = tf.math.add(v_value, q_value)
+		else:
+			assert False, "dueling_type must be one of {'avg','max','naive'}"
+		return output
 
 
-class DQN:
+class Duelling_DQN:
 	"""
-    DQN
+    Duelling_DQN
     """
 	def __init__(self, main_model, target_model, num_action, params):
 		self.num_action = num_action
@@ -119,7 +150,7 @@ class DQN:
 
 if __name__ == '__main__':
 
-	logdir = "../logs/summary_DQN_eager"
+	logdir = "../logs/summary_Duelling_Double_DQN_PER_eager"
 	try:
 		os.system("rm -rf {}".format(logdir))
 	except:
@@ -133,7 +164,7 @@ if __name__ == '__main__':
 		env = MyWrapper(gym.make("CartPole-v0"))
 		params = Parameters(mode="CartPole")
 		replay_buffer = ReplayBuffer(params.memory_size)
-		agent = DQN(Model_CartPole, Model_CartPole, env.action_space.n, params)
+		agent = Duelling_DQN(Model_CartPole, Model_CartPole, env.action_space.n, params)
 		if params.policy_fn == "Eps":
 			Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end,
 										decay_steps=params.decay_steps)
@@ -144,7 +175,7 @@ if __name__ == '__main__':
 		env = wrap_deepmind(make_atari("PongNoFrameskip-v4"))
 		params = Parameters(mode="Atari")
 		replay_buffer = ReplayBuffer(params.memory_size)
-		agent = DQN(Model_Atari, Model_Atari, env.action_space.n, params)
+		agent = Duelling_DQN(Model_Atari, Model_Atari, env.action_space.n, params)
 		if params.policy_fn == "Eps":
 			Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end,
 										decay_steps=params.decay_steps)

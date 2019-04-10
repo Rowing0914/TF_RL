@@ -8,7 +8,7 @@ import tensorflow as tf
 from collections import deque
 from common.wrappers import MyWrapper, wrap_deepmind, make_atari
 from common.params import Parameters
-from common.memory import ReplayBuffer
+from common.memory import PrioritizedReplayBuffer
 from common.utils import AnnealingSchedule, soft_target_model_update_eager, logging, huber_loss, ClipIfNotNone
 from common.policy import EpsilonGreedyPolicy_eager, BoltzmannQPolicy_eager
 from common.visualise import plot_Q_values
@@ -16,30 +16,48 @@ from common.visualise import plot_Q_values
 tf.enable_eager_execution()
 
 class Model_CartPole(tf.keras.Model):
-	def __init__(self, num_action):
+	def __init__(self, num_action, duelling_type="avg"):
 		super(Model_CartPole, self).__init__()
+		self.duelling_type = duelling_type
 		self.dense1 = tf.keras.layers.Dense(16, activation='relu')
 		self.dense2 = tf.keras.layers.Dense(16, activation='relu')
 		self.dense3 = tf.keras.layers.Dense(16, activation='relu')
-		self.pred = tf.keras.layers.Dense(num_action, activation='linear')
+		self.q_value = tf.keras.layers.Dense(num_action, activation='linear')
+		self.v_value = tf.keras.layers.Dense(1, activation='linear')
 
 	def call(self, inputs):
 		x = self.dense1(inputs)
 		x = self.dense2(x)
 		x = self.dense3(x)
-		pred = self.pred(x)
-		return pred
+		q_value = self.q_value(x)
+		v_value = self.v_value(x)
+
+		if self.duelling_type == "avg":
+			# Q(s,a;theta) = V(s;theta) + (A(s,a;theta)-Avg_a(A(s,a;theta)))
+			output = tf.math.add(v_value, tf.math.subtract(q_value, tf.reduce_mean(q_value)))
+		elif self.duelling_type == "max":
+			# Q(s,a;theta) = V(s;theta) + (A(s,a;theta)-max_a(A(s,a;theta)))
+			output = tf.math.add(v_value, tf.math.subtract(q_value, tf.math.reduce_max(q_value)))
+		elif self.duelling_type == "naive":
+			# Q(s,a;theta) = V(s;theta) + A(s,a;theta)
+			output = tf.math.add(v_value, q_value)
+		else:
+			assert False, "dueling_type must be one of {'avg','max','naive'}"
+		return output
 
 
 class Model_Atari(tf.keras.Model):
-	def __init__(self, num_action):
+	def __init__(self, num_action, duelling_type="avg"):
 		super(Model_Atari, self).__init__()
+		self.duelling_type = duelling_type
 		self.conv1 = tf.keras.layers.Conv2D(32, kernel_size=8, strides=8, activation='relu')
 		self.conv2 = tf.keras.layers.Conv2D(64, kernel_size=4, strides=2, activation='relu')
 		self.conv3 = tf.keras.layers.Conv2D(64, kernel_size=3, strides=1, activation='relu')
 		self.flat = tf.keras.layers.Flatten()
 		self.fc1 = tf.keras.layers.Dense(512, activation='relu')
-		self.pred = tf.keras.layers.Dense(num_action, activation='linear')
+		self.q_value = tf.keras.layers.Dense(num_action, activation='linear')
+		self.v_value = tf.keras.layers.Dense(1, activation='linear')
+
 
 	def call(self, inputs):
 		x = self.conv1(inputs)
@@ -47,13 +65,26 @@ class Model_Atari(tf.keras.Model):
 		x = self.conv3(x)
 		x = self.flat(x)
 		x = self.fc1(x)
-		pred = self.pred(x)
-		return pred
+		q_value = self.q_value(x)
+		v_value = self.v_value(x)
+
+		if self.duelling_type == "avg":
+			# Q(s,a;theta) = V(s;theta) + (A(s,a;theta)-Avg_a(A(s,a;theta)))
+			output = tf.math.add(v_value, tf.math.subtract(q_value, tf.reduce_mean(q_value)))
+		elif self.duelling_type == "max":
+			# Q(s,a;theta) = V(s;theta) + (A(s,a;theta)-max_a(A(s,a;theta)))
+			output = tf.math.add(v_value, tf.math.subtract(q_value, tf.math.reduce_max(q_value)))
+		elif self.duelling_type == "naive":
+			# Q(s,a;theta) = V(s;theta) + A(s,a;theta)
+			output = tf.math.add(v_value, q_value)
+		else:
+			assert False, "dueling_type must be one of {'avg','max','naive'}"
+		return output
 
 
-class DQN:
+class Duelling_Double_DQN_PER:
 	"""
-    DQN
+    Duelling_Double_DQN_PER
     """
 	def __init__(self, main_model, target_model, num_action, params):
 		self.num_action = num_action
@@ -72,8 +103,15 @@ class DQN:
 			# make sure to fit all process to compute gradients within this Tape context!!
 
 			# calculate target: R + gamma * max_a Q(s',a')
+			next_Q_main = self.main_model(tf.convert_to_tensor(next_states, dtype=tf.float32))
 			next_Q = self.target_model(tf.convert_to_tensor(next_states, dtype=tf.float32))
-			Y = rewards + self.params.gamma * np.max(next_Q, axis=-1).flatten() * np.logical_not(dones)
+			idx_flattened = tf.range(0, tf.shape(next_Q)[0]) * tf.shape(next_Q)[1] + np.argmax(next_Q_main, axis=-1)
+
+			# passing [-1] to tf.reshape means flatten the array
+			# using tf.gather, associate Q-values with the executed actions
+			action_probs = tf.gather(tf.reshape(next_Q, [-1]), idx_flattened)
+
+			Y = rewards + self.params.gamma * action_probs * np.logical_not(dones)
 
 			# calculate Q(s,a)
 			q_values = self.main_model(tf.convert_to_tensor(states, dtype=tf.float32))
@@ -114,12 +152,11 @@ class DQN:
 		tf.contrib.summary.scalar("var_q_value", tf.math.reduce_variance(next_Q), step=self.index_episode)
 		tf.contrib.summary.scalar("max_q_value", tf.reduce_max(next_Q), step=self.index_episode)
 
-		return loss
-
+		return loss, batch_loss
 
 if __name__ == '__main__':
 
-	logdir = "../logs/summary_DQN_eager"
+	logdir = "../logs/summary_Duelling_Double_DQN_PER_eager"
 	try:
 		os.system("rm -rf {}".format(logdir))
 	except:
@@ -132,8 +169,10 @@ if __name__ == '__main__':
 	if args.mode == "CartPole":
 		env = MyWrapper(gym.make("CartPole-v0"))
 		params = Parameters(mode="CartPole")
-		replay_buffer = ReplayBuffer(params.memory_size)
-		agent = DQN(Model_CartPole, Model_CartPole, env.action_space.n, params)
+		replay_buffer = PrioritizedReplayBuffer(params.memory_size, alpha=params.prioritized_replay_alpha)
+		agent = Duelling_Double_DQN_PER(Model_CartPole, Model_CartPole, env.action_space.n, params)
+		Beta = AnnealingSchedule(start=params.prioritized_replay_beta_start, end=params.prioritized_replay_beta_end,
+								 decay_steps=params.decay_steps)
 		if params.policy_fn == "Eps":
 			Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end,
 										decay_steps=params.decay_steps)
@@ -143,8 +182,10 @@ if __name__ == '__main__':
 	elif args.mode == "Atari":
 		env = wrap_deepmind(make_atari("PongNoFrameskip-v4"))
 		params = Parameters(mode="Atari")
-		replay_buffer = ReplayBuffer(params.memory_size)
-		agent = DQN(Model_Atari, Model_Atari, env.action_space.n, params)
+		replay_buffer = PrioritizedReplayBuffer(params.memory_size, alpha=params.prioritized_replay_alpha)
+		agent = Duelling_Double_DQN_PER(Model_Atari, Model_Atari, env.action_space.n, params)
+		Beta = AnnealingSchedule(start=params.prioritized_replay_beta_start, end=params.prioritized_replay_beta_end,
+								 decay_steps=params.decay_steps)
 		if params.policy_fn == "Eps":
 			Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end,
 										decay_steps=params.decay_steps)
@@ -183,11 +224,19 @@ if __name__ == '__main__':
 						tf.contrib.summary.scalar("reward", total_reward, step=global_timestep)
 
 						if global_timestep > params.learning_start:
-							states, actions, rewards, next_states, dones = replay_buffer.sample(params.batch_size)
+							# PER returns: state, action, reward, next_state, done, weights(a weight for an episode), indices(indices for a batch of episode)
+							states, actions, rewards, next_states, dones, weights, indices = replay_buffer.sample(
+								params.batch_size, Beta.get_value(i))
 
-							loss = agent.update(states, actions, rewards, next_states, dones)
+							loss, batch_loss = agent.update(states, actions, rewards, next_states, dones)
 							logging(global_timestep, params.num_frames, i, time.time() - start, total_reward, np.mean(loss),
 									policy.current_epsilon(), cnt_action)
+
+							# add noise to the priorities
+							batch_loss = np.abs(batch_loss) + params.prioritized_replay_noise
+
+							# Update a prioritised replay buffer using a batch of losses associated with each timestep
+							replay_buffer.update_priorities(indices, batch_loss)
 
 							if np.random.rand() > 0.5:
 								if params.update_hard_or_soft == "hard":

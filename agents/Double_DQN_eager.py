@@ -51,9 +51,9 @@ class Model_Atari(tf.keras.Model):
 		return pred
 
 
-class DQN:
+class Double_DQN:
 	"""
-    DQN
+    Double_DQN
     """
 	def __init__(self, main_model, target_model, num_action, params):
 		self.num_action = num_action
@@ -72,8 +72,15 @@ class DQN:
 			# make sure to fit all process to compute gradients within this Tape context!!
 
 			# calculate target: R + gamma * max_a Q(s',a')
+			next_Q_main = self.main_model(tf.convert_to_tensor(next_states, dtype=tf.float32))
 			next_Q = self.target_model(tf.convert_to_tensor(next_states, dtype=tf.float32))
-			Y = rewards + self.params.gamma * np.max(next_Q, axis=-1).flatten() * np.logical_not(dones)
+			idx_flattened = tf.range(0, tf.shape(next_Q)[0]) * tf.shape(next_Q)[1] + np.argmax(next_Q_main, axis=-1)
+
+			# passing [-1] to tf.reshape means flatten the array
+			# using tf.gather, associate Q-values with the executed actions
+			action_probs = tf.gather(tf.reshape(next_Q, [-1]), idx_flattened)
+
+			Y = rewards + self.params.gamma * action_probs * np.logical_not(dones)
 
 			# calculate Q(s,a)
 			q_values = self.main_model(tf.convert_to_tensor(states, dtype=tf.float32))
@@ -119,7 +126,7 @@ class DQN:
 
 if __name__ == '__main__':
 
-	logdir = "../logs/summary_DQN_eager"
+	logdir = "../logs/summary_Double_DQN_eager"
 	try:
 		os.system("rm -rf {}".format(logdir))
 	except:
@@ -133,7 +140,7 @@ if __name__ == '__main__':
 		env = MyWrapper(gym.make("CartPole-v0"))
 		params = Parameters(mode="CartPole")
 		replay_buffer = ReplayBuffer(params.memory_size)
-		agent = DQN(Model_CartPole, Model_CartPole, env.action_space.n, params)
+		agent = Double_DQN(Model_CartPole, Model_CartPole, env.action_space.n, params)
 		if params.policy_fn == "Eps":
 			Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end,
 										decay_steps=params.decay_steps)
@@ -144,7 +151,7 @@ if __name__ == '__main__':
 		env = wrap_deepmind(make_atari("PongNoFrameskip-v4"))
 		params = Parameters(mode="Atari")
 		replay_buffer = ReplayBuffer(params.memory_size)
-		agent = DQN(Model_Atari, Model_Atari, env.action_space.n, params)
+		agent = Double_DQN(Model_Atari, Model_Atari, env.action_space.n, params)
 		if params.policy_fn == "Eps":
 			Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end,
 										decay_steps=params.decay_steps)

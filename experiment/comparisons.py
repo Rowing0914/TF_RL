@@ -10,17 +10,17 @@ if args.mode == "CartPole":
 	models = [
 		"Q_learning",
 		"REINFORCE",
-		"DQN",
-		"Duelling_DQN",
-		"Double_DQN",
-		"DQN_PER",
-		"Duelling_Double_DQN_PER",
+		"DQN_eager",
+		"Duelling_DQN_eager",
+		"Double_DQN_eager",
+		"DQN_PER_eager",
+		"Duelling_Double_DQN_PER_eager",
 	]
 
 	for model in models:
-		os.system("python3.6 ../agents/{}_train.py".format(model))
+		os.system("python3.6 ../agents/{}.py".format(model))
 
-	plot_comparison_graph(models)
+	# plot_comparison_graph(models)
 
 elif args.mode == "Atari":
 	models = [
@@ -34,4 +34,4 @@ elif args.mode == "Atari":
 	for model in models:
 		os.system("python3.6 ../agents/{}_train.py --mode Atari".format(model))
 
-	plot_comparison_graph(models)
+	# plot_comparison_graph(models)
