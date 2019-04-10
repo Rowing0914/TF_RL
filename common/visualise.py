@@ -4,6 +4,12 @@ import matplotlib.pyplot as plt
 
 
 def plot_comparison_graph(model_names):
+	"""
+	2D Plot rewards arose in games(model_names)
+
+	:param model_names:
+	:return:
+	"""
 	for model_name in model_names:
 		rewards = np.load("../logs/value/rewards_{}.npy".format(model_name))
 		plt.plot(rewards, label=model_name)
@@ -12,6 +18,28 @@ def plot_comparison_graph(model_names):
 		plt.ylabel("Score")
 	plt.legend()
 	plt.show()
+
+
+def plot_Q_values(data, xmin=-1, xmax=4, ymin=0, ymax=2):
+	"""
+	Real time Bar plot of Q_values
+
+	:param data:
+	:param xmin:
+	:param xmax:
+	:param ymin:
+	:param ymax:
+	:return:
+	"""
+	plt.axis([xmin, xmax, ymin, ymax])
+	# print(data)
+	length = np.arange(data.shape[0])
+	plt.bar(length, data, align='center')
+	plt.xticks(length)
+	plt.xlabel("Actions")
+	plt.ylabel("Q_values")
+	plt.pause(0.02)
+	plt.clf()
 
 
 class Plotting:

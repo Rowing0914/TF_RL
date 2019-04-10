@@ -4,6 +4,7 @@ import collections
 from common.utils import AnnealingSchedule
 from common.params import Parameters
 from common.wrappers import DiscretisedEnv
+from common.visualise import plot_Q_values
 
 class Q_Agent:
 	def __init__(self, env, params, policy_type="Eps"):
@@ -33,10 +34,17 @@ class Q_Agent:
 		current_state = env.reset()
 		done = False
 
+		xmax = 2
+		xmin = -1
+		ymax = np.amax(self.Q) + 30
+		ymin = 0
+
 		while not done:
-			action = self.choose_action(current_state, 0)
-			obs, reward, done, _ = env.step(action)
 			env.render()
+			action = self.choose_action(current_state, 0)
+			plot_Q_values(self.Q[current_state], xmin, xmax, ymin, ymax)
+			print(self.Q[current_state])
+			obs, reward, done, _ = env.step(action)
 			current_state = obs
 		return
 
@@ -78,7 +86,7 @@ if __name__ == '__main__':
 		# check if our policy is good
 		if mean_duration >= goal_duration and episode >= 100:
 			print('Ran {} episodes. Solved after {} trials'.format(episode, episode - 100))
-			# agent.test()
+			agent.test()
 			env.close()
 			break
 
