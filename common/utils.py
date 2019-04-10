@@ -1,6 +1,8 @@
 import tensorflow as tf
 import numpy as np
 import os
+import itertools
+from common.visualise import plot_Q_values
 
 """
 
@@ -26,6 +28,27 @@ class AnnealingSchedule:
 		elif self.decay_type == "curved":
 			return max(self.end, min(1, 1.0 - np.log10((timestep + 1) / 25)))
 
+
+def test(sess, agent, env, params):
+	state = env.reset()
+
+	xmax = agent.num_action
+	ymax = 5
+
+	print("\n ===== TEST STARTS =====  \n")
+
+	for i in range(params.test_episodes):
+		for t in itertools.count():
+			env.render()
+			q_values = sess.run(agent.pred, feed_dict={agent.state: state.reshape(params.state_reshape)})[0]
+			action = np.argmax(q_values)
+			plot_Q_values(q_values, xmax=xmax, ymax=ymax)
+			obs, reward, done, _ = env.step(action)
+			state = obs
+			if done:
+				print("Episode finished after {} timesteps".format(t + 1))
+				break
+	return
 
 
 """

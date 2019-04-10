@@ -2,7 +2,7 @@ import numpy as np
 import time
 import os
 import tensorflow as tf
-from common.utils import sync_main_target, soft_target_model_update, huber_loss, logging, ClipIfNotNone
+from common.utils import sync_main_target, soft_target_model_update, huber_loss, logging, ClipIfNotNone, test
 
 
 class _DQN:
@@ -275,5 +275,6 @@ def train_DQN(main_model, target_model, env, replay_buffer, policy, params):
 				elif params.update_hard_or_soft == "soft":
 					soft_target_model_update(sess, main_model, target_model, tau=params.soft_update_tau)
 
+		test(sess, main_model, env, params)
 
 	return all_rewards, losses

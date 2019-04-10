@@ -30,18 +30,19 @@ class Parameters:
 			self.prioritized_replay_noise = 1e-6
 			self.tau = 1.
 			self.clip = (-500., 500.)
+			self.test_episodes = 10
 		elif mode == "CartPole":
 			self.state_reshape = (1, 4)
 			self.loss_fn = "huber_loss"          # loss func: MSE or huber_loss
-			self.policy_fn = "Eps"         # Epsilon Greedy(Eps) or Boltzmann(Boltzmann)
+			self.policy_fn = "Boltzmann"         # Epsilon Greedy(Eps) or Boltzmann(Boltzmann)
 			self.grad_clip_flg = "norm"      # clipping by value(by_value) or global norm(norm)
-			self.num_frames = 100000
+			self.num_frames = 10000
 			self.memory_size = 5000
 			self.learning_start = 100
 			self.sync_freq = 100                 # frequency of updating a target model
 			self.batch_size = 32
 			self.gamma = 0.99                    # gamma > 1.0 or negative => does not converge!!
-			self.update_hard_or_soft = "hard"    # soft update or hard update
+			self.update_hard_or_soft = "soft"    # soft update or hard update
 			self.soft_update_tau = 1e-2          # seems 1e-2 is the optimal ratio for tau!!
 			self.epsilon_start = 1.0
 			self.epsilon_end = 0.1
@@ -53,3 +54,4 @@ class Parameters:
 			self.prioritized_replay_noise = 1e-6
 			self.tau = 1.
 			self.clip = (-500., 500.)
+			self.test_episodes = 10

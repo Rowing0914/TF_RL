@@ -31,6 +31,11 @@ class Q_Agent:
 		self.Q[state][action] += alpha * (reward + 1. * np.max(self.Q[next_state]) - self.Q[state][action])
 
 	def test(self):
+		"""
+		Test the agent with a visual aid!
+
+		:return:
+		"""
 		current_state = env.reset()
 		done = False
 
