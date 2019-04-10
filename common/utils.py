@@ -12,7 +12,7 @@ Utility functions
 
 class AnnealingSchedule:
 	"""
-	Scheduling the gradually decreasign value, e.g., epsilon or beta params
+	Scheduling the gradually decreasing value, e.g., epsilon or beta params
 
 	"""
 	def __init__(self, start=1.0, end=0.1, decay_steps=500, decay_type="linear"):

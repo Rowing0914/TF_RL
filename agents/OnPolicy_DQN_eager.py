@@ -29,9 +29,7 @@ class Model(tf.keras.Model):
 class DQN:
 	"""
     On policy DQN
-
     """
-
 	def __init__(self, num_action):
 		self.num_action = num_action
 		self.model = Model(num_action)
@@ -40,15 +38,18 @@ class DQN:
 	def predict(self, state):
 		return self.model(tf.convert_to_tensor(state[None, :], dtype=tf.float32)).numpy()[0]
 
-	def update(self, state, action, target):
-		# target: R + gamma * max_a Q(s',a')
+	def update(self, state, action, next_state):
+		# calculate target: R + gamma * max_a Q(s',a')
+		next_Q = self.model(tf.convert_to_tensor(next_state[None, :], dtype=tf.float32))
+		Y = rewards + params.gamma * tf.reduce_max(next_Q, axis=-1) * np.logical_not(dones)
+
 		# calculate Q(s,a)
-		q_values = self.predict(state)
+		q_values = self.model(tf.convert_to_tensor(state[None, :], dtype=tf.float32))
 		actions_one_hot = tf.one_hot(action, self.num_action, 1.0, 0.0)
 		action_probs = tf.reduce_sum(actions_one_hot * q_values, reduction_indices=-1)
 
 		# Minibatch MSE => (1/batch_size) * (R + gamma * Q(s',a') - Q(s,a))^2
-		loss = tf.reduce_mean(tf.squared_difference(target, action_probs))
+		loss = tf.reduce_mean(tf.squared_difference(Y, action_probs))
 		return loss
 
 
@@ -59,7 +60,7 @@ if __name__ == '__main__':
 	params = Parameters(mode="CartPole")
 	agent = DQN(env.action_space.n)
 
-	for i in range(2000):
+	for i in range(1000):
 		state = env.reset()
 
 		total_reward = 0
@@ -76,18 +77,12 @@ if __name__ == '__main__':
 				print("Episode {0} finished after {1} timesteps".format(i, t + 1))
 
 				if i > 10:
-					print("Update")
 					with tf.GradientTape() as tape:
+						# make sure to fit all process to compute gradients within this Tape context!!
 						states, actions, rewards, next_states, dones = replay_buffer.sample(params.batch_size)
-						next_Q = agent.predict(next_states)
-						Y = rewards + params.gamma * np.max(next_Q, axis=1) * np.logical_not(dones)
-						loss = agent.update(states, actions, Y)
-						print(loss)
+						loss = agent.update(states, actions, next_states)
 
 					grads = tape.gradient(loss, agent.model.trainable_weights)
-
-					# ==== THIS RETURNS ONLY NONE ====
-					print(grads)
 					agent.optimizer.apply_gradients(zip(grads, agent.model.trainable_weights))
 				break
 
