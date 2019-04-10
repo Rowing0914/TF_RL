@@ -6,7 +6,7 @@
 
 ### Real time visualisation of Q-values after training
 
-![](/home/noio0925/Desktop/research/TF_RL/assets/test_monitor.png)
+![](<https://github.com/Rowing0914/TF_RL/blob/master/assets/test_monitor.png>)
 
 
 
