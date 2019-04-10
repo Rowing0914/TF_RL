@@ -4,9 +4,15 @@
 
 
 
-## Implementations
+### Real time visualisation of Q-values after training
 
-### Comparison: Performance of 1-4 algorithms below on CartPole
+![](/home/noio0925/Desktop/research/TF_RL/assets/test_monitor.png)
+
+
+
+## Usage
+
+### 1. Comparison: Performance of algorithms below on CartPole
 
 ```shell
 $ cd experiment
@@ -14,7 +20,15 @@ $ python3.6 comparisons.py
 $ tensorboard --logdir=./logs/
 ```
 
+### 2. Unit Test of a specific algorithm
 
+```shell
+$ python3.6 {model_name}_train.py
+```
+
+
+
+## Implementations
 
 ### Deep Reinforcement Learning
 

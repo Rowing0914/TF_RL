@@ -30,14 +30,13 @@ class AnnealingSchedule:
 
 
 def test(sess, agent, env, params):
-	state = env.reset()
-
 	xmax = agent.num_action
-	ymax = 5
+	ymax = 3
 
-	print("\n ===== TEST STARTS =====  \n")
+	print("\n ===== TEST STARTS: {0} Episodes =====  \n".format(params.test_episodes))
 
 	for i in range(params.test_episodes):
+		state = env.reset()
 		for t in itertools.count():
 			env.render()
 			q_values = sess.run(agent.pred, feed_dict={agent.state: state.reshape(params.state_reshape)})[0]
