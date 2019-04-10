@@ -1,6 +1,6 @@
 ## TF-RL(Reinforcement Learning with Tensorflow)
 
-  This is the repo for implementing and experimenting the variety of RL algorithms. And it aims to focus only on this purpose, hencewise, if you'd like theoretical background of each algorithm, please check the original papers or other great article on the internet!lol
+  This is the repo for implementing and experimenting the variety of RL algorithms. And it aims to focus only on this purpose, hencewise, if you'd like theoretical background of each algorithm, please check the original papers or other great article on the internet!
 
 
 
@@ -12,7 +12,7 @@
 
 ## Usage
 
-### 1. Comparison: Performance of algorithms below on CartPole
+### 1. Comparison: Performance of algorithms below
 
 ```shell
 $ cd experiment
@@ -23,6 +23,9 @@ $ tensorboard --logdir=./logs/
 ### 2. Unit Test of a specific algorithm
 
 ```shell
+# Eager Execution mode
+$ python3.6 {model_name}_eager.py
+# Graph mode Tensorflow: most of them are still under development...
 $ python3.6 {model_name}_train.py
 ```
 
