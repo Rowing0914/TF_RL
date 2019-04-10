@@ -150,7 +150,7 @@ class Duelling_DQN:
 
 if __name__ == '__main__':
 
-	logdir = "../logs/summary_Duelling_Double_DQN_PER_eager"
+	logdir = "../logs/summary_Duelling_DQN_eager"
 	try:
 		os.system("rm -rf {}".format(logdir))
 	except:
