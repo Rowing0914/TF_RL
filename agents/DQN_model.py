@@ -229,7 +229,7 @@ def train_DQN(main_model, target_model, env, replay_buffer, policy, params):
 		state = env.reset()
 		start = time.time()
 		for frame_idx in range(1, params.num_frames + 1):
-			action = policy.select_action(sess, target_model, state.reshape(params.state_reshape))
+			action = policy.select_action(sess, main_model, state.reshape(params.state_reshape))
 			cnt_action.append(action)
 			next_state, reward, done, _ = env.step(action)
 
@@ -267,14 +267,14 @@ def train_DQN(main_model, target_model, env, replay_buffer, policy, params):
 				cnt_action = []
 				start = time.time()
 
-			if frame_idx > params.learning_start and frame_idx % params.sync_freq == 0:
-				# soft update means we partially add the original weights of target model instead of completely
-				# sharing the weights among main and target models
-				if params.update_hard_or_soft == "hard":
-					sync_main_target(sess, main_model, target_model)
-				elif params.update_hard_or_soft == "soft":
-					soft_target_model_update(sess, main_model, target_model, tau=params.soft_update_tau)
+				if np.random.rand() > 0.5:
+					# soft update means we partially add the original weights of target model instead of completely
+					# sharing the weights among main and target models
+					if params.update_hard_or_soft == "hard":
+						sync_main_target(sess, target_model, main_model)
+					elif params.update_hard_or_soft == "soft":
+						soft_target_model_update(sess, target_model, main_model, tau=params.soft_update_tau)
 
-		test(sess, main_model, env, params)
+		# test(sess, main_model, env, params)
 
 	return all_rewards, losses

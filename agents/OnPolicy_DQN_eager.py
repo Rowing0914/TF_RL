@@ -16,7 +16,7 @@ class Model(tf.keras.Model):
 		self.dense1 = tf.keras.layers.Dense(16, activation='relu')
 		self.dense2 = tf.keras.layers.Dense(16, activation='relu')
 		self.dense3 = tf.keras.layers.Dense(16, activation='relu')
-		self.pred = tf.keras.layers.Dense(num_action, activation='softmax')
+		self.pred = tf.keras.layers.Dense(num_action, activation='relu')
 
 	def call(self, inputs):
 		x = self.dense1(inputs)

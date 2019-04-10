@@ -69,12 +69,12 @@ def train_Double_DQN(main_model, target_model, env, replay_buffer, policy, param
 					cnt_action = []
 					start = time.time()
 
-			if frame_idx > params.learning_start and frame_idx % params.sync_freq == 0:
+			if np.random.rand() > 0.5:
 				# soft update means we partially add the original weights of target model instead of completely
 				# sharing the weights among main and target models
 				if params.update_hard_or_soft == "hard":
-					sync_main_target(sess, main_model, target_model)
+					sync_main_target(sess, target_model, main_model)
 				elif params.update_hard_or_soft == "soft":
-					soft_target_model_update(sess, main_model, target_model, tau=params.soft_update_tau)
+					soft_target_model_update(sess, target_model, main_model, tau=params.soft_update_tau)
 
 	return all_rewards, losses

@@ -180,7 +180,7 @@ Update methods of a target model based on a source model
 
 """
 
-def sync_main_target(sess, main, target):
+def sync_main_target(sess, target, source):
 	"""
 	Synchronise the models
 
@@ -188,20 +188,20 @@ def sync_main_target(sess, main, target):
 	:param target:
 	:return:
 	"""
-	e1_params = [t for t in tf.trainable_variables() if t.name.startswith(main.scope)]
-	e1_params = sorted(e1_params, key=lambda v: v.name)
-	e2_params = [t for t in tf.trainable_variables() if t.name.startswith(target.scope)]
-	e2_params = sorted(e2_params, key=lambda v: v.name)
+	source_params = [t for t in tf.trainable_variables() if t.name.startswith(source.scope)]
+	source_params = sorted(source_params, key=lambda v: v.name)
+	target_params = [t for t in tf.trainable_variables() if t.name.startswith(target.scope)]
+	target_params = sorted(target_params, key=lambda v: v.name)
 
 	update_ops = []
-	for e1_v, e2_v in zip(e1_params, e2_params):
-		op = e2_v.assign(e1_v)
+	for target_w, source_w in zip(target_params, source_params):
+		op = target_w.assign(source_w)
 		update_ops.append(op)
 		
 	sess.run(update_ops)
 
 
-def soft_target_model_update(sess, main, target, tau=1e-2):
+def soft_target_model_update(sess, target, source, tau=1e-2):
 	"""
 	Soft update model parameters.
 	θ_target = τ*θ_local + (1 - τ)*θ_target
@@ -211,20 +211,40 @@ def soft_target_model_update(sess, main, target, tau=1e-2):
 	:param tau:
 	:return:
 	"""
-	e1_params = [t for t in tf.trainable_variables() if t.name.startswith(main.scope)]
-	e1_params = sorted(e1_params, key=lambda v: v.name)
-	e2_params = [t for t in tf.trainable_variables() if t.name.startswith(target.scope)]
-	e2_params = sorted(e2_params, key=lambda v: v.name)
+	source_params = [t for t in tf.trainable_variables() if t.name.startswith(source.scope)]
+	source_params = sorted(source_params, key=lambda v: v.name)
+	target_params = [t for t in tf.trainable_variables() if t.name.startswith(target.scope)]
+	target_params = sorted(target_params, key=lambda v: v.name)
 
 	update_ops = []
-	for e1_v, e2_v in zip(e1_params, e2_params):
+	for target_w, source_w in zip(target_params, source_params):
 
 		# θ_target = τ*θ_local + (1 - τ)*θ_target
-		op = e2_v.assign(tau*e1_v + (1 - tau)*e2_v)
+		op = target_w.assign(tau*source_w + (1 - tau)*target_w)
 		update_ops.append(op)
 
 	sess.run(update_ops)
 
+
+def soft_target_model_update_eager(target, source, tau=1e-2):
+	"""
+	Soft update model parameters.
+	θ_target = τ*θ_local + (1 - τ)*θ_target
+
+	:param main:
+	:param target:
+	:param tau:
+	:return:
+	"""
+
+	source_params = source.get_weights()
+	target_params = target.get_weights()
+
+	for target_w, source_w in zip(target_params, source_params):
+		# θ_target = τ*θ_local + (1 - τ)*θ_target
+		target_w = tau*target_w + (1 - tau)*source_w
+
+	target.set_weights(target_params)
 
 
 """
