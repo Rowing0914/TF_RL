@@ -6,8 +6,11 @@ import gym
 from gym import spaces
 
 # for those who installed ROS on local env
-# import sys
-# sys.path.remove('/opt/ros/kinetic/lib/python2.7/dist-packages')
+import sys
+try:
+    sys.path.remove('/opt/ros/kinetic/lib/python2.7/dist-packages')
+except:
+    pass
 
 import cv2
 cv2.ocl.setUseOpenCL(False)

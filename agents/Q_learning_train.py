@@ -36,7 +36,7 @@ class Q_Agent:
 
 		:return:
 		"""
-		current_state = env.reset()
+		current_state = self.env.reset()
 		done = False
 
 		xmax = 2
@@ -45,11 +45,11 @@ class Q_Agent:
 		ymin = 0
 
 		while not done:
-			env.render()
+			self.env.render()
 			action = self.choose_action(current_state, 0)
 			plot_Q_values(self.Q[current_state], xmin, xmax, ymin, ymax)
 			print(self.Q[current_state])
-			obs, reward, done, _ = env.step(action)
+			obs, reward, done, _ = self.env.step(action)
 			current_state = obs
 		return
 
