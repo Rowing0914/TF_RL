@@ -183,6 +183,8 @@ Update methods of a target model based on a source model
 def sync_main_target(sess, target, source):
 	"""
 	Synchronise the models
+	from Denny Britz's excellent RL repo
+	https://github.com/dennybritz/reinforcement-learning/blob/master/DQN/Double%20DQN%20Solution.ipynb
 
 	:param main:
 	:param target:

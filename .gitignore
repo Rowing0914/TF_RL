@@ -3,3 +3,4 @@ __pycache__/
 *.npy
 .ipynb_checkpoints/
 logs/
+LICENSE
