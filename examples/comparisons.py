@@ -18,7 +18,7 @@ if args.mode == "CartPole":
 	]
 
 	for model in models:
-		os.system("python3.6 agents/{}.py".format(model))
+		os.system("python3.6 {}.py".format(model))
 
 	# plot_comparison_graph(models)
 
@@ -32,6 +32,6 @@ elif args.mode == "Atari":
 	]
 
 	for model in models:
-		os.system("python3.6 ../agents/{}_train.py --mode Atari".format(model))
+		os.system("python3.6 {}_train.py --mode Atari".format(model))
 
 	# plot_comparison_graph(models)
