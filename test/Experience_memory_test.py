@@ -1,7 +1,7 @@
 import gym
 
-from common.memory import ReplayBuffer, PrioritizedReplayBuffer
-from common.utils import AnnealingSchedule
+from tf_rl.common.memory import PrioritizedReplayBuffer
+from tf_rl.common.utils import AnnealingSchedule
 
 env = gym.make("CartPole-v0")
 # memory = ReplayBuffer(100)

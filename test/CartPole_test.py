@@ -1,5 +1,5 @@
 import gym
-from common.wrappers import MyWrapper
+from tf_rl.common.wrappers import MyWrapper
 
 env = MyWrapper(gym.make("CartPole-v0"))
 

@@ -1,7 +1,7 @@
 import gym
 
-from common.memory import ReplayBuffer
-from common.utils import Tracker
+from tf_rl.common.memory import ReplayBuffer
+from tf_rl.common.utils import Tracker
 
 env = gym.make("CartPole-v0")
 memory = ReplayBuffer(1000)

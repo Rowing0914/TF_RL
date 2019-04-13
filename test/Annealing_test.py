@@ -1,6 +1,6 @@
-from common.utils import AnnealingSchedule
-from common.params import Parameters
-from common.policy import EpsilonGreedyPolicy
+from tf_rl.common.utils import AnnealingSchedule
+from tf_rl.common.params import Parameters
+from tf_rl.common import EpsilonGreedyPolicy
 
 params = Parameters("CartPole")
 Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end, decay_steps=params.decay_steps)

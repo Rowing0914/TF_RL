@@ -1,5 +1,5 @@
 import numpy as np
-from common.visualise import plot_Q_values
+from tf_rl.common.visualise import plot_Q_values
 
 # for simple test
 
@@ -11,7 +11,7 @@ from common.visualise import plot_Q_values
 
 # plotting a fake q_values during playing Cartpole
 import gym
-from common.wrappers import MyWrapper
+from tf_rl.common.wrappers import MyWrapper
 
 env = MyWrapper(gym.make("CartPole-v0"))
 

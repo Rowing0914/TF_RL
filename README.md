@@ -85,6 +85,24 @@ $ python3.6 {model_name}_train.py
 
 
 
+## Installation
+
+- Install from Pypi(Test)
+
+```shell
+$ pip install --index-url https://test.pypi.org/simple/ --no-deps TF_RL
+```
+
+- Install from Github source
+
+```shell
+git clone https://github.com/Rowing0914/TF_RL.git
+cd TF_RL
+python setup.py install
+```
+
+
+
 ## Directory Architecture
 
 Let me explain main components of this repo.
