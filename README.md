@@ -36,7 +36,7 @@ python setup.py install
 <img src="assets/result.gif" width="70%">
 
 ```shell
-$ cd experiment
+$ cd examples
 $ python3.6 comparisons.py
 $ tensorboard --logdir=./logs/
 ```
@@ -44,6 +44,7 @@ $ tensorboard --logdir=./logs/
 3. Unit Test of a specific algorithm
 
 ```shell
+$ cd examples
 # Eager Execution mode
 $ python3.6 {model_name}_eager.py
 # Graph mode Tensorflow: most of them are still under development...
