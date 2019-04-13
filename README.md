@@ -90,7 +90,10 @@ $ python3.6 {model_name}_train.py
 - Install from Pypi(Test)
 
 ```shell
+# this one
 $ pip install --index-url https://test.pypi.org/simple/ --no-deps TF_RL
+# or this one
+$ pip install -i https://test.pypi.org/simple/ TF-RL
 ```
 
 - Install from Github source
@@ -100,22 +103,6 @@ git clone https://github.com/Rowing0914/TF_RL.git
 cd TF_RL
 python setup.py install
 ```
-
-
-
-## Directory Architecture
-
-Let me explain main components of this repo.
-
-- agents: RL algorithms
-  - `<filename>_train.py`: for training the agent with RL algorithm, so you can specify a game to play
-  - `<filename>_model.py`: for defining the algorithm, so you can modify it if you want
-- common: utility functions
-  - `memory.py`: Experience Replay Memory, Prioritised Experience Replay Memory
-  - `utils.py`: AnnealingSchedule(annealing epsilon or beta), etc.. 
-  - `core.py`: not sure if I will retain this.....
-- test: test and dev purpose
-- experiment: reproduce a result of a paper
 
 
 
