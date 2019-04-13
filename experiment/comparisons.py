@@ -1,6 +1,6 @@
 import argparse
 import os
-from common.visualise import plot_comparison_graph
+# from common.visualise import plot_comparison_graph
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--mode", default="CartPole", help="game env type")
