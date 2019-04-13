@@ -4,17 +4,36 @@
 
 
 
-### Real time visualisation of Q-values after training
+## Installation
 
-![](<https://github.com/Rowing0914/TF_RL/blob/master/assets/test_monitor.png>)
+- Install from Pypi(Test)
+
+```shell
+# this one
+$ pip install --index-url https://test.pypi.org/simple/ --no-deps TF_RL
+# or this one
+$ pip install -i https://test.pypi.org/simple/ TF-RL
+```
+
+- Install from Github source
+
+```shell
+git clone https://github.com/Rowing0914/TF_RL.git
+cd TF_RL
+python setup.py install
+```
 
 
 
-## Usage
+## Features
 
-### 1. Comparison: Performance of algorithms below
+1. Real time visualisation of an agent after training
 
-![](<https://github.com/Rowing0914/TF_RL/blob/master/assets/result.gif>)
+<img src="assets/test_monitor.png" width="70%">
+
+2. Comparison: Performance of algorithms using Tensorboard
+
+<img src="assets/result.gif" width="70%">
 
 ```shell
 $ cd experiment
@@ -22,7 +41,7 @@ $ python3.6 comparisons.py
 $ tensorboard --logdir=./logs/
 ```
 
-### 2. Unit Test of a specific algorithm
+3. Unit Test of a specific algorithm
 
 ```shell
 # Eager Execution mode
@@ -50,7 +69,7 @@ $ python3.6 {model_name}_train.py
 1. Noisy Networks for Exploration, M.Fortunato et al., 2017 [[arxiv]](https://arxiv.org/abs/1706.10295) [[code]]()
 2. Hindsight Experience Replay, M.Andrychowicz et al., 2017 [[arxiv]](<https://arxiv.org/pdf/1707.01495.pdf>)
 
-<img src="assets/baselines_DDPG_HER.gif">
+<img src="assets/baselines_DDPG_HER.gif" width="50%">
 
 
 
@@ -82,27 +101,6 @@ $ python3.6 {model_name}_train.py
   - [Actor_Critic_MountainCar.py](https://github.com/Rowing0914/TF_RL/blob/master/agents/Sutton_RL_Intro/ch13_Policy_Gradient/Actor_Critic_MountainCar.py)
   - [REINFORCE.py](https://github.com/Rowing0914/TF_RL/blob/master/agents/Sutton_RL_Intro/ch13_Policy_Gradient/REINFORCE.py)
   - [REINFORCE_keras.py](https://github.com/Rowing0914/TF_RL/blob/master/agents/Sutton_RL_Intro/ch13_Policy_Gradient/REINFORCE_keras.py)
-
-
-
-## Installation
-
-- Install from Pypi(Test)
-
-```shell
-# this one
-$ pip install --index-url https://test.pypi.org/simple/ --no-deps TF_RL
-# or this one
-$ pip install -i https://test.pypi.org/simple/ TF-RL
-```
-
-- Install from Github source
-
-```shell
-git clone https://github.com/Rowing0914/TF_RL.git
-cd TF_RL
-python setup.py install
-```
 
 
 
