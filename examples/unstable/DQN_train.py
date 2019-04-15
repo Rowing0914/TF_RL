@@ -8,7 +8,7 @@ from tf_rl.common.utils import AnnealingSchedule
 from tf_rl.common.wrappers import make_atari, wrap_deepmind, MyWrapper
 from tf_rl.common.policy import EpsilonGreedyPolicy, BoltzmannQPolicy
 from tf_rl.common.params import Parameters
-from tf_rl.agents.DQN_model import train_DQN, DQN_CartPole, DQN_Atari
+from tf_rl.agents.unstable.DQN_model import train_DQN, DQN_CartPole, DQN_Atari
 
 try:
     os.system("rm -rf ../logs/summary_DQN_main")

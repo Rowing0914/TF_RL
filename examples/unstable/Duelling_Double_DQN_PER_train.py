@@ -8,7 +8,7 @@ from tf_rl.common.utils import AnnealingSchedule
 from tf_rl.common.wrappers import make_atari, wrap_deepmind, MyWrapper
 from tf_rl.common.policy import EpsilonGreedyPolicy, BoltzmannQPolicy
 from tf_rl.common.params import Parameters
-from tf_rl.agents.Duelling_Double_DQN_PER_model import train_Duelling_Double_DQN_PER, Duelling_Double_DQN_PER_CartPole, Duelling_Double_DQN_PER_Atari
+from tf_rl.agents.unstable.Duelling_Double_DQN_PER_model import train_Duelling_Double_DQN_PER, Duelling_Double_DQN_PER_CartPole, Duelling_Double_DQN_PER_Atari
 
 try:
 	os.system("rm -rf ../logs/summary_DDD_PER_main")

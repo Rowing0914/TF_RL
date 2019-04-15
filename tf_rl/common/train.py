@@ -49,7 +49,7 @@ def train_DQN(agent, env, policy, replay_buffer, reward_buffer, params, summary_
 						if global_timestep > params.learning_start:
 							states, actions, rewards, next_states, dones = replay_buffer.sample(params.batch_size)
 
-							loss = agent.update(states, actions, rewards, next_states, dones)
+							loss, batch_loss = agent.update(states, actions, rewards, next_states, dones)
 							logging(global_timestep, params.num_frames, i, time.time() - start, total_reward, np.mean(loss),
 									policy.current_epsilon(), cnt_action)
 

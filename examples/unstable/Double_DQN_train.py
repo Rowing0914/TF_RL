@@ -8,8 +8,8 @@ from tf_rl.common.utils import AnnealingSchedule
 from tf_rl.common.wrappers import make_atari, wrap_deepmind, MyWrapper
 from tf_rl.common.policy import EpsilonGreedyPolicy, BoltzmannQPolicy
 from tf_rl.common.params import Parameters
-from tf_rl.agents.DQN_model import DQN_CartPole, DQN_Atari
-from tf_rl.agents.Double_DQN_model import train_Double_DQN
+from tf_rl.agents.unstable.DQN_model import DQN_CartPole, DQN_Atari
+from tf_rl.agents.unstable.Double_DQN_model import train_Double_DQN
 
 try:
     os.system("rm -rf ../logs/summary_Double_main")
