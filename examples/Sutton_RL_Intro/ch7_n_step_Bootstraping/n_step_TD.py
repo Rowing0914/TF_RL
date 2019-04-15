@@ -6,7 +6,7 @@ import sys
 if "../" not in sys.path:
     sys.path.append("../")
 
-from utils.envs.windy_gridworld import WindyGridworldEnv
+from libs.envs.windy_gridworld import WindyGridworldEnv
 
 
 Episode = namedtuple('Episode', field_names=['reward', 'steps'])

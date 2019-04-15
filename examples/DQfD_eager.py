@@ -1,15 +1,16 @@
 import gym
 import argparse
 import os
+import time
+import itertools
 import numpy as np
 import tensorflow as tf
 from collections import deque
 from tf_rl.common.wrappers import MyWrapper, wrap_deepmind, make_atari
 from tf_rl.common.params import Parameters
-from tf_rl.common.memory import ReplayBuffer
-from tf_rl.common.utils import AnnealingSchedule, huber_loss, ClipIfNotNone
+from tf_rl.common.memory import PrioritizedReplayBuffer
+from tf_rl.common.utils import AnnealingSchedule, soft_target_model_update_eager, logging, huber_loss, ClipIfNotNone
 from tf_rl.common.policy import EpsilonGreedyPolicy_eager, BoltzmannQPolicy_eager
-from tf_rl.common.train import train_DQN
 
 tf.enable_eager_execution()
 
@@ -80,9 +81,9 @@ class Model_Atari(tf.keras.Model):
 		return output
 
 
-class Duelling_DQN:
+class DQfD:
 	"""
-    Duelling_DQN
+    DQfD
     """
 	def __init__(self, main_model, target_model, num_action, params):
 		self.num_action = num_action
@@ -100,16 +101,17 @@ class Duelling_DQN:
 		with tf.GradientTape() as tape:
 			# make sure to fit all process to compute gradients within this Tape context!!
 
-			# calculate target: R + gamma * max_a Q(s',a')
-			next_Q = self.target_model(tf.convert_to_tensor(next_states, dtype=tf.float32))
-			Y = rewards + self.params.gamma * np.max(next_Q, axis=-1).flatten() * np.logical_not(dones)
+			one_step_loss = self._one_step_loss(states, actions, next_states, dones)
 
-			# calculate Q(s,a)
-			q_values = self.main_model(tf.convert_to_tensor(states, dtype=tf.float32))
+			n_step_loss = self._n_step_loss()
 
-			# get the q-values which is associated with actually taken actions in a game
-			actions_one_hot = tf.one_hot(actions, self.num_action, 1.0, 0.0)
-			action_probs = tf.reduce_sum(actions_one_hot * q_values, reduction_indices=-1)
+			large_margin_clf_loss = self._large_margin_clf_loss(action_e, action_l)
+
+			l2_loss = self._l2_loss()
+
+			# combined_loss = one_step_loss + lambda_1*n_step_loss + lambda_2*large_margin_clf_loss + lambda_3*l2_loss
+			combined_loss = one_step_loss + 1.0*n_step_loss + 1.0*large_margin_clf_loss + (10**(-5))*l2_loss
+
 
 			if self.params.loss_fn == "huber_loss":
 				# use huber loss
@@ -135,20 +137,53 @@ class Duelling_DQN:
 		self.optimizer.apply_gradients(zip(grads, self.main_model.trainable_weights))
 
 		# for log purpose
-		for index, grad in enumerate(grads):
-			tf.contrib.summary.histogram("layer_grad_{}".format(index), grad, step=self.index_episode)
-		tf.contrib.summary.scalar("loss", loss, step=self.index_episode)
-		tf.contrib.summary.histogram("next_Q", next_Q, step=self.index_episode)
-		tf.contrib.summary.scalar("mean_q_value", tf.math.reduce_mean(next_Q), step=self.index_episode)
-		tf.contrib.summary.scalar("var_q_value", tf.math.reduce_variance(next_Q), step=self.index_episode)
-		tf.contrib.summary.scalar("max_q_value", tf.reduce_max(next_Q), step=self.index_episode)
+		# for index, grad in enumerate(grads):
+		# 	tf.contrib.summary.histogram("layer_grad_{}".format(index), grad, step=self.index_episode)
+		# tf.contrib.summary.scalar("loss", loss, step=self.index_episode)
+		# tf.contrib.summary.histogram("next_Q", next_Q, step=self.index_episode)
+		# tf.contrib.summary.scalar("mean_q_value", tf.math.reduce_mean(next_Q), step=self.index_episode)
+		# tf.contrib.summary.scalar("var_q_value", tf.math.reduce_variance(next_Q), step=self.index_episode)
+		# tf.contrib.summary.scalar("max_q_value", tf.reduce_max(next_Q), step=self.index_episode)
 
-		return loss
+		return loss, batch_loss
+
+	def _one_step_loss(self, states, actions, rewards, next_states, dones):
+		# calculate target: R + gamma * max_a Q(s',a')
+		next_Q_main = self.main_model(tf.convert_to_tensor(next_states, dtype=tf.float32))
+		next_Q = self.target_model(tf.convert_to_tensor(next_states, dtype=tf.float32))
+		idx_flattened = tf.range(0, tf.shape(next_Q)[0]) * tf.shape(next_Q)[1] + np.argmax(next_Q_main, axis=-1)
+
+		# passing [-1] to tf.reshape means flatten the array
+		# using tf.gather, associate Q-values with the executed actions
+		action_probs = tf.gather(tf.reshape(next_Q, [-1]), idx_flattened)
+
+		Y = rewards + self.params.gamma * action_probs * np.logical_not(dones)
+
+		# calculate Q(s,a)
+		q_values = self.main_model(tf.convert_to_tensor(states, dtype=tf.float32))
+
+		# get the q-values which is associated with actually taken actions in a game
+		actions_one_hot = tf.one_hot(actions, self.num_action, 1.0, 0.0)
+		action_probs = tf.reduce_sum(actions_one_hot * q_values, reduction_indices=-1)
+
+		return tf.subtract(Y, action_probs) # one step TD-error
+
+	def _n_step_loss(self):
+		pass
+
+	def _large_margin_clf_loss(self, a_e, a_l):
+		if a_e == a_l:
+			return 0
+		else:
+			return 0.8 # in paper, they used the fixed amount
+
+	def l2_loss(self):
+		pass
 
 
 if __name__ == '__main__':
 
-	logdir = "../logs/summary_Duelling_DQN_eager"
+	logdir = "../logs/summary_DQfD_eager"
 	try:
 		os.system("rm -rf {}".format(logdir))
 	except:
@@ -161,8 +196,10 @@ if __name__ == '__main__':
 	if args.mode == "CartPole":
 		env = MyWrapper(gym.make("CartPole-v0"))
 		params = Parameters(mode="CartPole")
-		replay_buffer = ReplayBuffer(params.memory_size)
-		agent = Duelling_DQN(Model_CartPole, Model_CartPole, env.action_space.n, params)
+		replay_buffer = PrioritizedReplayBuffer(params.memory_size, alpha=params.prioritized_replay_alpha)
+		agent = DQfD(Model_CartPole, Model_CartPole, env.action_space.n, params)
+		Beta = AnnealingSchedule(start=params.prioritized_replay_beta_start, end=params.prioritized_replay_beta_end,
+								 decay_steps=params.decay_steps)
 		if params.policy_fn == "Eps":
 			Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end,
 										decay_steps=params.decay_steps)
@@ -172,8 +209,10 @@ if __name__ == '__main__':
 	elif args.mode == "Atari":
 		env = wrap_deepmind(make_atari("PongNoFrameskip-v4"))
 		params = Parameters(mode="Atari")
-		replay_buffer = ReplayBuffer(params.memory_size)
-		agent = Duelling_DQN(Model_Atari, Model_Atari, env.action_space.n, params)
+		replay_buffer = PrioritizedReplayBuffer(params.memory_size, alpha=params.prioritized_replay_alpha)
+		agent = DQfD(Model_Atari, Model_Atari, env.action_space.n, params)
+		Beta = AnnealingSchedule(start=params.prioritized_replay_beta_start, end=params.prioritized_replay_beta_end,
+								 decay_steps=params.decay_steps)
 		if params.policy_fn == "Eps":
 			Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end,
 										decay_steps=params.decay_steps)
@@ -186,4 +225,60 @@ if __name__ == '__main__':
 	reward_buffer = deque(maxlen=5)
 	summary_writer = tf.contrib.summary.create_file_writer(logdir)
 
-	train_DQN(agent, env, policy, replay_buffer, reward_buffer, params, summary_writer)
+	with summary_writer.as_default():
+		# for summary purpose, we put all codes in this context
+		with tf.contrib.summary.always_record_summaries():
+
+			global_timestep = 0
+			for i in range(4000):
+				state = env.reset()
+				total_reward = 0
+				start = time.time()
+				cnt_action = list()
+				policy.index_episode = i
+				agent.index_episode = i
+				for t in itertools.count():
+					# env.render()
+					action = policy.select_action(agent, state)
+					next_state, reward, done, info = env.step(action)
+					replay_buffer.add(state, action, reward, next_state, done)
+
+					total_reward += reward
+					state = next_state
+					cnt_action.append(action)
+
+					if done:
+						tf.contrib.summary.scalar("reward", total_reward, step=global_timestep)
+
+						if global_timestep > params.learning_start:
+							# PER returns: state, action, reward, next_state, done, weights(a weight for an episode), indices(indices for a batch of episode)
+							states, actions, rewards, next_states, dones, weights, indices = replay_buffer.sample(
+								params.batch_size, Beta.get_value(i))
+
+							loss, batch_loss = agent.update(states, actions, rewards, next_states, dones)
+							logging(global_timestep, params.num_frames, i, time.time() - start, total_reward, np.mean(loss),
+									policy.current_epsilon(), cnt_action)
+
+							# add noise to the priorities
+							batch_loss = np.abs(batch_loss) + params.prioritized_replay_noise
+
+							# Update a prioritised replay buffer using a batch of losses associated with each timestep
+							replay_buffer.update_priorities(indices, batch_loss)
+
+							if np.random.rand() > 0.5:
+								if params.update_hard_or_soft == "hard":
+									agent.target_model.set_weights(agent.main_model.get_weights())
+								elif params.update_hard_or_soft == "soft":
+									soft_target_model_update_eager(agent.target_model, agent.main_model, tau=params.soft_update_tau)
+						break
+
+					global_timestep += 1
+
+				# store the episode reward
+				reward_buffer.append(total_reward)
+				# check the stopping condition
+				if np.mean(reward_buffer) > 195:
+					print("GAME OVER!!")
+					break
+
+	env.close()

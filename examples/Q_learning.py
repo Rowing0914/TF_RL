@@ -91,7 +91,7 @@ if __name__ == '__main__':
 		# check if our policy is good
 		if mean_duration >= goal_duration and episode >= 100:
 			print('Ran {} episodes. Solved after {} trials'.format(episode, episode - 100))
-			# agent.test()
+			agent.test()
 			env.close()
 			break
 

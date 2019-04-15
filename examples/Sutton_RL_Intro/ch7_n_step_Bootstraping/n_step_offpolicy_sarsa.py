@@ -8,8 +8,8 @@ import itertools
 if "../" not in sys.path:
     sys.path.append("../")
 
-from utils.envs.windy_gridworld import WindyGridworldEnv
-from utils.plot import plot_result
+from libs.envs.windy_gridworld import WindyGridworldEnv
+from libs.plot import plot_result
 
 
 def make_epsilon_greedy_policy(Q, epsilon, nA):
