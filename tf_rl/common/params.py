@@ -13,6 +13,7 @@ class Parameters:
 			self.policy_fn = "Eps"         # Epsilon Greedy(Eps) or Boltzmann(Boltzmann)
 			self.grad_clip_flg = "norm"      # clipping by value(by_value) or global norm(norm)
 			self.num_frames = 30000
+			self.num_episodes = 10000
 			self.memory_size = 20000
 			self.learning_start = 100
 			self.sync_freq = 100                 # frequency of updating a target model
@@ -37,6 +38,7 @@ class Parameters:
 			self.policy_fn = "Eps"         # Epsilon Greedy(Eps) or Boltzmann(Boltzmann)
 			self.grad_clip_flg = "norm"      # clipping by value(by_value) or global norm(norm)
 			self.num_frames = 30000
+			self.num_episodes = 4000
 			self.memory_size = 20000
 			self.learning_start = 100
 			self.sync_freq = 100                 # frequency of updating a target model

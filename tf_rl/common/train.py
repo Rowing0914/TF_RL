@@ -26,7 +26,7 @@ def train_DQN(agent, env, policy, replay_buffer, reward_buffer, params, summary_
 		with tf.contrib.summary.always_record_summaries():
 
 			global_timestep = 0
-			for i in range(4000):
+			for i in range(params.num_episodes):
 				state = env.reset()
 				total_reward = 0
 				start = time.time()
@@ -90,7 +90,7 @@ def train_DQN_PER(agent, env, policy, replay_buffer, reward_buffer, params, Beta
 		with tf.contrib.summary.always_record_summaries():
 
 			global_timestep = 0
-			for i in range(4000):
+			for i in range(params.num_episodes):
 				state = env.reset()
 				total_reward = 0
 				start = time.time()
