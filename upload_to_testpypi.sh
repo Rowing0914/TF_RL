@@ -1,5 +1,6 @@
+#!/usr/bin/env bash
 echo "======== REFRESH dist DIRECTORY ========"
-rm -rf dist
+rm -rf dist build
 
 echo "======== COMPILE ========"
 python3.6 setup.py sdist

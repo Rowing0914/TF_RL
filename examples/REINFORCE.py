@@ -5,7 +5,7 @@ import gym
 import itertools
 from tf_rl.common.wrappers import MyWrapper
 from tf_rl.common.policy import BoltzmannQPolicy
-from tf_rl.common.params import Parameters
+from examples.params import Parameters
 import tensorflow as tf
 
 class Policy_Network:
