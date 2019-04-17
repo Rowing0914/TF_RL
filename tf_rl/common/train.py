@@ -156,6 +156,7 @@ def test_Agent(agent, env, policy):
 	done = False
 	episode_reward = 0
 
+	# TODO: properly implement the q-values visualisation tool
 	# xmax = 2
 	# xmin = -1
 	# ymax = np.amax(self.Q) + 30

@@ -74,3 +74,5 @@ class logdirs:
 		self.log_Duelling_DQN = "../logs/summaries/Duelling_DQN/"
 		self.model_Duelling_Double_DQN_PER = "../logs/models/Duelling_Double_DQN_PER/"
 		self.log_Duelling_Double_DQN_PER = "../logs/summaries/Duelling_Double_DQN_PER/"
+		self.model_DQfD = "../logs/models/DQfD/"
+		self.log_DQfD = "../logs/summaries/DQfD/"

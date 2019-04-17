@@ -3,14 +3,18 @@ import argparse
 import os
 import time
 import itertools
+import random
 import numpy as np
 import tensorflow as tf
 from collections import deque
 from tf_rl.common.wrappers import MyWrapper, wrap_deepmind, make_atari
-from examples.params import Parameters
+from examples.params import Parameters, logdirs
+from examples.DQN_eager import Model_CartPole as Model_CartPole_DQN, Model_Atari as Model_Atari_DQN
 from tf_rl.common.memory import PrioritizedReplayBuffer
 from tf_rl.common.utils import AnnealingSchedule, soft_target_model_update_eager, logging, huber_loss, ClipIfNotNone
-from tf_rl.common.policy import EpsilonGreedyPolicy_eager, BoltzmannQPolicy_eager
+from tf_rl.common.policy import EpsilonGreedyPolicy_eager, BoltzmannQPolicy_eager, TestPolicy
+from tf_rl.agents.DQN import DQN
+
 
 tf.enable_eager_execution()
 
@@ -88,7 +92,7 @@ class DQfD:
 	"""
     DQfD
     """
-	def __init__(self, main_model, target_model, num_action, params):
+	def __init__(self, main_model, target_model, num_action, params, checkpoint_dir):
 		self.num_action = num_action
 		self.params = params
 		self.main_model = main_model(num_action)
@@ -97,18 +101,25 @@ class DQfD:
 		# self.optimizer = tf.train.RMSPropOptimizer(0.00025, 0.99, 0.0, 1e-6)
 		self.index_episode = 0
 
+		# TF: checkpoint vs Saver => https://stackoverflow.com/questions/53569622/difference-between-tf-train-checkpoint-and-tf-train-saver
+		self.checkpoint_dir = checkpoint_dir
+		self.check_point = tf.train.Checkpoint(optimizer=self.optimizer,
+											   model=self.main_model,
+											   optimizer_step=tf.train.get_or_create_global_step())
+		self.manager = tf.train.CheckpointManager(self.check_point, checkpoint_dir, max_to_keep=3)
+
 	def predict(self, state):
 		return self.main_model(tf.convert_to_tensor(state[None,:], dtype=tf.float32)).numpy()[0]
 
-	def update(self, states, actions, rewards, next_states, dones):
+	def update(self, states, actions_e, actions_l, rewards, next_states, dones):
 		with tf.GradientTape() as tape:
 			# make sure to fit all process to compute gradients within this Tape context!!
 
-			one_step_loss = self._one_step_loss(states, actions, rewards, next_states, dones)
+			one_step_loss = self._one_step_loss(states, actions_e, rewards, next_states, dones)
 
 			n_step_loss = self._n_step_loss()
 
-			large_margin_clf_loss = self._large_margin_clf_loss(actions, actions_l)
+			large_margin_clf_loss = self._large_margin_clf_loss(actions_e, actions_l)
 
 			l2_loss = self._l2_loss()
 
@@ -138,9 +149,9 @@ class DQfD:
 		# tf.contrib.summary.scalar("var_q_value", tf.math.reduce_variance(next_Q), step=self.index_episode)
 		# tf.contrib.summary.scalar("max_q_value", tf.reduce_max(next_Q), step=self.index_episode)
 
-		return loss, batch_loss
+		return loss, 0
 
-	def _one_step_loss(self, states, actions, rewards, next_states, dones):
+	def _one_step_loss(self, states, actions_e, rewards, next_states, dones):
 		# calculate target: R + gamma * max_a Q(s',a')
 		next_Q_main = self.main_model(tf.convert_to_tensor(next_states, dtype=tf.float32))
 		next_Q = self.target_model(tf.convert_to_tensor(next_states, dtype=tf.float32))
@@ -156,7 +167,7 @@ class DQfD:
 		q_values = self.main_model(tf.convert_to_tensor(states, dtype=tf.float32))
 
 		# get the q-values which is associated with actually taken actions in a game
-		actions_one_hot = tf.one_hot(actions, self.num_action, 1.0, 0.0)
+		actions_one_hot = tf.one_hot(actions_e, self.num_action, 1.0, 0.0)
 		action_probs = tf.reduce_sum(actions_one_hot * q_values, reduction_indices=-1)
 
 		return tf.subtract(Y, action_probs) # one step TD-error
@@ -165,10 +176,20 @@ class DQfD:
 		return 0
 
 	def _large_margin_clf_loss(self, a_e, a_l):
+		"""
+		Logic is formed as below
+
 		if a_e == a_l:
 			return 0
 		else:
-			return 0.8 # in paper, they used the fixed amount
+			return 0.8
+
+		:param a_e:
+		:param a_l:
+		:return:
+		"""
+		result = (a_e != a_l).astype(int)
+		return result * 0.8
 
 	def _l2_loss(self):
 		vars = self.main_model.get_weights()
@@ -178,9 +199,10 @@ class DQfD:
 
 if __name__ == '__main__':
 
-	logdir = "../logs/summary_DQfD_eager"
+	logdirs = logdirs()
+
 	try:
-		os.system("rm -rf {}".format(logdir))
+		os.system("rm -rf {}".format(logdirs.log_DQfD))
 	except:
 		pass
 
@@ -192,7 +214,7 @@ if __name__ == '__main__':
 		env = MyWrapper(gym.make("CartPole-v0"))
 		params = Parameters(mode="CartPole")
 		replay_buffer = PrioritizedReplayBuffer(params.memory_size, alpha=params.prioritized_replay_alpha)
-		agent = DQfD(Model_CartPole, Model_CartPole, env.action_space.n, params)
+		agent = DQfD(Model_CartPole, Model_CartPole, env.action_space.n, params, logdirs.model_DQfD)
 		Beta = AnnealingSchedule(start=params.prioritized_replay_beta_start, end=params.prioritized_replay_beta_end,
 								 decay_steps=params.decay_steps)
 		if params.policy_fn == "Eps":
@@ -205,7 +227,7 @@ if __name__ == '__main__':
 		env = wrap_deepmind(make_atari("PongNoFrameskip-v4"))
 		params = Parameters(mode="Atari")
 		replay_buffer = PrioritizedReplayBuffer(params.memory_size, alpha=params.prioritized_replay_alpha)
-		agent = DQfD(Model_Atari, Model_Atari, env.action_space.n, params)
+		agent = DQfD(Model_Atari, Model_Atari, env.action_space.n, params, logdirs.model_DQfD)
 		Beta = AnnealingSchedule(start=params.prioritized_replay_beta_start, end=params.prioritized_replay_beta_end,
 								 decay_steps=params.decay_steps)
 		if params.policy_fn == "Eps":
@@ -218,7 +240,76 @@ if __name__ == '__main__':
 		print("Select 'mode' either 'Atari' or 'CartPole' !!")
 
 	reward_buffer = deque(maxlen=params.reward_buffer_ep)
-	summary_writer = tf.contrib.summary.create_file_writer(logdir)
+	summary_writer = tf.contrib.summary.create_file_writer(logdirs.log_DQfD)
+
+
+
+
+	"""
+	
+	Populating the memory with demonstrations
+	
+	"""
+
+	expert = DQN(Model_CartPole_DQN, Model_CartPole_DQN, env.action_space.n, params, logdirs.model_DQN)
+	expert_policy = TestPolicy()
+	expert.check_point.restore(expert.manager.latest_checkpoint)
+	print("Restore the model from disk")
+
+	batch_experience = list()
+	batches = list()
+
+	print("Pupulating a memory with demonstrations")
+	for _ in range(5):
+		state = env.reset()
+		done = False
+		episode_reward = 0
+
+		while not done:
+			action_e = expert_policy.select_action(expert, state)
+			action_l = policy.select_action(agent, state)
+
+			next_state, reward, done, _ = env.step(action_e)
+			batch_experience.append([state, action_e, action_l, reward, next_state, done])
+			state = next_state
+			episode_reward += reward
+
+			if len(batch_experience) == 10:
+				batches.append(batch_experience)
+				batch_experience = list()
+
+		print("Game Over with score: {0}".format(episode_reward))
+
+	print(len(batches))
+
+
+
+
+	"""
+	
+	Pre-train the agent with collected demonstrations
+	
+	"""
+
+	for i in range(10):
+		sample = random.sample(batches, 1)
+
+		states, actions_e, actions_l, rewards, next_states, dones = [], [], [], [], [], []
+
+		for row in sample[0]:
+			states.append(row[0])
+			actions_e.append(row[1])
+			actions_l.append(row[2])
+			rewards.append(row[3])
+			next_states.append(row[4])
+			dones.append(row[5])
+		states, actions_e, actions_l, rewards, next_states, dones = np.array(states), np.array(actions_e), np.array(actions_l), np.array(rewards), np.array(next_states), np.array(dones)
+		agent.update(states, actions_e, actions_l, rewards, next_states, dones)
+
+	print("to be implemented soon!!")
+	error()
+
+
 
 	with summary_writer.as_default():
 		# for summary purpose, we put all codes in this context

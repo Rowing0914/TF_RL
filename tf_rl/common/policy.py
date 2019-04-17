@@ -114,3 +114,18 @@ class BoltzmannQPolicy_eager:
 
 	def current_epsilon(self):
 		return 0
+
+
+class TestPolicy:
+	"""
+	Policy to be used at the test phase
+	"""
+	def __init__(self):
+		pass
+
+	def select_action(self, agent, state):
+		action = np.argmax(agent.predict(state))
+		return action
+
+	def current_epsilon(self):
+		return 0
