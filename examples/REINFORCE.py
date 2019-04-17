@@ -3,9 +3,11 @@
 
 import gym
 import itertools
+import numpy as np
+from collections import deque
 from tf_rl.common.wrappers import MyWrapper
 from tf_rl.common.policy import BoltzmannQPolicy
-from params import Parameters
+from examples.params import Parameters
 import tensorflow as tf
 
 class Policy_Network:
@@ -68,10 +70,7 @@ env = MyWrapper(gym.make("CartPole-v0"))
 policy_net = Policy_Network(num_action=env.action_space.n)
 value_net = Value_Network()
 params = Parameters(mode="CartPole")
-
-# Epsilon Greedy policy does not converge
-# Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end, decay_steps=params.decay_steps)
-# policy = EpsilonGreedyPolicy(Epsilon_fn=Epsilon)
+reward_buffer = deque(maxlen=params.reward_buffer_ep)
 
 # please use Boltzmann policy instead!!
 policy = BoltzmannQPolicy()
@@ -104,6 +103,7 @@ with tf.Session() as sess:
 
 		# logging purpose
 		episode_reward.append(total_reward)
+		reward_buffer.append(total_reward)
 		total_reward = 0
 
 		# after an episode, we update networks(Policy and Value)
@@ -121,11 +121,9 @@ with tf.Session() as sess:
 			policy_net.update(sess, state.reshape(params.state_reshape), [action], advantage)
 
 		# stopping condition: if the agent has achieved the goal twice successively then we stop this!!
-		# at the terminal state, you reward is -1.0 so that (200-1)+(200-1) = 398
-		if sum(episode_reward[-2:]) == 398:
+		if np.mean(reward_buffer) > params.goal:
 			break
 
 	env.close()
 
-import numpy as np
 np.save("../logs/value/rewards_REINFORCE.npy", episode_reward)

@@ -54,6 +54,7 @@ def train_DQN(agent, env, policy, replay_buffer, reward_buffer, params, summary_
 									policy.current_epsilon(), cnt_action)
 
 							if np.random.rand() > 0.5:
+								agent.manager.save()
 								if params.update_hard_or_soft == "hard":
 									agent.target_model.set_weights(agent.main_model.get_weights())
 								elif params.update_hard_or_soft == "soft":
@@ -65,7 +66,7 @@ def train_DQN(agent, env, policy, replay_buffer, reward_buffer, params, summary_
 				# store the episode reward
 				reward_buffer.append(total_reward)
 				# check the stopping condition
-				if np.mean(reward_buffer) > 195:
+				if np.mean(reward_buffer) > params.goal:
 					print("GAME OVER!!")
 					break
 
@@ -126,6 +127,7 @@ def train_DQN_PER(agent, env, policy, replay_buffer, reward_buffer, params, Beta
 							replay_buffer.update_priorities(indices, batch_loss)
 
 							if np.random.rand() > 0.5:
+								agent.manager.save()
 								if params.update_hard_or_soft == "hard":
 									agent.target_model.set_weights(agent.main_model.get_weights())
 								elif params.update_hard_or_soft == "soft":
@@ -137,8 +139,36 @@ def train_DQN_PER(agent, env, policy, replay_buffer, reward_buffer, params, Beta
 				# store the episode reward
 				reward_buffer.append(total_reward)
 				# check the stopping condition
-				if np.mean(reward_buffer) > 195:
+				if np.mean(reward_buffer) > params.goal:
 					print("GAME OVER!!")
 					break
 
 	env.close()
+
+
+def test_Agent(agent, env, policy):
+	"""
+	Test the agent with a visual aid!
+
+	:return:
+	"""
+	state = env.reset()
+	done = False
+	episode_reward = 0
+
+	# xmax = 2
+	# xmin = -1
+	# ymax = np.amax(self.Q) + 30
+	# ymin = 0
+
+	while not done:
+		env.render()
+		action = policy.select_action(agent, state)
+		# plot_Q_values(self.Q[current_state], xmin, xmax, ymin, ymax)
+		# print(self.Q[current_state])
+		next_state, reward, done, _ = env.step(action)
+		state = next_state
+		episode_reward += reward
+	print("Game Over with score: {0}".format(episode_reward))
+	env.close()
+	return

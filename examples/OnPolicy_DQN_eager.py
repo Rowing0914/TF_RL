@@ -5,7 +5,7 @@ from collections import deque
 
 # ==== import below from my repo ====
 from tf_rl.common.wrappers import MyWrapper   # just a wrapper to set a reward at the terminal state -1
-from params import Parameters    # params for training
+from examples.params import Parameters    # params for training
 from tf_rl.common.memory import ReplayBuffer  # Experience Replay Buffer
 
 tf.enable_eager_execution()
@@ -54,10 +54,10 @@ class DQN:
 
 
 if __name__ == '__main__':
-	reward_buffer = deque(maxlen=5)
 	env = MyWrapper(gym.make("CartPole-v0"))
 	replay_buffer = ReplayBuffer(5000)
 	params = Parameters(mode="CartPole")
+	reward_buffer = deque(maxlen=params.reward_buffer_ep)
 	agent = DQN(env.action_space.n)
 
 	for i in range(1000):

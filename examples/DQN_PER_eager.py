@@ -4,7 +4,7 @@ import os
 import tensorflow as tf
 from collections import deque
 from tf_rl.common.wrappers import MyWrapper, wrap_deepmind, make_atari
-from params import Parameters
+from examples.params import Parameters, logdirs
 from tf_rl.common.memory import PrioritizedReplayBuffer
 from tf_rl.common.utils import AnnealingSchedule
 from tf_rl.common.policy import EpsilonGreedyPolicy_eager, BoltzmannQPolicy_eager
@@ -51,9 +51,9 @@ class Model_Atari(tf.keras.Model):
 
 if __name__ == '__main__':
 
-	logdir = "../logs/summary_DQN_PER_eager"
+	logdirs = logdirs()
 	try:
-		os.system("rm -rf {}".format(logdir))
+		os.system("rm -rf {}".format(logdirs.log_DQN_PER))
 	except:
 		pass
 
@@ -65,7 +65,7 @@ if __name__ == '__main__':
 		env = MyWrapper(gym.make("CartPole-v0"))
 		params = Parameters(mode="CartPole")
 		replay_buffer = PrioritizedReplayBuffer(params.memory_size, alpha=params.prioritized_replay_alpha)
-		agent = DQN(Model_CartPole, Model_CartPole, env.action_space.n, params)
+		agent = DQN(Model_CartPole, Model_CartPole, env.action_space.n, params, logdirs.model_DQN_PER)
 		Beta = AnnealingSchedule(start=params.prioritized_replay_beta_start, end=params.prioritized_replay_beta_end,
 								 decay_steps=params.decay_steps)
 		if params.policy_fn == "Eps":
@@ -78,7 +78,7 @@ if __name__ == '__main__':
 		env = wrap_deepmind(make_atari("PongNoFrameskip-v4"))
 		params = Parameters(mode="Atari")
 		replay_buffer = PrioritizedReplayBuffer(params.memory_size, alpha=params.prioritized_replay_alpha)
-		agent = DQN(Model_Atari, Model_Atari, env.action_space.n, params)
+		agent = DQN(Model_Atari, Model_Atari, env.action_space.n, params, logdirs.model_DQN_PER)
 		Beta = AnnealingSchedule(start=params.prioritized_replay_beta_start, end=params.prioritized_replay_beta_end,
 								 decay_steps=params.decay_steps)
 		if params.policy_fn == "Eps":
@@ -90,6 +90,6 @@ if __name__ == '__main__':
 	else:
 		print("Select 'mode' either 'Atari' or 'CartPole' !!")
 
-	reward_buffer = deque(maxlen=2)
-	summary_writer = tf.contrib.summary.create_file_writer(logdir)
+	reward_buffer = deque(maxlen=params.reward_buffer_ep)
+	summary_writer = tf.contrib.summary.create_file_writer(logdirs.log_DQN_PER)
 	train_DQN_PER(agent, env, policy, replay_buffer, reward_buffer, params, Beta, summary_writer)

@@ -7,7 +7,7 @@ import numpy as np
 import tensorflow as tf
 from collections import deque
 from tf_rl.common.wrappers import MyWrapper, wrap_deepmind, make_atari
-from params import Parameters
+from examples.params import Parameters
 from tf_rl.common.memory import PrioritizedReplayBuffer
 from tf_rl.common.utils import AnnealingSchedule, soft_target_model_update_eager, logging, huber_loss, ClipIfNotNone
 from tf_rl.common.policy import EpsilonGreedyPolicy_eager, BoltzmannQPolicy_eager
@@ -81,6 +81,9 @@ class Model_Atari(tf.keras.Model):
 		return output
 
 
+def getting_demo():
+	pass
+
 class DQfD:
 	"""
     DQfD
@@ -101,28 +104,18 @@ class DQfD:
 		with tf.GradientTape() as tape:
 			# make sure to fit all process to compute gradients within this Tape context!!
 
-			one_step_loss = self._one_step_loss(states, actions, next_states, dones)
+			one_step_loss = self._one_step_loss(states, actions, rewards, next_states, dones)
 
 			n_step_loss = self._n_step_loss()
 
-			large_margin_clf_loss = self._large_margin_clf_loss(action_e, action_l)
+			large_margin_clf_loss = self._large_margin_clf_loss(actions, actions_l)
 
 			l2_loss = self._l2_loss()
 
 			# combined_loss = one_step_loss + lambda_1*n_step_loss + lambda_2*large_margin_clf_loss + lambda_3*l2_loss
 			combined_loss = one_step_loss + 1.0*n_step_loss + 1.0*large_margin_clf_loss + (10**(-5))*l2_loss
 
-
-			if self.params.loss_fn == "huber_loss":
-				# use huber loss
-				loss = huber_loss(tf.subtract(Y, action_probs))
-				batch_loss = loss
-			elif self.params.loss_fn == "MSE":
-				# use MSE
-				batch_loss = tf.squared_difference(Y, action_probs)
-				loss = tf.reduce_mean(batch_loss)
-			else:
-				assert False
+			loss = huber_loss(combined_loss)
 
 		# get gradients
 		grads = tape.gradient(loss, self.main_model.trainable_weights)
@@ -169,7 +162,7 @@ class DQfD:
 		return tf.subtract(Y, action_probs) # one step TD-error
 
 	def _n_step_loss(self):
-		pass
+		return 0
 
 	def _large_margin_clf_loss(self, a_e, a_l):
 		if a_e == a_l:
@@ -177,8 +170,10 @@ class DQfD:
 		else:
 			return 0.8 # in paper, they used the fixed amount
 
-	def l2_loss(self):
-		pass
+	def _l2_loss(self):
+		vars = self.main_model.get_weights()
+		lossL2 = tf.add_n([tf.nn.l2_loss(v) for v in vars]) * 10e-5 # in paper, they used the fixed amount
+		return lossL2
 
 
 if __name__ == '__main__':
@@ -222,7 +217,7 @@ if __name__ == '__main__':
 	else:
 		print("Select 'mode' either 'Atari' or 'CartPole' !!")
 
-	reward_buffer = deque(maxlen=5)
+	reward_buffer = deque(maxlen=params.reward_buffer_ep)
 	summary_writer = tf.contrib.summary.create_file_writer(logdir)
 
 	with summary_writer.as_default():
@@ -277,7 +272,7 @@ if __name__ == '__main__':
 				# store the episode reward
 				reward_buffer.append(total_reward)
 				# check the stopping condition
-				if np.mean(reward_buffer) > 195:
+				if np.mean(reward_buffer) > params.goal:
 					print("GAME OVER!!")
 					break
 

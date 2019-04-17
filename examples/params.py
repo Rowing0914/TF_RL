@@ -32,6 +32,8 @@ class Parameters:
 			self.tau = 1.
 			self.clip = (-500., 500.)
 			self.test_episodes = 10
+			self.goal = 20
+			self.reward_buffer_ep = 2
 		elif mode == "CartPole":
 			self.state_reshape = (1, 4)
 			self.loss_fn = "MSE"          # loss func: MSE or huber_loss
@@ -57,3 +59,18 @@ class Parameters:
 			self.tau = 1.
 			self.clip = (-500., 500.)
 			self.test_episodes = 10
+			self.goal = 195
+			self.reward_buffer_ep = 2
+
+class logdirs:
+	def __init__(self):
+		self.model_DQN = "../logs/models/DQN/"
+		self.log_DQN = "../logs/summaries/DQN/"
+		self.model_Double_DQN = "../logs/models/Double_DQN/"
+		self.log_Double_DQN = "../logs/summaries/Double_DQN/"
+		self.model_DQN_PER = "../logs/models/DQN_PER/"
+		self.log_DQN_PER = "../logs/summaries/DQN_PER/"
+		self.model_Duelling_DQN = "../logs/models/Duelling_DQN/"
+		self.log_Duelling_DQN = "../logs/summaries/Duelling_DQN/"
+		self.model_Duelling_Double_DQN_PER = "../logs/models/Duelling_Double_DQN_PER/"
+		self.log_Duelling_Double_DQN_PER = "../logs/summaries/Duelling_Double_DQN_PER/"

@@ -6,7 +6,7 @@ class Double_DQN:
     """
     Double_DQN
     """
-    def __init__(self, main_model, target_model, num_action, params):
+    def __init__(self, main_model, target_model, num_action, params, checkpoint_dir="../logs/models/DQN/"):
         self.num_action = num_action
         self.params = params
         self.main_model = main_model(num_action)
@@ -14,6 +14,13 @@ class Double_DQN:
         self.optimizer = tf.train.AdamOptimizer()
         # self.optimizer = tf.train.RMSPropOptimizer(0.00025, 0.99, 0.0, 1e-6)
         self.index_episode = 0
+
+        # TF: checkpoint vs Saver => https://stackoverflow.com/questions/53569622/difference-between-tf-train-checkpoint-and-tf-train-saver
+        self.checkpoint_dir = checkpoint_dir
+        self.check_point = tf.train.Checkpoint(optimizer=self.optimizer,
+                                               model=self.main_model,
+                                               optimizer_step=tf.train.get_or_create_global_step())
+        self.manager = tf.train.CheckpointManager(self.check_point, checkpoint_dir, max_to_keep=3)
 
     def predict(self, state):
         return self.main_model(tf.convert_to_tensor(state[None,:], dtype=tf.float32)).numpy()[0]

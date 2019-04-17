@@ -3,7 +3,7 @@ import numpy as np
 import tensorflow as tf
 from collections import deque
 from tf_rl.common.wrappers import MyWrapper
-from params import Parameters
+from examples.params import Parameters
 from tf_rl.common.memory import ReplayBuffer
 from tf_rl.common.policy import EpsilonGreedyPolicy
 from tf_rl.common.utils import AnnealingSchedule
@@ -38,10 +38,10 @@ class DQN:
         return loss
 
 if __name__ == '__main__':
-    reward_buffer = deque(maxlen=5)
     env = MyWrapper(gym.make("CartPole-v0"))
     replay_buffer = ReplayBuffer(5000)
     params = Parameters(mode="CartPole")
+    reward_buffer = deque(maxlen=params.reward_buffer_ep)
     Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end, decay_steps=params.decay_steps)
     policy = EpsilonGreedyPolicy(Epsilon_fn=Epsilon)
 
@@ -77,7 +77,7 @@ if __name__ == '__main__':
 
             reward_buffer.append(total_reward)
 
-            if np.mean(reward_buffer) > 195:
+            if np.mean(reward_buffer) > params.goal:
                 print("Game done!!")
                 break
 
