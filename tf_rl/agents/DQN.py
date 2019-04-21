@@ -7,11 +7,11 @@ class DQN:
     """
     DQN model which is reusable for duelling dqn as well
     """
-    def __init__(self, main_model, target_model, num_action, params, checkpoint_dir="../logs/models/DQN/"):
+    def __init__(self, env_type, main_model, target_model, num_action, params, checkpoint_dir="../logs/models/DQN/"):
         self.num_action = num_action
         self.params = params
-        self.main_model = main_model(num_action)
-        self.target_model = target_model(num_action)
+        self.main_model = main_model(env_type, num_action)
+        self.target_model = target_model(env_type, num_action)
         self.optimizer = tf.train.AdamOptimizer()
         # self.optimizer = tf.train.RMSPropOptimizer(0.00025, 0.99, 0.0, 1e-6)
         self.index_episode = 0
