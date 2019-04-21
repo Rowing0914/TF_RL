@@ -97,6 +97,7 @@ class DQfD:
 		self.optimizer = tf.train.AdamOptimizer()
 		# self.optimizer = tf.train.RMSPropOptimizer(0.00025, 0.99, 0.0, 1e-6)
 		self.index_episode = 0
+		self.pretrain_flag = 1
 
 		# TF: checkpoint vs Saver => https://stackoverflow.com/questions/53569622/difference-between-tf-train-checkpoint-and-tf-train-saver
 		self.checkpoint_dir = checkpoint_dir
@@ -111,7 +112,6 @@ class DQfD:
 	def update(self, states, actions_e, actions_l, rewards, next_states, dones):
 		with tf.GradientTape() as tape:
 			# make sure to fit all process to compute gradients within this Tape context!!
-
 			one_step_loss = self._one_step_loss(states, actions_e, rewards, next_states, dones)
 
 			n_step_loss = self._n_step_loss(states, actions_e, rewards, dones)
@@ -121,7 +121,10 @@ class DQfD:
 			l2_loss = self._l2_loss()
 
 			# combined_loss = one_step_loss + lambda_1*n_step_loss + lambda_2*large_margin_clf_loss + lambda_3*l2_loss
-			combined_loss = one_step_loss + 1.0*n_step_loss + 1.0*large_margin_clf_loss + (10**(-5))*l2_loss
+			if self.pretrain_flag:
+				combined_loss = one_step_loss + 1.0 * n_step_loss + 1.0 * large_margin_clf_loss + (10**(-5)) * l2_loss
+			else:
+				combined_loss = one_step_loss + 1.0 * n_step_loss + 0.0 * large_margin_clf_loss + (10**(-5)) * l2_loss
 
 			loss = huber_loss(combined_loss)
 
@@ -152,6 +155,7 @@ class DQfD:
 		# calculate target: R + gamma * max_a Q(s',a')
 		next_Q_main = self.main_model(tf.convert_to_tensor(next_states, dtype=tf.float32))
 		next_Q = self.target_model(tf.convert_to_tensor(next_states, dtype=tf.float32))
+
 		idx_flattened = tf.range(0, tf.shape(next_Q)[0]) * tf.shape(next_Q)[1] + np.argmax(next_Q_main, axis=-1)
 
 		# passing [-1] to tf.reshape means flatten the array
@@ -217,18 +221,17 @@ class DQfD:
 		return lossL2
 
 
-def _temp_DQfD_without_prioritisation(agent, expert, policy, expert_policy, env):
+def pretrain_without_prioritisation(agent, expert, policy, expert_policy, env, num_demo, num_train):
 	"""
 
 	Populating the memory with demonstrations
 
 	"""
-	temp_num_ep = 50
 	batch_experience = list()
 	batches = list()
 
 	print("Pupulating a memory with demonstrations")
-	for _ in range(temp_num_ep):
+	for _ in range(num_demo):
 		state = env.reset()
 		done = False
 		episode_reward = 0
@@ -256,7 +259,7 @@ def _temp_DQfD_without_prioritisation(agent, expert, policy, expert_policy, env)
 
 	"""
 
-	for i in range(temp_num_ep):
+	for i in range(num_train):
 		sample = random.sample(batches, 1)
 
 		states, actions_e, actions_l, rewards, next_states, dones = [], [], [], [], [], []
@@ -272,13 +275,19 @@ def _temp_DQfD_without_prioritisation(agent, expert, policy, expert_policy, env)
 			actions_l), np.array(rewards), np.array(next_states), np.array(dones)
 		agent.update(states, actions_e, actions_l, rewards, next_states, dones)
 
+		if np.random.rand() > 0.3:
+			if params.update_hard_or_soft == "hard":
+				agent.target_model.set_weights(agent.main_model.get_weights())
+			elif params.update_hard_or_soft == "soft":
+				soft_target_model_update_eager(agent.target_model, agent.main_model, tau=params.soft_update_tau)
+
 	"""
 
 	Test the pre-trained agent
 
 	"""
 
-	for _ in range(temp_num_ep):
+	for _ in range(10):
 		state = env.reset()
 		done = False
 		episode_reward = 0
@@ -293,6 +302,110 @@ def _temp_DQfD_without_prioritisation(agent, expert, policy, expert_policy, env)
 			episode_reward += reward
 
 		print("Game Over with score: {0}".format(episode_reward))
+
+	return agent, replay_buffer
+
+
+
+def pretrain_with_prioritisation(agent, expert, policy, expert_policy, env, replay_buffer, num_demo, num_train):
+	"""
+
+		Populating the memory with demonstrations
+
+	"""
+	states, actions_e, actions_l, rewards, next_states, dones = [], [], [], [], [], []
+
+	print("Pupulating a memory with demonstrations")
+	for _ in range(num_demo):
+		state = env.reset()
+		done = False
+		episode_reward = 0
+
+		while not done:
+			action_e = expert_policy.select_action(expert, state)
+			action_l = policy.select_action(agent, state)
+			next_state, reward, done, _ = env.step(action_e)
+
+			states.append(state)
+			actions_e.append(action_e)
+			actions_l.append(action_l)
+			rewards.append(reward)
+			next_states.append(next_state)
+			dones.append(done)
+
+			state = next_state
+			episode_reward += reward
+
+			if done or len(states) == 10:
+				# since we rely on the expert at this populating phase, this hardly happens though.
+				# at the terminal state, if a memory is not full, then we would fill the gap till n-step with 0
+				if len(states) < 10:
+					for _ in range(10 - len(states)):
+						states.append(np.zeros(state.shape))
+						actions_e.append(0)
+						actions_l.append(0)
+						rewards.append(0)
+						next_states.append(np.zeros(state.shape))
+						dones.append(0)
+				else:
+					assert len(states) == 10
+					replay_buffer.add(states, (actions_e, actions_l), rewards, next_states, dones)
+				states, actions_e, actions_l, rewards, next_states, dones = [], [], [], [], [], []
+
+		print("EXPERT: Game Over with score: {0}".format(episode_reward))
+
+	del states, actions_e, actions_l, rewards, next_states, dones, state, action_e, action_l, reward, next_state, done
+
+	"""
+
+	Pre-train the agent with collected demonstrations
+
+	"""
+	for i in range(num_train):
+		states, actions, rewards, next_states, dones, weights, indices = replay_buffer.sample(1, Beta.get_value(i))
+
+		# manually unpack the actions into expert's ones and learner's ones
+		actions_e = actions[:, 0, :].reshape(1, 10)
+		actions_l = actions[:, 1, :].reshape(1, 10)
+
+		loss = agent.update(states[0, :, :], actions_e, actions_l, rewards, next_states[0, :, :], dones)
+
+		# add noise to the priorities
+		loss = np.abs(np.mean(loss).reshape(1,1)) + params.prioritized_replay_noise
+
+		# Update a prioritised replay buffer using a batch of losses associated with each timestep
+		replay_buffer.update_priorities(indices, loss)
+
+		if np.random.rand() > 0.3:
+			if params.update_hard_or_soft == "hard":
+				agent.target_model.set_weights(agent.main_model.get_weights())
+			elif params.update_hard_or_soft == "soft":
+				soft_target_model_update_eager(agent.target_model, agent.main_model, tau=params.soft_update_tau)
+
+	"""
+
+	Test the pre-trained agent
+
+	"""
+
+	for _ in range(10):
+		state = env.reset()
+		done = False
+		episode_reward = 0
+
+		while not done:
+			# action_e = expert_policy.select_action(expert, state)
+			action_l = expert_policy.select_action(agent, state)
+
+			# next_state, reward, done, _ = env.step(action_e)
+			next_state, reward, done, _ = env.step(action_l)
+			state = next_state
+			episode_reward += reward
+
+		print("LEARNER: Game Over with score: {0}".format(episode_reward))
+
+	return agent, replay_buffer
+
 
 
 if __name__ == '__main__':
@@ -345,118 +458,18 @@ if __name__ == '__main__':
 	expert.check_point.restore(expert.manager.latest_checkpoint)
 	print("Restore the model from disk")
 
-	# _temp_DQfD_without_prioritisation(agent, expert, policy, expert_policy, env)
+	# agent, _ = pretrain_without_prioritisation(agent, expert, policy, expert_policy, env, 100, 100)
+	agent, replay_buffer = pretrain_with_prioritisation(agent, expert, policy, expert_policy, env, replay_buffer, 100, 1000)
 
-
-
-	"""
-
-	Populating the memory with demonstrations
-
-	"""
-	temp_num_ep = 50
-	states, actions_e, actions_l, rewards, next_states, dones = [], [], [], [], [], []
-
-	print("Pupulating a memory with demonstrations")
-	for _ in range(temp_num_ep):
-		state = env.reset()
-		done = False
-		episode_reward = 0
-
-		while not done:
-			action_e = expert_policy.select_action(expert, state)
-			action_l = policy.select_action(agent, state)
-			next_state, reward, done, _ = env.step(action_e)
-
-			states.append(state)
-			actions_e.append(action_e)
-			actions_l.append(action_l)
-			rewards.append(reward)
-			next_states.append(next_state)
-			dones.append(done)
-
-			state = next_state
-			episode_reward += reward
-
-			if done or len(states) == 10:
-				# since we rely on the expert at this populating phase, this hardly happens though.
-				# at the terminal state, if a memory is not full, then we would fill the gap till n-step with 0
-				if len(states) < 10:
-					for _ in range(10 - len(states)):
-						states.append(np.zeros(state.shape))
-						actions_e.append(0)
-						actions_l.append(0)
-						rewards.append(0)
-						next_states.append(np.zeros(state.shape))
-						dones.append(0)
-				else:
-					assert len(states) == 10
-					replay_buffer.add(states, (actions_e, actions_l), rewards, next_states, dones)
-				states, actions_e, actions_l, rewards, next_states, dones = [], [], [], [], [], []
-
-		print("Game Over with score: {0}".format(episode_reward))
-
-
-	del states, actions_e, actions_l, rewards, next_states, dones, state, action_e, action_l, reward, next_state, done
-
-
-	"""
-
-	Pre-train the agent with collected demonstrations
-
-	"""
-	for i in range(temp_num_ep):
-		states, actions, rewards, next_states, dones, weights, indices = replay_buffer.sample(1, Beta.get_value(i))
-
-		# manually unpack the actions into expert's ones and learner's ones
-		actions_e = actions[:, 0, :].reshape(1, 10)
-		actions_l = actions[:, 1, :].reshape(1, 10)
-
-		loss = agent.update(states[0, :, :], actions_e, actions_l, rewards, next_states[0, :, :], dones)
-
-		# add noise to the priorities
-		loss = np.abs(np.mean(loss).reshape(1,1)) + params.prioritized_replay_noise
-
-		# Update a prioritised replay buffer using a batch of losses associated with each timestep
-		replay_buffer.update_priorities(indices, loss)
-
-
-	"""
-
-	Test the pre-trained agent
-
-	"""
-
-	for _ in range(temp_num_ep):
-		state = env.reset()
-		done = False
-		episode_reward = 0
-
-		while not done:
-			# action_e = expert_policy.select_action(expert, state)
-			action_l = expert_policy.select_action(agent, state)
-
-			# next_state, reward, done, _ = env.step(action_e)
-			next_state, reward, done, _ = env.step(action_l)
-			state = next_state
-			episode_reward += reward
-
-		print("Game Over with score: {0}".format(episode_reward))
-
-
-	print("implement the weights synch function for target and main models in learner")
-
-
-	print("to be implemented soon!!")
-	error()
-
-
+	agent.pretrain_flag = 0
 
 	with summary_writer.as_default():
 		# for summary purpose, we put all codes in this context
 		with tf.contrib.summary.always_record_summaries():
 
 			global_timestep = 0
+			states_buf, actions_e_buf, actions_l_buf, rewards_buf, next_states_buf, dones_buf = [], [], [], [], [], []
+
 			for i in range(4000):
 				state = env.reset()
 				total_reward = 0
@@ -468,35 +481,62 @@ if __name__ == '__main__':
 					# env.render()
 					action = policy.select_action(agent, state)
 					next_state, reward, done, info = env.step(action)
-					replay_buffer.add(state, action, reward, next_state, done)
 
+					states_buf.append(state)
+					actions_e_buf.append(action)
+					actions_l_buf.append(0)
+					rewards_buf.append(reward)
+					next_states_buf.append(next_state)
+					dones_buf.append(done)
+					state = next_state
 					total_reward += reward
 					state = next_state
 					cnt_action.append(action)
 
-					if done:
+
+					if done or len(states_buf) == 10:
 						tf.contrib.summary.scalar("reward", total_reward, step=global_timestep)
+
+						# since we rely on the expert at this populating phase, this hardly happens though.
+						# at the terminal state, if a memory is not full, then we would fill the gap till n-step with 0
+						if len(states_buf) < 10:
+							for _ in range(10 - len(states_buf)):
+								states_buf.append(np.zeros(state.shape))
+								actions_e_buf.append(0)
+								actions_l_buf.append(0)
+								rewards_buf.append(0)
+								next_states_buf.append(np.zeros(state.shape))
+								dones_buf.append(0)
+						else:
+							assert len(states_buf) == 10
+							replay_buffer.add(states_buf, (actions_e_buf, actions_l_buf), rewards_buf, next_states_buf, dones_buf)
+						states_buf, actions_e_buf, actions_l_buf, rewards_buf, next_states_buf, dones_buf = [], [], [], [], [], []
+
 
 						if global_timestep > params.learning_start:
 							# PER returns: state, action, reward, next_state, done, weights(a weight for an episode), indices(indices for a batch of episode)
-							states, actions, rewards, next_states, dones, weights, indices = replay_buffer.sample(
-								params.batch_size, Beta.get_value(i))
+							states, actions, rewards, next_states, dones, weights, indices = replay_buffer.sample(1, Beta.get_value(i))
 
-							loss, batch_loss = agent.update(states, actions, rewards, next_states, dones)
+							# manually unpack the actions into expert's ones and learner's ones
+							actions_e = actions[:, 0, :].reshape(1, 10)
+							actions_l = actions[:, 1, :].reshape(1, 10)
+
+							loss = agent.update(states[0, :, :], actions_e, actions_l, rewards, next_states[0, :, :], dones)
 							logging(global_timestep, params.num_frames, i, time.time() - start, total_reward, np.mean(loss),
 									policy.current_epsilon(), cnt_action)
 
 							# add noise to the priorities
-							batch_loss = np.abs(batch_loss) + params.prioritized_replay_noise
+							loss = np.abs(np.mean(loss).reshape(1,1)) + params.prioritized_replay_noise
 
 							# Update a prioritised replay buffer using a batch of losses associated with each timestep
-							replay_buffer.update_priorities(indices, batch_loss)
+							replay_buffer.update_priorities(indices, loss)
 
 							if np.random.rand() > 0.5:
 								if params.update_hard_or_soft == "hard":
 									agent.target_model.set_weights(agent.main_model.get_weights())
 								elif params.update_hard_or_soft == "soft":
 									soft_target_model_update_eager(agent.target_model, agent.main_model, tau=params.soft_update_tau)
+					if done:
 						break
 
 					global_timestep += 1
