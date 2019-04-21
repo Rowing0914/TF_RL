@@ -58,32 +58,24 @@ if __name__ == '__main__':
 
 	parser = argparse.ArgumentParser()
 	parser.add_argument("--mode", default="CartPole", help="game env type")
+	parser.add_argument("--num_episodes", default="100", help="game env type")
 	args = parser.parse_args()
 
 	if args.mode == "CartPole":
 		env = MyWrapper(gym.make("CartPole-v0"))
-		params = Parameters(algo="DQN", mode="CartPole")
-		replay_buffer = ReplayBuffer(params.memory_size)
-		agent = DQN(Model_CartPole, Model_CartPole, env.action_space.n, params, logdirs.model_DQN)
-		if params.policy_fn == "Eps":
-			Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end,
-										decay_steps=params.decay_steps)
-			policy = EpsilonGreedyPolicy_eager(Epsilon_fn=Epsilon)
-		elif params.policy_fn == "Boltzmann":
-			policy = BoltzmannQPolicy_eager()
 	elif args.mode == "Atari":
 		env = wrap_deepmind(make_atari("PongNoFrameskip-v4"))
-		params = Parameters(algo="DQN", mode="Atari")
-		replay_buffer = ReplayBuffer(params.memory_size)
-		agent = DQN(Model_Atari, Model_Atari, env.action_space.n, params, logdirs.model_DQN)
-		if params.policy_fn == "Eps":
-			Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end,
-										decay_steps=params.decay_steps)
-			policy = EpsilonGreedyPolicy_eager(Epsilon_fn=Epsilon)
-		elif params.policy_fn == "Boltzmann":
-			policy = BoltzmannQPolicy_eager()
-	else:
-		print("Select 'mode' either 'Atari' or 'CartPole' !!")
+
+	params = Parameters(algo="DQN", mode=args.mode)
+	params.num_episodes = args.num_episodes
+	replay_buffer = ReplayBuffer(params.memory_size)
+	agent = DQN(Model_CartPole, Model_CartPole, env.action_space.n, params, logdirs.model_DQN)
+	if params.policy_fn == "Eps":
+		Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end,
+									decay_steps=params.decay_steps)
+		policy = EpsilonGreedyPolicy_eager(Epsilon_fn=Epsilon)
+	elif params.policy_fn == "Boltzmann":
+		policy = BoltzmannQPolicy_eager()
 
 	reward_buffer = deque(maxlen=params.reward_buffer_ep)
 	summary_writer = tf.contrib.summary.create_file_writer(logdirs.log_DQN)

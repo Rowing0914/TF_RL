@@ -423,7 +423,7 @@ if __name__ == '__main__':
 
 	if args.mode == "CartPole":
 		env = MyWrapper(gym.make("CartPole-v0"))
-		params = Parameters(mode="CartPole")
+		params = Parameters(algo="DQN_PER", mode="CartPole")
 		replay_buffer = PrioritizedReplayBuffer(params.memory_size, alpha=params.prioritized_replay_alpha)
 		agent = DQfD(Model_CartPole, Model_CartPole, env.action_space.n, params, logdirs.model_DQfD)
 		Beta = AnnealingSchedule(start=params.prioritized_replay_beta_start, end=params.prioritized_replay_beta_end,
@@ -436,7 +436,7 @@ if __name__ == '__main__':
 			policy = BoltzmannQPolicy_eager()
 	elif args.mode == "Atari":
 		env = wrap_deepmind(make_atari("PongNoFrameskip-v4"))
-		params = Parameters(mode="Atari")
+		params = Parameters(algo="DQN_PER", mode="Atari")
 		replay_buffer = PrioritizedReplayBuffer(params.memory_size, alpha=params.prioritized_replay_alpha)
 		agent = DQfD(Model_Atari, Model_Atari, env.action_space.n, params, logdirs.model_DQfD)
 		Beta = AnnealingSchedule(start=params.prioritized_replay_beta_start, end=params.prioritized_replay_beta_end,
