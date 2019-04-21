@@ -1,5 +1,5 @@
 from tf_rl.common.utils import AnnealingSchedule
-from examples.params import Parameters
+from examples.params.params import Parameters
 from tf_rl.common.policy import EpsilonGreedyPolicy
 
 params = Parameters("CartPole")

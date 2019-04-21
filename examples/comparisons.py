@@ -15,6 +15,7 @@ if args.mode == "CartPole":
 		"Double_DQN_eager",
 		"DQN_PER_eager",
 		"Duelling_Double_DQN_PER_eager",
+		"DQfD_eager"
 	]
 
 	for model in models:
@@ -24,14 +25,15 @@ if args.mode == "CartPole":
 
 elif args.mode == "Atari":
 	models = [
-		"DQN",
-		"Duelling_DQN",
-		"Double_DQN",
-		"DQN_PER",
-		"Duelling_Double_DQN_PER",
+		"DQN_eager",
+		"Duelling_DQN_eager",
+		"Double_DQN_eager",
+		"DQN_PER_eager",
+		"Duelling_Double_DQN_PER_eager",
+		"DQfD_eager"
 	]
 
 	for model in models:
-		os.system("python3.6 {}_train.py --mode Atari".format(model))
+		os.system("python3.6 {}.py --mode Atari".format(model))
 
 	# plot_comparison_graph(models)

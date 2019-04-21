@@ -4,7 +4,7 @@ import os
 import tensorflow as tf
 from collections import deque
 from tf_rl.common.wrappers import MyWrapper, wrap_deepmind, make_atari
-from examples.params import Parameters, logdirs
+from examples.params.params import Parameters, logdirs
 from tf_rl.common.memory import ReplayBuffer
 from tf_rl.common.utils import AnnealingSchedule
 from tf_rl.common.policy import EpsilonGreedyPolicy_eager, BoltzmannQPolicy_eager
@@ -62,7 +62,7 @@ if __name__ == '__main__':
 
 	if args.mode == "CartPole":
 		env = MyWrapper(gym.make("CartPole-v0"))
-		params = Parameters(mode="CartPole")
+		params = Parameters(algo="Double_DQN", mode="CartPole")
 		replay_buffer = ReplayBuffer(params.memory_size)
 		agent = Double_DQN(Model_CartPole, Model_CartPole, env.action_space.n, params, logdirs.model_Double_DQN)
 		if params.policy_fn == "Eps":
@@ -73,7 +73,7 @@ if __name__ == '__main__':
 			policy = BoltzmannQPolicy_eager()
 	elif args.mode == "Atari":
 		env = wrap_deepmind(make_atari("PongNoFrameskip-v4"))
-		params = Parameters(mode="Atari")
+		params = Parameters(algo="Double_DQN", mode="Atari")
 		replay_buffer = ReplayBuffer(params.memory_size)
 		agent = Double_DQN(Model_Atari, Model_Atari, env.action_space.n, params, logdirs.model_Double_DQN)
 		if params.policy_fn == "Eps":

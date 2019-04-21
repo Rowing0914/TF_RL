@@ -5,7 +5,7 @@ from collections import deque
 
 # ==== import below from my repo ====
 from tf_rl.common.wrappers import MyWrapper   # just a wrapper to set a reward at the terminal state -1
-from examples.params import Parameters    # params for training
+from examples.params.params import Parameters    # params for training
 from tf_rl.common.memory import ReplayBuffer  # Experience Replay Buffer
 
 tf.enable_eager_execution()

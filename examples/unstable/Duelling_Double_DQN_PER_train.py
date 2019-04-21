@@ -7,7 +7,7 @@ from tf_rl.common.memory import PrioritizedReplayBuffer
 from tf_rl.common.utils import AnnealingSchedule
 from tf_rl.common.wrappers import make_atari, wrap_deepmind, MyWrapper
 from tf_rl.common.policy import EpsilonGreedyPolicy, BoltzmannQPolicy
-from examples.params import Parameters
+from examples.params.params import Parameters
 from tf_rl.agents.unstable.Duelling_Double_DQN_PER_model import train_Duelling_Double_DQN_PER, Duelling_Double_DQN_PER_CartPole, Duelling_Double_DQN_PER_Atari
 
 try:

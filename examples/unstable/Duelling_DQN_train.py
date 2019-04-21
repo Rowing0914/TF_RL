@@ -7,7 +7,7 @@ from tf_rl.common.memory import ReplayBuffer
 from tf_rl.common.utils import AnnealingSchedule
 from tf_rl.common.wrappers import make_atari, wrap_deepmind, MyWrapper
 from tf_rl.common.policy import EpsilonGreedyPolicy, BoltzmannQPolicy
-from examples.params import Parameters
+from examples.params.params import Parameters
 from tf_rl.agents.unstable.DQN_model import train_DQN
 from tf_rl.agents.unstable.Duelling_DQN_model import Duelling_DQN_CartPole, Duelling_DQN_Atari
 

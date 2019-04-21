@@ -8,8 +8,8 @@ import numpy as np
 import tensorflow as tf
 from collections import deque
 from tf_rl.common.wrappers import MyWrapper, wrap_deepmind, make_atari
-from examples.params import Parameters, logdirs
-from examples.DQN_eager import Model_CartPole as Model_CartPole_DQN, Model_Atari as Model_Atari_DQN
+from examples.params.params import Parameters, logdirs
+from examples.DQN_eager import Model_CartPole as Model_CartPole_DQN
 from tf_rl.common.memory import PrioritizedReplayBuffer
 from tf_rl.common.utils import AnnealingSchedule, soft_target_model_update_eager, logging, huber_loss, ClipIfNotNone
 from tf_rl.common.policy import EpsilonGreedyPolicy_eager, BoltzmannQPolicy_eager, TestPolicy

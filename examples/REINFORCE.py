@@ -7,7 +7,7 @@ import numpy as np
 from collections import deque
 from tf_rl.common.wrappers import MyWrapper
 from tf_rl.common.policy import BoltzmannQPolicy
-from examples.params import Parameters
+from examples.params.params import Parameters
 import tensorflow as tf
 
 class Policy_Network:
@@ -69,7 +69,7 @@ class Value_Network:
 env = MyWrapper(gym.make("CartPole-v0"))
 policy_net = Policy_Network(num_action=env.action_space.n)
 value_net = Value_Network()
-params = Parameters(mode="CartPole")
+params = Parameters(algo="DQN", mode="CartPole")
 reward_buffer = deque(maxlen=params.reward_buffer_ep)
 
 # please use Boltzmann policy instead!!

@@ -2,7 +2,7 @@ import gym
 import numpy as np
 import collections
 from tf_rl.common.utils import AnnealingSchedule
-from examples.params import Parameters
+from examples.params.params import Parameters
 from tf_rl.common.wrappers import DiscretisedEnv
 from tf_rl.common.visualise import plot_Q_values
 
@@ -63,7 +63,7 @@ if __name__ == '__main__':
 	goal_duration = 198
 	all_rewards = list()
 	durations = collections.deque(maxlen=100)
-	params = Parameters(mode="CartPole")
+	params = Parameters(algo="DQN", mode="CartPole")
 	Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end, decay_steps=params.decay_steps)
 	Alpha = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end, decay_steps=params.decay_steps)
 	agent = Q_Agent(env, params)
@@ -91,7 +91,7 @@ if __name__ == '__main__':
 		# check if our policy is good
 		if mean_duration >= goal_duration and episode >= 100:
 			print('Ran {} episodes. Solved after {} trials'.format(episode, episode - 100))
-			agent.test()
+			# agent.test()
 			env.close()
 			break
 

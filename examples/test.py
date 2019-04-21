@@ -1,6 +1,6 @@
 import gym
 from tf_rl.common.wrappers import MyWrapper
-from examples.params import Parameters, logdirs
+from examples.params.params import Parameters, logdirs
 from examples.DQN_eager import Model_CartPole
 from tf_rl.common.policy import TestPolicy
 from tf_rl.agents.DQN import DQN
