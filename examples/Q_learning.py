@@ -2,7 +2,7 @@ import gym
 import numpy as np
 import collections
 from tf_rl.common.utils import AnnealingSchedule
-from examples.params.params import Parameters
+from tf_rl.common.params import Parameters
 from tf_rl.common.wrappers import DiscretisedEnv
 from tf_rl.common.visualise import plot_Q_values
 

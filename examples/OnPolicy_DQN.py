@@ -3,7 +3,7 @@ import numpy as np
 import tensorflow as tf
 from collections import deque
 from tf_rl.common.wrappers import MyWrapper
-from examples.params.params import Parameters
+from tf_rl.common.params import Parameters
 from tf_rl.common.memory import ReplayBuffer
 from tf_rl.common.policy import EpsilonGreedyPolicy
 from tf_rl.common.utils import AnnealingSchedule

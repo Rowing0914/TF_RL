@@ -8,7 +8,7 @@ import numpy as np
 import tensorflow as tf
 from collections import deque
 from tf_rl.common.wrappers import MyWrapper, wrap_deepmind, make_atari
-from examples.params.params import Parameters, logdirs
+from tf_rl.common.params import Parameters, logdirs
 from examples.DQN_eager import Model_CartPole as Model_CartPole_DQN
 from tf_rl.common.memory import PrioritizedReplayBuffer
 from tf_rl.common.utils import AnnealingSchedule, soft_target_model_update_eager, logging, huber_loss, ClipIfNotNone

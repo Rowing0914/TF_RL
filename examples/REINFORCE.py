@@ -7,7 +7,7 @@ import numpy as np
 from collections import deque
 from tf_rl.common.wrappers import MyWrapper
 from tf_rl.common.policy import BoltzmannQPolicy
-from examples.params.params import Parameters
+from tf_rl.common.params import Parameters
 import tensorflow as tf
 
 class Policy_Network:

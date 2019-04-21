@@ -4,7 +4,7 @@ import os
 import tensorflow as tf
 from collections import deque
 from tf_rl.common.wrappers import MyWrapper, wrap_deepmind, make_atari
-from examples.params.params import Parameters, logdirs
+from examples.params import Parameters, logdirs
 from tf_rl.common.memory import ReplayBuffer
 from tf_rl.common.utils import AnnealingSchedule
 from tf_rl.common.policy import EpsilonGreedyPolicy_eager, BoltzmannQPolicy_eager
