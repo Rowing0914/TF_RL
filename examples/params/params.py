@@ -73,7 +73,7 @@ class Parameters:
             self.goal = 20
             self.num_frames = 30000
             self.num_episodes = 100
-            self.decay_steps = 50
+            self.decay_steps = 10000
             self.memory_size = 1000000
             self.learning_start = 50000
 
