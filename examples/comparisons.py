@@ -19,7 +19,7 @@ if args.mode == "CartPole":
 	]
 
 	for model in models:
-		os.system("python3.6 {}.py".format(model))
+		os.system("python3.6 {}.py --num_episode 2000".format(model))
 
 	# plot_comparison_graph(models)
 

@@ -58,6 +58,10 @@ class Parameters:
             self._load_Duelling_DQN(mode)
         elif algo == "Duelling_Double_DQN_PER":
             self._load_Duelling_Double_DQN_PER(mode)
+        elif algo == "DQfD":
+            self._load_DQfD(mode)
+        elif algo == "REINFORCE":
+            self._load_REINFORCE(mode)
 
 
         # load params corresponding to the env type
@@ -65,7 +69,6 @@ class Parameters:
             self.goal = 195
             self.num_frames = 30000
             self.num_episodes = 4000
-            self.decay_steps = 1000
             self.memory_size = 20000
             self.learning_start = 100
 
@@ -73,7 +76,6 @@ class Parameters:
             self.goal = 20
             self.num_frames = 30000
             self.num_episodes = 100
-            self.decay_steps = 10000
             self.memory_size = 1000000
             self.learning_start = 50000
 
@@ -89,6 +91,7 @@ class Parameters:
             self.update_hard_or_soft = "hard"
             self.soft_update_tau = 1e-2
             self.decay_type = "curved"
+            self.decay_steps = 1000
         elif mode == "CartPole":
             self.state_reshape = (1, 4)
             self.loss_fn = "MSE"
@@ -99,6 +102,7 @@ class Parameters:
             self.update_hard_or_soft = "hard"
             self.soft_update_tau = 1e-2
             self.decay_type = "linear"
+            self.decay_steps = 1000
 
     def _load_Double_DQN(self, mode):
         if mode == "Atari":
@@ -111,6 +115,7 @@ class Parameters:
             self.update_hard_or_soft = "hard"
             self.soft_update_tau = 1e-2
             self.decay_type = "curved"
+            self.decay_steps = 1000
         elif mode == "CartPole":
             self.state_reshape = (1, 4)
             self.loss_fn = "MSE"
@@ -121,6 +126,7 @@ class Parameters:
             self.update_hard_or_soft = "hard"
             self.soft_update_tau = 1e-2
             self.decay_type = "linear"
+            self.decay_steps = 1000
 
     def _load_DQN_PER(self, mode):
         if mode == "Atari":
@@ -133,6 +139,7 @@ class Parameters:
             self.update_hard_or_soft = "hard"
             self.soft_update_tau = 1e-2
             self.decay_type = "curved"
+            self.decay_steps = 1000
             self.prioritized_replay_alpha = 0.6
             self.prioritized_replay_beta_start = 0.4
             self.prioritized_replay_beta_end = 1.0
@@ -147,6 +154,7 @@ class Parameters:
             self.update_hard_or_soft = "hard"
             self.soft_update_tau = 1e-2
             self.decay_type = "linear"
+            self.decay_steps = 1000
             self.prioritized_replay_alpha = 0.6
             self.prioritized_replay_beta_start = 0.4
             self.prioritized_replay_beta_end = 1.0
@@ -163,6 +171,7 @@ class Parameters:
             self.update_hard_or_soft = "hard"
             self.soft_update_tau = 1e-2
             self.decay_type = "curved"
+            self.decay_steps = 1000
         elif mode == "CartPole":
             self.state_reshape = (1, 4)
             self.loss_fn = "MSE"
@@ -173,6 +182,7 @@ class Parameters:
             self.update_hard_or_soft = "hard"
             self.soft_update_tau = 1e-2
             self.decay_type = "linear"
+            self.decay_steps = 1000
 
     def _load_Duelling_Double_DQN_PER(self, mode):
         if mode == "Atari":
@@ -185,6 +195,7 @@ class Parameters:
             self.update_hard_or_soft = "hard"
             self.soft_update_tau = 1e-2
             self.decay_type = "curved"
+            self.decay_steps = 1000
             self.prioritized_replay_alpha = 0.6
             self.prioritized_replay_beta_start = 0.4
             self.prioritized_replay_beta_end = 1.0
@@ -199,10 +210,67 @@ class Parameters:
             self.update_hard_or_soft = "hard"
             self.soft_update_tau = 1e-2
             self.decay_type = "linear"
+            self.decay_steps = 1000
             self.prioritized_replay_alpha = 0.6
             self.prioritized_replay_beta_start = 0.4
             self.prioritized_replay_beta_end = 1.0
             self.prioritized_replay_noise = 1e-6
+
+    def _load_DQfD(self, mode):
+        if mode == "Atari":
+            self.state_reshape = (1, 84, 84, 1)
+            self.loss_fn = "MSE"
+            self.policy_fn = "Eps"
+            self.grad_clip_flg = "by_value"
+            self.sync_freq = 10000
+            self.gamma = 0.99
+            self.update_hard_or_soft = "hard"
+            self.soft_update_tau = 1e-2
+            self.decay_type = "curved"
+            self.decay_steps = 1000
+            self.prioritized_replay_alpha = 0.6
+            self.prioritized_replay_beta_start = 0.4
+            self.prioritized_replay_beta_end = 1.0
+            self.prioritized_replay_noise = 1e-6
+        elif mode == "CartPole":
+            self.state_reshape = (1, 4)
+            # self.loss_fn = "MSE"
+            self.policy_fn = "Eps"
+            self.grad_clip_flg = "norm"
+            self.sync_freq = 100
+            self.gamma = 0.99
+            self.update_hard_or_soft = "soft"
+            self.soft_update_tau = 1e-2
+            self.decay_type = "linear"
+            self.decay_steps = 1000
+            self.prioritized_replay_alpha = 0.6
+            self.prioritized_replay_beta_start = 0.4
+            self.prioritized_replay_beta_end = 1.0
+            self.prioritized_replay_noise = 1e-6
+
+    def _load_REINFORCE(self, mode):
+        if mode == "Atari":
+            self.state_reshape = (1, 84, 84, 1)
+            self.loss_fn = "MSE"
+            self.policy_fn = "Eps"
+            self.grad_clip_flg = "by_value"
+            self.sync_freq = 10000
+            self.gamma = 0.99
+            self.update_hard_or_soft = "hard"
+            self.soft_update_tau = 1e-2
+            self.decay_type = "curved"
+            self.decay_steps = 100
+        elif mode == "CartPole":
+            self.state_reshape = (1, 4)
+            self.loss_fn = "MSE"
+            self.policy_fn = "Eps"
+            self.grad_clip_flg = "by_value"
+            self.sync_freq = 100
+            self.gamma = 0.99
+            self.update_hard_or_soft = "hard"
+            self.soft_update_tau = 1e-2
+            self.decay_type = "linear"
+            self.decay_steps = 100
 
 
 class logdirs:
@@ -219,3 +287,5 @@ class logdirs:
         self.log_Duelling_Double_DQN_PER = "../logs/summaries/Duelling_Double_DQN_PER/"
         self.model_DQfD = "../logs/models/DQfD/"
         self.log_DQfD = "../logs/summaries/DQfD/"
+        self.model_DQN_afp = "../logs/models/DQN_afp/"
+        self.log_DQN_afp = "../logs/summaries/DQN_afp/"
