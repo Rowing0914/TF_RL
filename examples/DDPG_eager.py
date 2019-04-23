@@ -5,12 +5,13 @@ import gym
 import itertools
 import numpy as np
 import time
+from copy import deepcopy
 from collections import deque
 from tf_rl.common.wrappers import MyWrapper
 from tf_rl.common.memory import ReplayBuffer
 from tf_rl.common.policy import BoltzmannQPolicy_eager, EpsilonGreedyPolicy_eager
 from tf_rl.common.params import Parameters
-from tf_rl.common.utils import AnnealingSchedule, logging
+from tf_rl.common.utils import AnnealingSchedule, logging, soft_target_model_update_eager
 import tensorflow as tf
 
 tf.enable_eager_execution()
@@ -24,14 +25,14 @@ class Actor(tf.keras.Model):
 			self.dense1 = tf.keras.layers.Dense(16, activation='relu')
 			self.dense2 = tf.keras.layers.Dense(16, activation='relu')
 			self.dense3 = tf.keras.layers.Dense(16, activation='relu')
-			self.pred = tf.keras.layers.Dense(num_action, activation='softmax')
+			self.pred = tf.keras.layers.Dense(num_action, activation='tanh')
 		elif self.env_type == "Atari":
 			self.conv1 = tf.keras.layers.Conv2D(32, kernel_size=8, strides=8, activation='relu')
 			self.conv2 = tf.keras.layers.Conv2D(64, kernel_size=4, strides=2, activation='relu')
 			self.conv3 = tf.keras.layers.Conv2D(64, kernel_size=3, strides=1, activation='relu')
 			self.flat = tf.keras.layers.Flatten()
 			self.fc1 = tf.keras.layers.Dense(512, activation='relu')
-			self.pred = tf.keras.layers.Dense(num_action, activation='softmax')
+			self.pred = tf.keras.layers.Dense(num_action, activation='linear')
 
 	def call(self, inputs):
 		if self.env_type == "CartPole":
@@ -55,9 +56,9 @@ class Critic(tf.keras.Model):
 		super(Critic, self).__init__()
 		self.env_type = env_type
 		if self.env_type == "CartPole":
-			self.dense1 = tf.keras.layers.Dense(16, activation='relu')
-			self.dense2 = tf.keras.layers.Dense(16, activation='relu')
-			self.dense3 = tf.keras.layers.Dense(16, activation='relu')
+			self.dense1 = tf.keras.layers.Dense(32, activation='relu')
+			self.dense2 = tf.keras.layers.Dense(32, activation='relu')
+			self.dense3 = tf.keras.layers.Dense(32, activation='relu')
 			self.pred = tf.keras.layers.Dense(num_action, activation='linear')
 		elif self.env_type == "Atari":
 			self.conv1 = tf.keras.layers.Conv2D(32, kernel_size=8, strides=8, activation='relu')
@@ -91,6 +92,8 @@ class Actor_Critic:
 		self.num_action = num_action
 		self.actor = actor(env_type, num_action)
 		self.critic = critic(env_type, num_action)
+		self.target_actor  = deepcopy(self.actor)
+		self.target_critic = deepcopy(self.critic)
 		self.actor_optimizer = tf.train.AdamOptimizer()
 		self.critic_optimizer = tf.train.AdamOptimizer()
 
@@ -106,30 +109,22 @@ class Actor_Critic:
 
 		with tf.GradientTape() as tape:
 			# calculate Q-values
-			next_Q_actor = self.actor(tf.convert_to_tensor(next_states[None, :], dtype=tf.float32))
-			next_Q_critic = self.critic(tf.convert_to_tensor(next_states[None, :], dtype=tf.float32))
-			Q_critic = self.critic(tf.convert_to_tensor(states[None, :], dtype=tf.float32))
+			target_actions = self.target_actor(tf.convert_to_tensor(next_states[None, :], dtype=tf.float32))[0]
+			Q_critic = self.target_critic( tf.cast(tf.concat([states, actions], axis = -1), dtype=tf.float32) )
 
-			# create indices for gathering action values according to Actor assessment
-			idx_flattened = tf.range(0, tf.shape(next_Q_critic)[0]) * tf.shape(next_Q_critic)[1] + np.argmax(next_Q_actor, axis=-1)
-
-			# same as Double DQN
-			target_action_probs = tf.gather(tf.reshape(next_Q_critic, [-1]), idx_flattened)
-
-			# get the q-values which is associated with actually taken actions in a game
-			actions_one_hot = tf.one_hot(actions, self.num_action, 1.0, 0.0)
-			action_probs = tf.reduce_sum(actions_one_hot * Q_critic, reduction_indices=-1)
-
-			Y = reward + self.params.gamma*target_action_probs
+			Y = reward + self.params.gamma*target_actions
 
 			# MSE loss function: (1/N)*sum(Y - Q(s,a))^2
-			critic_loss = tf.reduce_mean(tf.squared_difference(Y, action_probs))
+			critic_loss = tf.reduce_mean(tf.squared_difference(Y, Q_critic))
 
 		# get gradients
-		critic_grads = tape.gradient(critic_loss, self.critic.trainable_weights)
+		critic_grads = tape.gradient(critic_loss, self.target_critic.trainable_weights)
 
 		# apply processed gradients to the network
-		self.critic_optimizer.apply_gradients(zip(critic_grads, self.critic.trainable_weights))
+		self.critic_optimizer.apply_gradients(zip(critic_grads, self.target_critic.trainable_weights))
+
+		# soft update
+		soft_target_model_update_eager(self.critic, self.target_critic)
 
 		"""
 
@@ -139,37 +134,30 @@ class Actor_Critic:
 
 		with tf.GradientTape() as tape:
 			# compute q-values
-			q_values = self.actor(tf.convert_to_tensor(state[None, :], dtype=tf.float32))
-			next_Q_critic = self.critic(tf.convert_to_tensor(next_states[None, :], dtype=tf.float32))
+			q_values = self.target_actor(tf.convert_to_tensor(state[None, :], dtype=tf.float32))
+			next_Q_critic = self.target_critic( tf.cast(tf.concat([next_states, actions], axis = -1), dtype=tf.float32) )
 
-			Y = rewards + self.params.gamma * np.max(next_Q_critic, axis=-1).flatten() * np.logical_not(dones)
+			Y = rewards + self.params.gamma * next_Q_critic * np.logical_not(dones)
 
-			# get the q-values which is associated with actually taken actions in a game
-			actions_one_hot = tf.one_hot(actions, self.num_action, 1.0, 0.0)
-			action_probs = tf.reduce_sum(actions_one_hot * q_values, reduction_indices=-1)
-
-			actor_loss = tf.reduce_mean(tf.squared_difference(Y, action_probs))
+			actor_loss = tf.reduce_mean(tf.squared_difference(Y, q_values))
 
 		# get gradients
-		actor_grads = tape.gradient(actor_loss, self.actor.trainable_weights)
+		actor_grads = tape.gradient(actor_loss, self.target_actor.trainable_weights)
 
 		# apply processed gradients to the network
-		self.actor_optimizer.apply_gradients(zip(actor_grads, self.actor.trainable_weights))
+		self.actor_optimizer.apply_gradients(zip(actor_grads, self.target_actor.trainable_weights))
+
+		# soft update
+		soft_target_model_update_eager(self.actor, self.target_actor)
 
 
-# env_type = "CartPole"
-env = MyWrapper(gym.make("CartPole-v0"))
-params = Parameters(algo="DQN", mode="CartPole")
-agent = Actor_Critic("CartPole", Actor, Critic, env.action_space.n, params)
+env = gym.make("Pendulum-v0")
+params = Parameters(algo="DDPG", mode="CartPole")
+agent = Actor_Critic("CartPole", Actor, Critic, 1, params)
 replay_buffer = ReplayBuffer(params.memory_size)
 reward_buffer = deque(maxlen=params.reward_buffer_ep)
-
-if params.policy_fn == "Eps":
-	Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end,
-								decay_steps=params.decay_steps)
-	policy = EpsilonGreedyPolicy_eager(Epsilon_fn=Epsilon)
-elif params.policy_fn == "Boltzmann":
-	policy = BoltzmannQPolicy_eager()
+Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end, decay_steps=params.decay_steps)
+policy = EpsilonGreedyPolicy_eager(Epsilon_fn=Epsilon)
 
 global_timestep = 0
 
@@ -177,20 +165,18 @@ for i in range(params.num_episodes):
 	state = env.reset()
 	memory = list()
 	total_reward = 0
-	cnt_action = list()
 	policy.index_episode = i
 	start = time.time()
 
 	# generate an episode
 	for t in itertools.count():
 		# env.render()
-		action = policy.select_action(agent, state)
+		action = agent.predict(state)
 		next_state, reward, done, info = env.step(action)
 		replay_buffer.add(state, action, reward, next_state, done)
 
 		state = next_state
 		total_reward += reward
-		cnt_action.append(action)
 
 		if done:
 			if global_timestep > params.learning_start:
@@ -199,7 +185,7 @@ for i in range(params.num_episodes):
 				# update the networks according to the current episode
 				agent.update(states, actions, rewards, next_states, dones)
 
-				logging(global_timestep, params.num_frames, i, time.time() - start, total_reward, 0, policy.current_epsilon(), cnt_action)
+				logging(global_timestep, params.num_frames, i, time.time() - start, total_reward, 0, policy.current_epsilon(), [0])
 				total_reward = 0
 			break
 
