@@ -1,6 +1,6 @@
 ## TF-RL(Reinforcement Learning with Tensorflow)
 
-  This is the repo for implementing and experimenting the variety of RL algorithms. And it aims to focus only on this purpose, hencewise, if you'd like theoretical background of each algorithm, please check the original papers or other great article on the internet!
+  This is the repo for implementing and experimenting the variety of RL algorithms using **Tensorflow Eager Execution**. And it aims to focus only on this purpose, hencewise, if you'd like to learn theoretical background of each algorithm, please check the original papers or other great articles on the internet!
 
 
 
@@ -53,9 +53,7 @@ $ python3.6 {model_name}_train.py
 
 
 
-## Implementations
-
-### Deep Reinforcement Learning
+## Implementations (To be re-ordered soon)
 
 1. Playing Atari with Deep Reinforcement Learning, Mnih et al., 2013 [[arxiv]](https://www.cs.toronto.edu/~vmnih/docs/dqn.pdf) [[code]](<https://github.com/Rowing0914/TF_RL/blob/master/examples/DQN_eager.py>)
 2. Deep Reinforcement Learning with Double Q-learning, van Hasselt et al., 2015 [[arxiv]](https://arxiv.org/abs/1509.06461) [[code]](<https://github.com/Rowing0914/TF_RL/blob/master/examples/Double_DQN_eager.py>)
@@ -63,6 +61,10 @@ $ python3.6 {model_name}_train.py
 4. Prioritised Experience Replay, T.Shaul et al., 2015 [[arxiv]](https://arxiv.org/abs/1511.05952) [[code]](<https://github.com/Rowing0914/TF_RL/blob/master/examples/DQN_PER_eager.py>)
 5. Asynchronous Methods for Deep Reinforcement Learning, Mnih et al., 2016 [[arxiv]](<https://arxiv.org/pdf/1602.01783.pdf>) [[code]](<https://github.com/Rowing0914/TF_RL/blob/master/agents/A3C.py>)
 6. Deep Q-learning from Demonstrations, T.Hester et al., 2017 [[arxiv]](<https://arxiv.org/pdf/1704.03732.pdf>) [[code]](<https://github.com/Rowing0914/TF_RL/blob/master/examples/DQfD_eager.py>)
+7. Actor-Critic Algorithms, VR Konda and JN Tsitsiklis., 2000 NIPS [[arxiv]](<https://papers.nips.cc/paper/1786-actor-critic-algorithms.pdf>) [[code]](<https://github.com/Rowing0914/TF_RL/blob/master/examples/Actor_Critic_eager.py>)
+8. Policy Gradient Methods for Reinforcement Learning with Function Approximation., RS Sutton et al., 2000 NIPS [[arxiv]](<https://papers.nips.cc/paper/1713-policy-gradient-methods-for-reinforcement-learning-with-function-approximation.pdf>) [[code]](<https://github.com/Rowing0914/TF_RL/blob/master/examples/REINFORCE_eager.py>)
+
+9. Continuous Control with Deep Reinforcement Leaning, TP Lillicrap et al., 2015 [[arxiv]](<https://arxiv.org/pdf/1509.02971.pdf>) [[code]](<https://github.com/Rowing0914/TF_RL/blob/master/examples/DDPG_eager.py>)
 
 
 
@@ -75,7 +77,7 @@ $ python3.6 {model_name}_train.py
 
 
 
-### Reinforcement Learning: R.Sutton's Great Book!
+### Textbook implementations: R.Sutton's Great Book!
 
 - Ch2: Simple Bandit: [[code]](<https://github.com/Rowing0914/TF_RL/blob/master/agents/Sutton_RL_Intro/ch2_Bandit/simple_bandit_algo.py>)
 - Ch3: MDP sample using OpenAI Gym: [[code]](<https://github.com/Rowing0914/TF_RL/blob/master/agents/Sutton_RL_Intro/ch3_MDP/pole_balancing.py>)
