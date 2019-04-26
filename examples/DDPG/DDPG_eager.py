@@ -1,5 +1,17 @@
-# Deep Deterministic Policy Gradient algorithm
-# https://arxiv.org/pdf/1509.02971.pdf
+"""
+
+Deep Deterministic Policy Gradient algorithm
+URL: https://arxiv.org/pdf/1509.02971.pdf
+
+Problem Setting: Pendulum
+URL: https://gym.openai.com/envs/Pendulum-v0/
+Description:
+The inverted pendulum swingup problem is a classic problem in the control literature.
+In this version of the problem, the pendulum starts in a random position,
+and the goal is to swing it up so it stays upright.
+
+
+"""
 
 import gym
 import itertools
@@ -7,9 +19,7 @@ import numpy as np
 import time
 from copy import deepcopy
 from collections import deque
-from tf_rl.common.wrappers import MyWrapper
 from tf_rl.common.memory import ReplayBuffer
-from tf_rl.common.policy import BoltzmannQPolicy_eager, EpsilonGreedyPolicy_eager
 from tf_rl.common.params import Parameters
 from tf_rl.common.utils import AnnealingSchedule, logging, soft_target_model_update_eager
 import tensorflow as tf
@@ -97,8 +107,11 @@ class Actor_Critic:
 		self.actor_optimizer = tf.train.AdamOptimizer()
 		self.critic_optimizer = tf.train.AdamOptimizer()
 
-	def predict(self, state):
-		return self.actor(tf.convert_to_tensor(state[None, :], dtype=tf.float32)).numpy()[0]
+	def predict(self, state, epsilon):
+		if np.random.rand(1) > epsilon:
+			return self.actor(tf.convert_to_tensor(state[None, :], dtype=tf.float32)).numpy()[0]
+		else:
+			return np.random.uniform(-2.0, 2.0, 1)
 
 	def update(self, states, actions, rewards, next_states, dones):
 		"""
@@ -110,12 +123,14 @@ class Actor_Critic:
 		with tf.GradientTape() as tape:
 			# calculate Q-values
 			target_actions = self.target_actor(tf.convert_to_tensor(next_states[None, :], dtype=tf.float32))[0]
-			Q_critic = self.target_critic( tf.cast(tf.concat([states, actions], axis = -1), dtype=tf.float32) )
+			# critic takes as input states, actions so that we combine them before passing them
+			next_q_values = self.target_critic( tf.cast(tf.concat([next_states, target_actions], axis = -1), dtype=tf.float32) )
+			q_values = self.target_critic( tf.cast(tf.concat([states, actions], axis = -1), dtype=tf.float32) )
 
-			Y = reward + self.params.gamma*target_actions
+			Y = reward + self.params.gamma*next_q_values * np.logical_not(dones)
 
 			# MSE loss function: (1/N)*sum(Y - Q(s,a))^2
-			critic_loss = tf.reduce_mean(tf.squared_difference(Y, Q_critic))
+			critic_loss = tf.reduce_mean(tf.squared_difference(Y, q_values))
 
 		# get gradients
 		critic_grads = tape.gradient(critic_loss, self.target_critic.trainable_weights)
@@ -134,10 +149,10 @@ class Actor_Critic:
 
 		with tf.GradientTape() as tape:
 			# compute q-values
-			q_values = self.target_actor(tf.convert_to_tensor(state[None, :], dtype=tf.float32))
-			next_Q_critic = self.target_critic( tf.cast(tf.concat([next_states, actions], axis = -1), dtype=tf.float32) )
+			target_actions = self.target_actor(tf.convert_to_tensor(next_states[None, :], dtype=tf.float32))
+			q_values = self.target_critic( tf.cast(tf.concat([states, target_actions], axis = -1), dtype=tf.float32) )
 
-			Y = rewards + self.params.gamma * next_Q_critic * np.logical_not(dones)
+			Y = rewards + self.params.gamma * q_values * np.logical_not(dones)
 
 			actor_loss = tf.reduce_mean(tf.squared_difference(Y, q_values))
 
@@ -157,7 +172,6 @@ agent = Actor_Critic("CartPole", Actor, Critic, 1, params)
 replay_buffer = ReplayBuffer(params.memory_size)
 reward_buffer = deque(maxlen=params.reward_buffer_ep)
 Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end, decay_steps=params.decay_steps)
-policy = EpsilonGreedyPolicy_eager(Epsilon_fn=Epsilon)
 
 global_timestep = 0
 
@@ -165,13 +179,13 @@ for i in range(params.num_episodes):
 	state = env.reset()
 	memory = list()
 	total_reward = 0
-	policy.index_episode = i
 	start = time.time()
 
 	# generate an episode
 	for t in itertools.count():
-		# env.render()
-		action = agent.predict(state)
+		if i > 200:
+			env.render()
+		action = agent.predict(state, Epsilon.get_value(i))
 		next_state, reward, done, info = env.step(action)
 		replay_buffer.add(state, action, reward, next_state, done)
 
@@ -185,8 +199,8 @@ for i in range(params.num_episodes):
 				# update the networks according to the current episode
 				agent.update(states, actions, rewards, next_states, dones)
 
-				logging(global_timestep, params.num_frames, i, time.time() - start, total_reward, 0, policy.current_epsilon(), [0])
-				total_reward = 0
+				logging(global_timestep, params.num_frames, i, time.time() - start, total_reward, 0, Epsilon.get_value(i), [0])
+			total_reward = 0
 			break
 
 		global_timestep += 1

@@ -1,11 +1,12 @@
 import gym
 import numpy as np
-import collections
+import itertools
 import tensorflow as tf
 from tf_rl.common.utils import AnnealingSchedule
 from tf_rl.common.params import Parameters
-from tf_rl.common.wrappers import DiscretisedEnv
-from tf_rl.common.visualise import plot_Q_values
+from tf_rl.common.utils import logging
+from tf_rl.common.filters import Particle_Filter
+from tf_rl.common.wrappers import MyWrapper_revertable
 
 tf.enable_eager_execution()
 
@@ -24,7 +25,7 @@ class Model(tf.keras.Model):
 		pred = self.pred(x)
 		return pred
 
-class Q_FA_Agent:
+class Continuous_Q_Agent:
 	def __init__(self, env, params, policy_type="Eps"):
 		self.env = env
 		self.num_action = 1
@@ -33,17 +34,17 @@ class Q_FA_Agent:
 		self.policy_type = policy_type
 		self.optimizer = tf.train.AdamOptimizer()
 
-	def choose_action(self, state, epsilon):
+	def estimate_Q(self, state, epsilon):
 		if (np.random.random() <= epsilon):
 			return self.env.action_space.sample()
 		else:
 			return self.model(tf.convert_to_tensor(state[None,:], dtype=tf.float32)).numpy()[0]
 
-	def update(self, state, action, reward, next_state):
+	def update(self, state, action, reward, next_state, done):
 		with tf.GradientTape() as tape:
 			# make sure to fit all process to compute gradients within this Tape context!!
 
-			# calculate target: R + gamma * max_a Q(s',a')
+			# calculate target: R + gamma * max_a' Q(s', a')
 			next_Q = self.model(tf.convert_to_tensor(next_state[None,:], dtype=tf.float32))
 			Y = reward + self.params.gamma * np.max(next_Q, axis=-1).flatten() * np.logical_not(done)
 
@@ -64,49 +65,43 @@ class Q_FA_Agent:
 
 
 if __name__ == '__main__':
-	env = gym.make('MountainCarContinuous-v0')
+	env = MyWrapper_revertable(gym.make('MountainCarContinuous-v0'))
 
 	# hyperparameters
-	n_episodes = 1000
-	goal_duration = 198
 	all_rewards = list()
-	durations = collections.deque(maxlen=100)
 	params = Parameters(algo="DQN", mode="CartPole")
-	Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end, decay_steps=params.decay_steps)
-	Alpha = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end, decay_steps=params.decay_steps)
-	agent = Q_FA_Agent(env, params)
+	Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end, decay_steps=100)
+	agent = Continuous_Q_Agent(env, params)
+	pf = Particle_Filter(N=10,type="uniform")
+	global_step = 0
 
-	for episode in range(n_episodes):
-		current_state = env.reset()
+	for episode in range(params.num_episodes):
+		state = env.reset()
+		episode_loss = 0
+		episode_reward = 0
 
-		done = False
-		duration = 0
+		for t in itertools.count():
+			# estimate
+			mean, var = pf.estimate()
+			action = np.random.normal(mean, var, 1)
 
-		# one episode of q learning
-		while not done:
-			# env.render()
-			action = agent.choose_action(current_state, Epsilon.get_value(episode))
-			new_state, reward, done, _ = env.step(action)
-			agent.update(current_state, action, reward, new_state)
-			current_state = new_state
-			duration += 1
+			if episode > 100:
+				env.render()
 
-			if duration >= 200:
-				done = True
+			# predict and update particles
+			pf.predict(env, action)
+			q_values = agent.estimate_Q(state, Epsilon.get_value(0))
+			pf.update(q_values=q_values)
+			pf.simple_resample()
 
-		# mean duration of last 100 episodes
-		durations.append(duration)
-		all_rewards.append(duration)
-		mean_duration = np.mean(durations)
+			next_state, reward, done, _ = env.step(action)
+			loss, batch_loss = agent.update(state, action, reward, next_state, done)
 
-		# check if our policy is good
-		if mean_duration >= goal_duration and episode >= 100:
-			print('Ran {} episodes. Solved after {} trials'.format(episode, episode - 100))
-			# agent.test()
-			env.close()
-			break
+			episode_loss += loss
+			episode_reward += reward
+			state = next_state
+			global_step += 1
 
-		elif episode % 100 == 0:
-			print('[Episode {}] - Mean time over last 100 episodes was {} frames.'.format(episode, mean_duration))
-
-	np.save("../logs/value/rewards_Q_learning.npy", all_rewards)
+			if t >= 300 or done:
+				logging(global_step, params.num_frames, episode, 0, episode_reward, episode_loss, Epsilon.get_value(episode), [0])
+				break

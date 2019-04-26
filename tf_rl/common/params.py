@@ -296,7 +296,7 @@ class Parameters:
             self.update_hard_or_soft = "hard"
             self.soft_update_tau = 1e-2
             self.decay_type = "linear"
-            self.decay_steps = 10
+            self.decay_steps = 100
 
 
 class logdirs:
