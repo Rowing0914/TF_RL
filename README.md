@@ -1,6 +1,6 @@
-## TF-RL(Reinforcement Learning with Tensorflow)
+## TF-RL(Reinforcement Learning with Tensorflow: EAGER!!)
 
-  This is the repo for implementing and experimenting the variety of RL algorithms using **Tensorflow Eager Execution**. And it aims to focus only on this purpose, hencewise, if you'd like to learn theoretical background of each algorithm, please check the original papers or other great articles on the internet!
+  This is the repo for implementing and experimenting the variety of RL algorithms using **Tensorflow Eager Execution**.
 
 
 
@@ -37,6 +37,8 @@ python setup.py install
 
 ```shell
 $ cd examples
+# as of 26th in April, this is still in development
+# so that it's not working! or check the path inside the scripts!
 $ python3.6 comparisons.py
 $ tensorboard --logdir=./logs/
 ```
@@ -46,9 +48,9 @@ $ tensorboard --logdir=./logs/
 ```shell
 $ cd examples
 # Eager Execution mode
-$ python3.6 {model_name}_eager.py
+$ python3.6 {model_name}/{model_name}_eager.py
 # Graph mode Tensorflow: most of them are still under development...
-$ python3.6 {model_name}_train.py
+$ python3.6 unstable/{model_name}_train.py
 ```
 
 
