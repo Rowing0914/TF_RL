@@ -218,6 +218,99 @@ def train_DQN_afp(agent, expert, env, agent_policy, expert_policy, replay_buffer
 	env.close()
 
 
+def train_DRQN(agent, env, policy, replay_buffer, reward_buffer, params, summary_writer):
+	"""
+	Training script for DQN and other advanced models without PER
+
+	:param agent:
+	:param env:
+	:param policy:
+	:param replay_buffer:
+	:param reward_buffer:
+	:param params:
+	:param summary_writer:
+	:return:
+	"""
+	with summary_writer.as_default():
+		# for summary purpose, we put all codes in this context
+		with tf.contrib.summary.always_record_summaries():
+
+			global_timestep = 0
+			for i in range(params.num_episodes):
+				state = env.reset()
+				total_reward = 0
+				start = time.time()
+				cnt_action = list()
+				policy.index_episode = i
+				agent.index_episode = i
+				episode_memory = list()
+				for t in itertools.count():
+					# env.render()
+					action = policy.select_action(agent, state.reshape(1, 4))
+					next_state, reward, done, info = env.step(action)
+					episode_memory.append((state, action, reward, next_state, done))
+
+					total_reward += reward
+					state = next_state
+					cnt_action.append(action)
+
+					if done:
+						tf.contrib.summary.scalar("reward", total_reward, step=global_timestep)
+
+						s1, a, r, s2, d = [], [], [], [], []
+						for data in episode_memory:
+							s1.append(data[0])
+							a.append(data[1])
+							r.append(data[2])
+							s2.append(data[3])
+							d.append(data[4])
+
+						replay_buffer.add(s1, a, r, s2, d)
+
+						if global_timestep > params.learning_start:
+							states, actions, rewards, next_states, dones = replay_buffer.sample(params.batch_size)
+							_states, _actions, _rewards, _next_states, _dones = [], [], [], [], []
+							for index, data in enumerate(zip(states, actions, rewards, next_states, dones)):
+								s1, a, r, s2, d = data
+								ep_start = np.random.randint(0, len(s1)+1-4)
+								# states[i] = s1[ep_start:ep_start+4, :]
+								# actions[i] = a[ep_start:ep_start+4]
+								# rewards[i] = r[ep_start:ep_start+4]
+								# next_states[i] = s2[ep_start:ep_start+4, :]
+								# dones[i] = d[ep_start:ep_start+4]
+								_states.append(s1[ep_start:ep_start+4, :])
+								_actions.append(a[ep_start:ep_start+4])
+								_rewards.append(r[ep_start:ep_start+4])
+								_next_states.append(s2[ep_start:ep_start+4, :])
+								_dones.append(d[ep_start:ep_start+4])
+
+							_states, _actions, _rewards, _next_states, _dones = np.array(_states), np.array(_actions), np.array(_rewards), np.array(_next_states), np.array(_dones)
+
+							# loss, batch_loss = agent.update(states, actions, rewards, next_states, dones)
+							loss, batch_loss = agent.update(_states, _actions, _rewards, _next_states, _dones)
+							logging(global_timestep, params.num_frames, i, time.time() - start, total_reward, np.mean(loss),
+									policy.current_epsilon(), cnt_action)
+
+							if np.random.rand() > 0.5:
+								agent.manager.save()
+								if params.update_hard_or_soft == "hard":
+									agent.target_model.set_weights(agent.main_model.get_weights())
+								elif params.update_hard_or_soft == "soft":
+									soft_target_model_update_eager(agent.target_model, agent.main_model, tau=params.soft_update_tau)
+						break
+
+					global_timestep += 1
+
+				# store the episode reward
+				reward_buffer.append(total_reward)
+				# check the stopping condition
+				if np.mean(reward_buffer) > params.goal:
+					print("GAME OVER!!")
+					break
+
+	env.close()
+
+
 
 """
 

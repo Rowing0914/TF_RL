@@ -65,14 +65,14 @@ $ python3.6 unstable/{model_name}_train.py
 6. Deep Q-learning from Demonstrations, T.Hester et al., 2017 [[arxiv]](<https://arxiv.org/pdf/1704.03732.pdf>) [[code]](<https://github.com/Rowing0914/TF_RL/blob/master/examples/DQfD_eager.py>)
 7. Actor-Critic Algorithms, VR Konda and JN Tsitsiklis., 2000 NIPS [[arxiv]](<https://papers.nips.cc/paper/1786-actor-critic-algorithms.pdf>) [[code]](<https://github.com/Rowing0914/TF_RL/blob/master/examples/Actor_Critic_eager.py>)
 8. Policy Gradient Methods for Reinforcement Learning with Function Approximation., RS Sutton et al., 2000 NIPS [[arxiv]](<https://papers.nips.cc/paper/1713-policy-gradient-methods-for-reinforcement-learning-with-function-approximation.pdf>) [[code]](<https://github.com/Rowing0914/TF_RL/blob/master/examples/REINFORCE_eager.py>)
-
 9. Continuous Control with Deep Reinforcement Leaning, TP Lillicrap et al., 2015 [[arxiv]](<https://arxiv.org/pdf/1509.02971.pdf>) [[code]](<https://github.com/Rowing0914/TF_RL/blob/master/examples/DDPG_eager.py>)
+10. Deep Recurrent Q-Learning for Partially Observable MDPs, M Hausknecht., 2015 [[arxiv]](<https://arxiv.org/abs/1507.06527>) [[code]]()
 
 
 
 #### Future dev
 
-1. Noisy Networks for Exploration, M.Fortunato et al., 2017 [[arxiv]](https://arxiv.org/abs/1706.10295) [[code]]()
+1. Noisy Networks for Exploration, M.Fortunato et al., 2017 [[arxiv]](https://arxiv.org/abs/1706.10295)
 2. Hindsight Experience Replay, M.Andrychowicz et al., 2017 [[arxiv]](<https://arxiv.org/pdf/1707.01495.pdf>)
 
 <img src="assets/baselines_DDPG_HER.gif" width="50%">

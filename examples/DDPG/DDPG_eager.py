@@ -22,7 +22,7 @@ from copy import deepcopy
 from collections import deque
 from tf_rl.common.memory import ReplayBuffer
 from tf_rl.common.params import Parameters
-from tf_rl.common.utils import AnnealingSchedule, logging, soft_target_model_update_eager
+from tf_rl.common.utils import AnnealingSchedule, logging, soft_target_model_update_eager, huber_loss
 from tf_rl.common.random_process import OrnsteinUhlenbeckProcess
 
 tf.enable_eager_execution()
@@ -35,7 +35,8 @@ class Actor(tf.keras.Model):
 		if self.env_type == "CartPole":
 			self.dense1 = tf.keras.layers.Dense(16, activation='relu')
 			self.dense2 = tf.keras.layers.Dense(16, activation='relu')
-			self.dense3 = tf.keras.layers.Dense(16, activation='relu')
+			self.dense3 = tf.keras.layers.Dense(32, activation='relu')
+			self.batch  = tf.keras.layers.BatchNormalization()
 			self.pred = tf.keras.layers.Dense(num_action, activation='linear')
 		elif self.env_type == "Atari":
 			self.conv1 = tf.keras.layers.Conv2D(32, kernel_size=8, strides=8, activation='relu')
@@ -50,6 +51,7 @@ class Actor(tf.keras.Model):
 			x = self.dense1(inputs)
 			x = self.dense2(x)
 			x = self.dense3(x)
+			x = self.batch(x)
 			pred = self.pred(x)
 			return pred
 		elif self.env_type == "Atari":
@@ -70,6 +72,7 @@ class Critic(tf.keras.Model):
 			self.dense1 = tf.keras.layers.Dense(32, activation='relu')
 			self.dense2 = tf.keras.layers.Dense(32, activation='relu')
 			self.dense3 = tf.keras.layers.Dense(32, activation='relu')
+			self.batch = tf.keras.layers.BatchNormalization()
 			self.pred = tf.keras.layers.Dense(num_action, activation='linear')
 		elif self.env_type == "Atari":
 			self.conv1 = tf.keras.layers.Conv2D(32, kernel_size=8, strides=8, activation='relu')
@@ -84,6 +87,7 @@ class Critic(tf.keras.Model):
 			x = self.dense1(inputs)
 			x = self.dense2(x)
 			x = self.dense3(x)
+			x = self.batch(x)
 			pred = self.pred(x)
 			return pred
 		elif self.env_type == "Atari":
@@ -96,7 +100,7 @@ class Critic(tf.keras.Model):
 			return pred
 
 
-class Actor_Critic:
+class DDPG:
 	def __init__(self, env_type, actor, critic, num_action, params):
 		self.params = params
 		self.env_type = env_type
@@ -133,6 +137,7 @@ class Actor_Critic:
 
 			# MSE loss function: (1/N)*sum(Y - Q(s,a))^2
 			critic_loss = tf.reduce_mean(tf.squared_difference(Y, q_values))
+			critic_loss = huber_loss(critic_loss)
 
 		# get gradients
 		critic_grads = tape.gradient(critic_loss, self.critic.trainable_weights)
@@ -140,8 +145,9 @@ class Actor_Critic:
 		# apply processed gradients to the network
 		self.critic_optimizer.apply_gradients(zip(critic_grads, self.critic.trainable_weights))
 
-		# soft update
-		soft_target_model_update_eager(self.target_critic, self.critic)
+		if np.random.rand() > 0.4:
+			# soft update
+			soft_target_model_update_eager(self.target_critic, self.critic)
 
 		"""
 
@@ -152,9 +158,10 @@ class Actor_Critic:
 		with tf.GradientTape() as tape:
 			# compute q-values
 			target_actions = self.actor(tf.convert_to_tensor(states[None, :], dtype=tf.float32))
-			q_values = self.target_critic( tf.cast(tf.concat([states[None, :], target_actions], axis = -1), dtype=tf.float32) )
+			q_values = self.critic( tf.cast(tf.concat([states[None, :], target_actions], axis = -1), dtype=tf.float32) )
 
 			actor_loss = tf.reduce_mean(-q_values)
+			actor_loss = huber_loss(actor_loss)
 
 		# get gradients
 		actor_grads = tape.gradient(actor_loss, self.actor.trainable_weights)
@@ -162,17 +169,18 @@ class Actor_Critic:
 		# apply processed gradients to the network
 		self.actor_optimizer.apply_gradients(zip(actor_grads, self.actor.trainable_weights))
 
-		# soft update
-		soft_target_model_update_eager(self.target_actor, self.actor)
+		if np.random.rand() > 0.4:
+			# soft update
+			soft_target_model_update_eager(self.target_actor, self.actor)
 
 		return np.sum(critic_loss + actor_loss)
 
 
-# env = gym.make("Pendulum-v0")
-env = gym.make("MountainCarContinuous-v0")
+env = gym.make("Pendulum-v0")
+# env = gym.make("MountainCarContinuous-v0")
 
 params = Parameters(algo="DDPG", mode="CartPole")
-agent = Actor_Critic("CartPole", Actor, Critic, 1, params)
+agent = DDPG("CartPole", Actor, Critic, 1, params)
 replay_buffer = ReplayBuffer(params.memory_size)
 reward_buffer = deque(maxlen=params.reward_buffer_ep)
 Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end, decay_steps=params.decay_steps)
@@ -189,8 +197,8 @@ for i in range(params.num_episodes):
 
 	# generate an episode
 	for t in itertools.count():
-		# if i > 1000:
-			# env.render()
+		# if i > 200:
+		# 	env.render()
 		action = agent.predict(state, Epsilon.get_value(i))
 		next_state, reward, done, info = env.step(action)
 		replay_buffer.add(state, action, reward, next_state, done)
