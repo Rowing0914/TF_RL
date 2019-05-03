@@ -64,6 +64,8 @@ class Parameters:
             self._load_REINFORCE(mode)
         elif algo == "DDPG":
             self._load_DDPG(mode)
+        elif algo == "HER":
+            self._load_HER(mode)
 
 
         # load params corresponding to the env type
@@ -287,6 +289,30 @@ class Parameters:
             self.decay_type = "curved"
             self.decay_steps = 100
         elif mode == "CartPole": # not cartpole but pendulum
+            self.state_reshape = (1, 4)
+            self.loss_fn = "MSE"
+            self.policy_fn = "Eps"
+            self.grad_clip_flg = "by_value"
+            self.sync_freq = 100
+            self.gamma = 0.99
+            self.update_hard_or_soft = "hard"
+            self.soft_update_tau = 1e-2
+            self.decay_type = "linear"
+            self.decay_steps = 100
+
+    def _load_HER(self, mode):
+        if mode == "Atari":
+            self.state_reshape = (1, 84, 84, 1)
+            self.loss_fn = "MSE"
+            self.policy_fn = "Eps"
+            self.grad_clip_flg = "by_value"
+            self.sync_freq = 10000
+            self.gamma = 0.99
+            self.update_hard_or_soft = "hard"
+            self.soft_update_tau = 1e-2
+            self.decay_type = "curved"
+            self.decay_steps = 1000
+        elif mode == "CartPole":
             self.state_reshape = (1, 4)
             self.loss_fn = "MSE"
             self.policy_fn = "Eps"
