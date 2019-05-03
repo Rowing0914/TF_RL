@@ -64,7 +64,6 @@ if __name__ == '__main__':
 		env = wrap_deepmind(make_atari("PongNoFrameskip-v4"))
 
 	params = Parameters(algo="DQN", mode=args.mode)
-	params.num_episodes = args.num_episodes
 	replay_buffer = ReplayBuffer(params.memory_size)
 	agent = DQN(args.mode, Model, Model, env.action_space.n, params, logdirs.model_DQN)
 	if params.policy_fn == "Eps":
