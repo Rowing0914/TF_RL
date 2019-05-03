@@ -69,19 +69,18 @@ class Parameters:
 
 
         # load params corresponding to the env type
-        if mode == "CartPole":
-            self.goal = 195
-            self.num_frames = 30000
-            self.num_episodes = 4000
-            self.memory_size = 20000
-            self.learning_start = 100
-
-        elif mode == "Atari":
+        if mode == "Atari":
             self.goal = 20
-            self.num_frames = 30000
+            self.num_frames = 10_000_000
             self.num_episodes = 100
-            self.memory_size = 1000000
-            self.learning_start = 50000
+            self.memory_size = 1_000_000
+            self.learning_start = 50_000
+        elif mode == "CartPole":
+            self.goal = 195
+            self.num_frames = 50_000
+            self.num_episodes = 4000
+            self.memory_size = 50_000
+            self.learning_start = 100
 
 
     def _load_DQN(self, mode):
@@ -100,7 +99,7 @@ class Parameters:
             self.state_reshape = (1, 4)
             self.loss_fn = "MSE"
             self.policy_fn = "Eps"
-            self.grad_clip_flg = "by_value"
+            self.grad_clip_flg = "norm"
             self.sync_freq = 100
             self.gamma = 0.99
             self.update_hard_or_soft = "hard"

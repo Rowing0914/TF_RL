@@ -39,9 +39,11 @@ class EpsilonGreedyPolicy_eager:
 	def __init__(self, Epsilon_fn):
 		self.Epsilon = Epsilon_fn
 		self.index_episode = 0
+		self.index_frame   = 0
 
 	def select_action(self, agent, state):
-		if np.random.uniform() < self.Epsilon.get_value(self.index_episode):
+		self.index_frame += 1
+		if np.random.uniform() < self.Epsilon.get_value(self.index_frame):
 			action = np.random.randint(agent.num_action)
 		else:
 			q_values = agent.predict(state)

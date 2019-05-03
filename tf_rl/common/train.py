@@ -26,7 +26,7 @@ def train_DQN(agent, env, policy, replay_buffer, reward_buffer, params, summary_
 		with tf.contrib.summary.always_record_summaries():
 
 			global_timestep = 0
-			for i in range(params.num_episodes):
+			for i in itertools.count():
 				state = env.reset()
 				total_reward = 0
 				start = time.time()
@@ -39,12 +39,13 @@ def train_DQN(agent, env, policy, replay_buffer, reward_buffer, params, summary_
 					next_state, reward, done, info = env.step(action)
 					replay_buffer.add(state, action, reward, next_state, done)
 
+					global_timestep += 1
 					total_reward += reward
 					state = next_state
 					cnt_action.append(action)
 
 					if done:
-						tf.contrib.summary.scalar("reward", total_reward, step=global_timestep)
+						tf.contrib.summary.scalar("reward", total_reward, step=i)
 
 						if global_timestep > params.learning_start:
 							states, actions, rewards, next_states, dones = replay_buffer.sample(params.batch_size)
@@ -52,21 +53,21 @@ def train_DQN(agent, env, policy, replay_buffer, reward_buffer, params, summary_
 							loss, batch_loss = agent.update(states, actions, rewards, next_states, dones)
 							logging(global_timestep, params.num_frames, i, time.time() - start, total_reward, np.mean(loss),
 									policy.current_epsilon(), cnt_action)
-
-							if np.random.rand() > 0.5:
-								agent.manager.save()
-								if params.update_hard_or_soft == "hard":
-									agent.target_model.set_weights(agent.main_model.get_weights())
-								elif params.update_hard_or_soft == "soft":
-									soft_target_model_update_eager(agent.target_model, agent.main_model, tau=params.soft_update_tau)
 						break
 
-					global_timestep += 1
+				# synchronise the target and main models by hard or soft update
+				if (global_timestep > params.learning_start) and (global_timestep % params.sync_freq == 0):
+					agent.manager.save()
+					if params.update_hard_or_soft == "hard":
+						agent.target_model.set_weights(agent.main_model.get_weights())
+					elif params.update_hard_or_soft == "soft":
+						soft_target_model_update_eager(agent.target_model, agent.main_model, tau=params.soft_update_tau)
+
 
 				# store the episode reward
 				reward_buffer.append(total_reward)
 				# check the stopping condition
-				if np.mean(reward_buffer) > params.goal:
+				if np.mean(reward_buffer) > params.goal or global_timestep > params.num_frames:
 					print("GAME OVER!!")
 					break
 

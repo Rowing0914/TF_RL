@@ -56,7 +56,6 @@ if __name__ == '__main__':
 
 	parser = argparse.ArgumentParser()
 	parser.add_argument("--mode", default="CartPole", help="game env type")
-	parser.add_argument("--num_episodes", default=2000, type=int, help="game env type")
 	args = parser.parse_args()
 
 	if args.mode == "CartPole":
