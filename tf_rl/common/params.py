@@ -10,7 +10,7 @@ num_frames: total frame in a training
 num_episodes: total episode in a training
 memory_size: memory size in a training => this used for Experience Replay Memory or Prioritised Experience Replay Memory
 learning_start: frame number which specifies when to start updating the agent
-sync_freq: frequency of updating a target model <= maybe we don't need this, bcuz we are using stochastic update method!
+sync_freq: frequency of updating a target model
 batch_size: batch size of each iteration of update
 gamma: discount factor => gamma > 1.0 or negative => does not converge!!
 update_hard_or_soft: types of synchronisation method of target and main models => soft or hard update
@@ -36,15 +36,6 @@ class Parameters:
         assert algo != None, "Give me a name of the learning algorithm"
         assert mode != None, "Give me a name of Env type => CartPole or Atari??"
         print("Loading Params for {} Environment".format(mode))
-
-        # load generic params
-        self.reward_buffer_ep = 2
-        self.epsilon_start = 1.0
-        self.epsilon_end = 0.1
-        self.batch_size = 32
-        self.test_episodes = 10
-        self.tau = 1. # used in BoltzmannQPolicy
-        self.clip = (-500., 500.) # used in BoltzmannQPolicy
 
 
         # load params corresponding to the algo
@@ -88,13 +79,20 @@ class Parameters:
             self.state_reshape = (1, 84, 84, 1)
             self.loss_fn = "MSE"
             self.policy_fn = "Eps"
-            self.grad_clip_flg = "by_value"
+            self.grad_clip_flg = "norm"
             self.sync_freq = 10000
             self.gamma = 0.99
             self.update_hard_or_soft = "hard"
             self.soft_update_tau = 1e-2
             self.decay_type = "curved"
-            self.decay_steps = 1000
+            self.decay_steps = 1_000_000
+            self.reward_buffer_ep = 2
+            self.epsilon_start = 1.0
+            self.epsilon_end = 0.1
+            self.batch_size = 32
+            self.test_episodes = 10
+            self.tau = 1. # used in BoltzmannQPolicy
+            self.clip = (-500., 500.) # used in BoltzmannQPolicy
         elif mode == "CartPole":
             self.state_reshape = (1, 4)
             self.loss_fn = "MSE"
@@ -105,7 +103,14 @@ class Parameters:
             self.update_hard_or_soft = "hard"
             self.soft_update_tau = 1e-2
             self.decay_type = "linear"
-            self.decay_steps = 1000
+            self.decay_steps = 100_000
+            self.reward_buffer_ep = 2
+            self.epsilon_start = 1.0
+            self.epsilon_end = 0.1
+            self.batch_size = 32
+            self.test_episodes = 10
+            self.tau = 1. # used in BoltzmannQPolicy
+            self.clip = (-500., 500.) # used in BoltzmannQPolicy
 
     def _load_Double_DQN(self, mode):
         if mode == "Atari":
@@ -119,6 +124,13 @@ class Parameters:
             self.soft_update_tau = 1e-2
             self.decay_type = "curved"
             self.decay_steps = 1000
+            self.reward_buffer_ep = 2
+            self.epsilon_start = 1.0
+            self.epsilon_end = 0.1
+            self.batch_size = 32
+            self.test_episodes = 10
+            self.tau = 1. # used in BoltzmannQPolicy
+            self.clip = (-500., 500.) # used in BoltzmannQPolicy
         elif mode == "CartPole":
             self.state_reshape = (1, 4)
             self.loss_fn = "MSE"
@@ -130,6 +142,13 @@ class Parameters:
             self.soft_update_tau = 1e-2
             self.decay_type = "linear"
             self.decay_steps = 1000
+            self.reward_buffer_ep = 2
+            self.epsilon_start = 1.0
+            self.epsilon_end = 0.1
+            self.batch_size = 32
+            self.test_episodes = 10
+            self.tau = 1. # used in BoltzmannQPolicy
+            self.clip = (-500., 500.) # used in BoltzmannQPolicy
 
     def _load_DQN_PER(self, mode):
         if mode == "Atari":
@@ -143,6 +162,13 @@ class Parameters:
             self.soft_update_tau = 1e-2
             self.decay_type = "curved"
             self.decay_steps = 1000
+            self.reward_buffer_ep = 2
+            self.epsilon_start = 1.0
+            self.epsilon_end = 0.1
+            self.batch_size = 32
+            self.test_episodes = 10
+            self.tau = 1. # used in BoltzmannQPolicy
+            self.clip = (-500., 500.) # used in BoltzmannQPolicy
             self.prioritized_replay_alpha = 0.6
             self.prioritized_replay_beta_start = 0.4
             self.prioritized_replay_beta_end = 1.0
@@ -158,6 +184,13 @@ class Parameters:
             self.soft_update_tau = 1e-2
             self.decay_type = "linear"
             self.decay_steps = 1000
+            self.reward_buffer_ep = 2
+            self.epsilon_start = 1.0
+            self.epsilon_end = 0.1
+            self.batch_size = 32
+            self.test_episodes = 10
+            self.tau = 1. # used in BoltzmannQPolicy
+            self.clip = (-500., 500.) # used in BoltzmannQPolicy
             self.prioritized_replay_alpha = 0.6
             self.prioritized_replay_beta_start = 0.4
             self.prioritized_replay_beta_end = 1.0
@@ -175,6 +208,13 @@ class Parameters:
             self.soft_update_tau = 1e-2
             self.decay_type = "curved"
             self.decay_steps = 1000
+            self.reward_buffer_ep = 2
+            self.epsilon_start = 1.0
+            self.epsilon_end = 0.1
+            self.batch_size = 32
+            self.test_episodes = 10
+            self.tau = 1. # used in BoltzmannQPolicy
+            self.clip = (-500., 500.) # used in BoltzmannQPolicy
         elif mode == "CartPole":
             self.state_reshape = (1, 4)
             self.loss_fn = "MSE"
@@ -186,6 +226,13 @@ class Parameters:
             self.soft_update_tau = 1e-2
             self.decay_type = "linear"
             self.decay_steps = 1000
+            self.reward_buffer_ep = 2
+            self.epsilon_start = 1.0
+            self.epsilon_end = 0.1
+            self.batch_size = 32
+            self.test_episodes = 10
+            self.tau = 1. # used in BoltzmannQPolicy
+            self.clip = (-500., 500.) # used in BoltzmannQPolicy
 
     def _load_Duelling_Double_DQN_PER(self, mode):
         if mode == "Atari":
@@ -199,6 +246,13 @@ class Parameters:
             self.soft_update_tau = 1e-2
             self.decay_type = "curved"
             self.decay_steps = 1000
+            self.reward_buffer_ep = 2
+            self.epsilon_start = 1.0
+            self.epsilon_end = 0.1
+            self.batch_size = 32
+            self.test_episodes = 10
+            self.tau = 1. # used in BoltzmannQPolicy
+            self.clip = (-500., 500.) # used in BoltzmannQPolicy
             self.prioritized_replay_alpha = 0.6
             self.prioritized_replay_beta_start = 0.4
             self.prioritized_replay_beta_end = 1.0
@@ -214,6 +268,13 @@ class Parameters:
             self.soft_update_tau = 1e-2
             self.decay_type = "linear"
             self.decay_steps = 1000
+            self.reward_buffer_ep = 2
+            self.epsilon_start = 1.0
+            self.epsilon_end = 0.1
+            self.batch_size = 32
+            self.test_episodes = 10
+            self.tau = 1. # used in BoltzmannQPolicy
+            self.clip = (-500., 500.) # used in BoltzmannQPolicy
             self.prioritized_replay_alpha = 0.6
             self.prioritized_replay_beta_start = 0.4
             self.prioritized_replay_beta_end = 1.0
@@ -231,6 +292,13 @@ class Parameters:
             self.soft_update_tau = 1e-2
             self.decay_type = "curved"
             self.decay_steps = 1000
+            self.reward_buffer_ep = 2
+            self.epsilon_start = 1.0
+            self.epsilon_end = 0.1
+            self.batch_size = 32
+            self.test_episodes = 10
+            self.tau = 1. # used in BoltzmannQPolicy
+            self.clip = (-500., 500.) # used in BoltzmannQPolicy
             self.prioritized_replay_alpha = 0.6
             self.prioritized_replay_beta_start = 0.4
             self.prioritized_replay_beta_end = 1.0
@@ -246,6 +314,13 @@ class Parameters:
             self.soft_update_tau = 1e-2
             self.decay_type = "linear"
             self.decay_steps = 1000
+            self.reward_buffer_ep = 2
+            self.epsilon_start = 1.0
+            self.epsilon_end = 0.1
+            self.batch_size = 32
+            self.test_episodes = 10
+            self.tau = 1. # used in BoltzmannQPolicy
+            self.clip = (-500., 500.) # used in BoltzmannQPolicy
             self.prioritized_replay_alpha = 0.6
             self.prioritized_replay_beta_start = 0.4
             self.prioritized_replay_beta_end = 1.0
@@ -263,6 +338,13 @@ class Parameters:
             self.soft_update_tau = 1e-2
             self.decay_type = "curved"
             self.decay_steps = 100
+            self.reward_buffer_ep = 2
+            self.epsilon_start = 1.0
+            self.epsilon_end = 0.1
+            self.batch_size = 32
+            self.test_episodes = 10
+            self.tau = 1. # used in BoltzmannQPolicy
+            self.clip = (-500., 500.) # used in BoltzmannQPolicy
         elif mode == "CartPole":
             self.state_reshape = (1, 4)
             self.loss_fn = "MSE"
@@ -274,6 +356,13 @@ class Parameters:
             self.soft_update_tau = 1e-2
             self.decay_type = "linear"
             self.decay_steps = 100
+            self.reward_buffer_ep = 2
+            self.epsilon_start = 1.0
+            self.epsilon_end = 0.1
+            self.batch_size = 32
+            self.test_episodes = 10
+            self.tau = 1. # used in BoltzmannQPolicy
+            self.clip = (-500., 500.) # used in BoltzmannQPolicy
 
     def _load_DDPG(self, mode):
         if mode == "Atari": # not used
@@ -287,6 +376,13 @@ class Parameters:
             self.soft_update_tau = 1e-2
             self.decay_type = "curved"
             self.decay_steps = 100
+            self.reward_buffer_ep = 2
+            self.epsilon_start = 1.0
+            self.epsilon_end = 0.1
+            self.batch_size = 32
+            self.test_episodes = 10
+            self.tau = 1. # used in BoltzmannQPolicy
+            self.clip = (-500., 500.) # used in BoltzmannQPolicy
         elif mode == "CartPole": # not cartpole but pendulum
             self.state_reshape = (1, 4)
             self.loss_fn = "MSE"
@@ -298,6 +394,13 @@ class Parameters:
             self.soft_update_tau = 1e-2
             self.decay_type = "linear"
             self.decay_steps = 100
+            self.reward_buffer_ep = 2
+            self.epsilon_start = 1.0
+            self.epsilon_end = 0.1
+            self.batch_size = 32
+            self.test_episodes = 10
+            self.tau = 1. # used in BoltzmannQPolicy
+            self.clip = (-500., 500.) # used in BoltzmannQPolicy
 
     def _load_HER(self, mode):
         if mode == "Atari":
@@ -311,6 +414,13 @@ class Parameters:
             self.soft_update_tau = 1e-2
             self.decay_type = "curved"
             self.decay_steps = 1000
+            self.reward_buffer_ep = 2
+            self.epsilon_start = 1.0
+            self.epsilon_end = 0.1
+            self.batch_size = 32
+            self.test_episodes = 10
+            self.tau = 1. # used in BoltzmannQPolicy
+            self.clip = (-500., 500.) # used in BoltzmannQPolicy
         elif mode == "CartPole":
             self.state_reshape = (1, 4)
             self.loss_fn = "MSE"
@@ -322,6 +432,13 @@ class Parameters:
             self.soft_update_tau = 1e-2
             self.decay_type = "linear"
             self.decay_steps = 100
+            self.reward_buffer_ep = 2
+            self.epsilon_start = 1.0
+            self.epsilon_end = 0.1
+            self.batch_size = 32
+            self.test_episodes = 10
+            self.tau = 1. # used in BoltzmannQPolicy
+            self.clip = (-500., 500.) # used in BoltzmannQPolicy
 
 
 class logdirs:

@@ -19,9 +19,10 @@ class EpsilonGreedyPolicy(Policy):
 	def __init__(self, Epsilon_fn):
 		self.Epsilon = Epsilon_fn
 		self.index_episode = 0
+		self.index_frame = 0
 
 	def select_action(self, sess, agent, state):
-		if np.random.uniform() < self.Epsilon.get_value(self.index_episode):
+		if np.random.uniform() < self.Epsilon.get_value(self.index_frame):
 			action = np.random.randint(agent.num_action)
 		else:
 			q_values = sess.run(agent.pred, feed_dict={agent.state: state})[0]
@@ -51,7 +52,7 @@ class EpsilonGreedyPolicy_eager:
 		return action
 
 	def current_epsilon(self):
-		return self.Epsilon.get_value(self.index_episode)
+		return self.Epsilon.get_value(self.index_frame)
 
 
 class BoltzmannQPolicy(Policy):
