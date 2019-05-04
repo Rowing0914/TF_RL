@@ -4,7 +4,7 @@ import os
 import tensorflow as tf
 from collections import deque
 from tf_rl.common.wrappers import MyWrapper, wrap_deepmind, make_atari
-from tf_rl.common.params import Parameters, logdirs
+from tf_rl.common.params import Parameters
 from tf_rl.common.memory import ReplayBuffer
 from tf_rl.common.utils import AnnealingSchedule
 from tf_rl.common.policy import EpsilonGreedyPolicy_eager, BoltzmannQPolicy_eager
@@ -48,12 +48,6 @@ class Model(tf.keras.Model):
 
 
 if __name__ == '__main__':
-	logdirs = logdirs()
-	try:
-		os.system("rm -rf {}".format(logdirs.log_DQN))
-	except:
-		pass
-
 	parser = argparse.ArgumentParser()
 	parser.add_argument("--mode", default="CartPole", help="game env type")
 	parser.add_argument("--loss_fn", default="MSE", help="types of loss function => MSE or huber_loss")
@@ -71,27 +65,35 @@ if __name__ == '__main__':
 	parser.add_argument("--epsilon_end", default=0.1, help="final value of epsilon")
 	parser.add_argument("--decay_steps", default=1_000_000, help="a period for annealing a value(epsilon or beta)")
 	parser.add_argument("--decay_type", default="linear", help="types of annealing method => linear or curved")
+	parser.add_argument("--log_dir", default="../logs/logs/DQN/", help="directory for log")
+	parser.add_argument("--model_dir", default="../logs/models/DQN/", help="directory for trained model")
 	args = parser.parse_args()
+
+	try:
+		os.system("rm -rf {}".format(args.log_dir))
+	except:
+		pass
 
 	# I know this is not beautiful, but for the sake of ease of dev and finding the best params,
 	# i will leave this for a while
 	# TODO: you need to amend this design to the one only args, instead of params
 	params = Parameters(algo="DQN", mode=args.mode)
-	params.loss_fn = args.loss_fn
-	params.policy_fn = args.policy_fn
-	params.grad_clip_flg = args.grad_clip_flg
-	params.num_frames = args.num_frames
-	params.memory_size = args.memory_size
-	params.learning_start = args.learning_start
-	params.sync_freq = args.sync_freq
-	params.batch_size = args.batch_size
-	params.gamma = args.gamma
-	params.update_hard_or_soft = args.update_hard_or_soft
-	params.soft_update_tau = args.soft_update_tau
-	params.epsilon_start = args.epsilon_start
-	params.epsilon_end = args.epsilon_end
-	params.decay_steps = args.decay_steps
-	params.decay_type = args.decay_type
+	if args.mode == "Atari":
+		params.loss_fn = args.loss_fn
+		params.policy_fn = args.policy_fn
+		params.grad_clip_flg = args.grad_clip_flg
+		params.num_frames = args.num_frames
+		params.memory_size = args.memory_size
+		params.learning_start = args.learning_start
+		params.sync_freq = args.sync_freq
+		params.batch_size = args.batch_size
+		params.gamma = args.gamma
+		params.update_hard_or_soft = args.update_hard_or_soft
+		params.soft_update_tau = args.soft_update_tau
+		params.epsilon_start = args.epsilon_start
+		params.epsilon_end = args.epsilon_end
+		params.decay_steps = args.decay_steps
+		params.decay_type = args.decay_type
 
 
 	if args.mode == "CartPole":
@@ -100,7 +102,7 @@ if __name__ == '__main__':
 		env = wrap_deepmind(make_atari("PongNoFrameskip-v4"))
 
 	replay_buffer = ReplayBuffer(params.memory_size)
-	agent = DQN(args.mode, Model, Model, env.action_space.n, params, logdirs.model_DQN)
+	agent = DQN(args.mode, Model, Model, env.action_space.n, params, args.model_dir)
 	if params.policy_fn == "Eps":
 		Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end,
 									decay_steps=params.decay_steps)
@@ -109,5 +111,5 @@ if __name__ == '__main__':
 		policy = BoltzmannQPolicy_eager()
 
 	reward_buffer = deque(maxlen=params.reward_buffer_ep)
-	summary_writer = tf.contrib.summary.create_file_writer(logdirs.log_DQN)
+	summary_writer = tf.contrib.summary.create_file_writer(args.log_dir)
 	train_DQN(agent, env, policy, replay_buffer, reward_buffer, params, summary_writer)
