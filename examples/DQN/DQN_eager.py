@@ -49,7 +49,7 @@ class Model(tf.keras.Model):
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
-	parser.add_argument("--mode", default="CartPole", help="game env type")
+	parser.add_argument("--mode", default="Atari", help="game env type")
 	parser.add_argument("--loss_fn", default="MSE", help="types of loss function => MSE or huber_loss")
 	parser.add_argument("--policy_fn", default="Eps", help="types of policy function => Epsilon Greedy(Eps) or Boltzmann(Boltzmann)")
 	parser.add_argument("--grad_clip_flg", default="norm", help="types of a cilpping method of gradients => by value(by_value) or global norm(norm)")
