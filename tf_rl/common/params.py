@@ -68,7 +68,7 @@ class Parameters:
             self.learning_start = 50_000
         elif mode == "CartPole":
             self.goal = 195
-            self.num_frames = 50_000
+            self.num_frames = 100_000
             self.num_episodes = 4000
             self.memory_size = 50_000
             self.learning_start = 100
@@ -97,14 +97,14 @@ class Parameters:
             self.state_reshape = (1, 4)
             self.loss_fn = "MSE"
             self.policy_fn = "Eps"
-            self.grad_clip_flg = "norm"
+            self.grad_clip_flg = "by_value"
             self.sync_freq = 100
             self.gamma = 0.99
             self.update_hard_or_soft = "hard"
             self.soft_update_tau = 1e-2
             self.decay_type = "linear"
-            self.decay_steps = 100_000
-            self.reward_buffer_ep = 2
+            self.decay_steps = 10_000
+            self.reward_buffer_ep = 5
             self.epsilon_start = 1.0
             self.epsilon_end = 0.1
             self.batch_size = 32

@@ -6,9 +6,8 @@ import numpy as np
 import time
 from collections import deque
 from tf_rl.common.wrappers import MyWrapper
-from tf_rl.common.policy import BoltzmannQPolicy_eager, EpsilonGreedyPolicy_eager
 from tf_rl.common.params import Parameters
-from tf_rl.common.utils import AnnealingSchedule, logging
+from tf_rl.common.utils import logging
 import tensorflow as tf
 
 tf.enable_eager_execution()
@@ -93,7 +92,8 @@ class Actor_Critic:
 		self.critic_optimizer = tf.train.AdamOptimizer()
 
 	def predict(self, state):
-		return self.actor(tf.convert_to_tensor(state[None, :], dtype=tf.float32)).numpy()[0]
+		# we take an action according to the action distribution produced by policy network
+		return np.random.choice(np.arange(self.num_action), p=self.actor(tf.convert_to_tensor(state[None,:], dtype=tf.float32)).numpy()[0])
 
 	def update(self, state, action, reward, next_state, done):
 		"""
@@ -108,7 +108,7 @@ class Actor_Critic:
 			next_state_value = self.critic(tf.convert_to_tensor(next_state[None, :], dtype=tf.float32))
 			advantage = reward + self.params.gamma*next_state_value - state_value
 
-			# MSE loss function: (1/N)*sum(Advantage - Q(s,a))^2
+			# MSE loss function: (1/N)*sum(Advantage - V(s))^2
 			critic_loss = tf.reduce_mean(tf.squared_difference(advantage, state_value))
 
 		# get gradients
@@ -124,12 +124,12 @@ class Actor_Critic:
 		"""
 
 		with tf.GradientTape() as tape:
-			# compute q-values
-			q_values = self.actor(tf.convert_to_tensor(state[None, :], dtype=tf.float32))
+			# compute action probability distirbution
+			action_probs = self.actor(tf.convert_to_tensor(state[None, :], dtype=tf.float32))
 
-			# get the q-values which is associated with actually taken actions in a game
+			# get the probability according to the taken action in an episode
 			actions_one_hot = tf.one_hot(action, self.num_action, 1.0, 0.0)
-			action_probs = tf.reduce_sum(actions_one_hot * q_values, reduction_indices=-1)
+			action_probs = tf.reduce_sum(actions_one_hot * action_probs, reduction_indices=-1)
 
 			# loss for policy network: TD_error * log p(a|s)
 			actor_loss = -tf.log(action_probs) * advantage
@@ -147,13 +147,6 @@ params = Parameters(algo="REINFORCE", mode="CartPole")
 agent = Actor_Critic("CartPole", Actor, Critic, env.action_space.n, params)
 reward_buffer = deque(maxlen=params.reward_buffer_ep)
 
-if params.policy_fn == "Eps":
-	Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end,
-								decay_steps=params.decay_steps)
-	policy = EpsilonGreedyPolicy_eager(Epsilon_fn=Epsilon)
-elif params.policy_fn == "Boltzmann":
-	policy = BoltzmannQPolicy_eager()
-
 global_timestep = 0
 
 for i in range(params.num_episodes):
@@ -161,13 +154,12 @@ for i in range(params.num_episodes):
 	memory = list()
 	total_reward = 0
 	cnt_action = list()
-	policy.index_episode = i
 	start = time.time()
 
 	# generate an episode
 	for t in itertools.count():
 		# env.render()
-		action = policy.select_action(agent, state)
+		action = agent.predict(state)
 		next_state, reward, done, info = env.step(action)
 
 		# update the networks according to the current episode
@@ -181,7 +173,7 @@ for i in range(params.num_episodes):
 			# logging purpose
 			reward_buffer.append(total_reward)
 
-			logging(global_timestep, params.num_frames, i, time.time() - start, total_reward, 0, policy.current_epsilon(), cnt_action)
+			logging(global_timestep, params.num_frames, i, time.time() - start, total_reward, 0, 0, cnt_action)
 			total_reward = 0
 			break
 

@@ -46,32 +46,30 @@ def train_DQN(agent, env, policy, replay_buffer, reward_buffer, params, summary_
 
 					if done:
 						tf.contrib.summary.scalar("reward", total_reward, step=i)
-
-						if global_timestep > params.learning_start:
-							states, actions, rewards, next_states, dones = replay_buffer.sample(params.batch_size)
-
-							loss, batch_loss = agent.update(states, actions, rewards, next_states, dones)
-							logging(global_timestep, params.num_frames, i, time.time() - start, total_reward, np.mean(loss),
-									policy.current_epsilon(), cnt_action)
+						# store the episode reward
+						reward_buffer.append(total_reward)
 						break
 
-				# synchronise the target and main models by hard or soft update
-				if (global_timestep > params.learning_start) and (global_timestep % params.sync_freq == 0):
-					agent.manager.save()
-					if params.update_hard_or_soft == "hard":
-						agent.target_model.set_weights(agent.main_model.get_weights())
-					elif params.update_hard_or_soft == "soft":
-						soft_target_model_update_eager(agent.target_model, agent.main_model, tau=params.soft_update_tau)
-
-
-				# store the episode reward
-				reward_buffer.append(total_reward)
 				# check the stopping condition
 				if np.mean(reward_buffer) > params.goal or global_timestep > params.num_frames:
 					print("GAME OVER!!")
+					env.close()
 					break
 
-	env.close()
+				if global_timestep > params.learning_start:
+					states, actions, rewards, next_states, dones = replay_buffer.sample(params.batch_size)
+
+					loss, batch_loss = agent.update(states, actions, rewards, next_states, dones)
+					logging(global_timestep, params.num_frames, i, time.time() - start, total_reward, np.mean(loss),
+							policy.current_epsilon(), cnt_action)
+
+					# synchronise the target and main models by hard or soft update
+					if global_timestep % params.sync_freq == 0:
+						agent.manager.save()
+						if params.update_hard_or_soft == "hard":
+							agent.target_model.set_weights(agent.main_model.get_weights())
+						elif params.update_hard_or_soft == "soft":
+							soft_target_model_update_eager(agent.target_model, agent.main_model, tau=params.soft_update_tau)
 
 
 def train_DQN_PER(agent, env, policy, replay_buffer, reward_buffer, params, Beta, summary_writer):

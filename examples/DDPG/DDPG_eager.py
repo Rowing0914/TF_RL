@@ -156,11 +156,11 @@ class DDPG:
 		"""
 
 		with tf.GradientTape() as tape:
-			# compute q-values
+			# compute action
 			target_actions = self.actor(tf.convert_to_tensor(states[None, :], dtype=tf.float32))
 			q_values = self.critic( tf.cast(tf.concat([states[None, :], target_actions], axis = -1), dtype=tf.float32) )
 
-			actor_loss = tf.reduce_mean(-q_values)
+			actor_loss = tf.reduce_mean(-q_values*critic_loss)
 			actor_loss = huber_loss(actor_loss)
 
 		# get gradients

@@ -6,14 +6,18 @@ import numpy as np
 import time
 from collections import deque
 from tf_rl.common.wrappers import MyWrapper
-from tf_rl.common.policy import BoltzmannQPolicy_eager, EpsilonGreedyPolicy_eager
 from tf_rl.common.params import Parameters
-from tf_rl.common.utils import AnnealingSchedule, logging
+from tf_rl.common.utils import logging
 import tensorflow as tf
 
 tf.enable_eager_execution()
 
 class Policy_Network(tf.keras.Model):
+	"""
+	Produces the action probability distirbution!
+	Not Q-values as in Q-learning or other value-based RL methods
+
+	"""
 	def __init__(self, env_type, num_action):
 		super(Policy_Network, self).__init__()
 		self.env_type = env_type
@@ -48,6 +52,10 @@ class Policy_Network(tf.keras.Model):
 
 
 class Value_Network(tf.keras.Model):
+	"""
+	Produces the state-value
+
+	"""
 	def __init__(self, env_type):
 		super(Value_Network, self).__init__()
 		self.env_type = env_type
@@ -91,7 +99,8 @@ class REINFORCE:
 		self.value_net_optimizer = tf.train.AdamOptimizer()
 
 	def predict(self, state):
-		return self.policy_net(tf.convert_to_tensor(state[None,:], dtype=tf.float32)).numpy()[0]
+		# we take an action according to the action distribution produced by policy network
+		return np.random.choice(np.arange(self.num_action), p=self.policy_net(tf.convert_to_tensor(state[None,:], dtype=tf.float32)).numpy()[0])
 
 	def update(self, memory):
 		for step, data in enumerate(memory):
@@ -103,7 +112,7 @@ class REINFORCE:
 
 			"""
 			
-			Update Policy Network
+			Update Value Network
 			
 			"""
 
@@ -112,7 +121,7 @@ class REINFORCE:
 				state_value = self.value_net(tf.convert_to_tensor(state[None,:], dtype=tf.float32))
 				advantage = total_return - state_value
 
-				# MSE loss function: (1/N)*sum(Advantage - Q(s,a))^2
+				# MSE loss function: (1/N)*sum(Advantage - V(s))^2
 				value_net_loss = tf.reduce_mean(tf.squared_difference(advantage, state_value))
 
 			# get gradients
@@ -123,17 +132,17 @@ class REINFORCE:
 
 			"""
 
-			Update Value Network
+			Update ValPolicy ue Network
 
 			"""
 
 			with tf.GradientTape() as tape:
-				# compute q-values
-				q_values = self.policy_net(tf.convert_to_tensor(state[None,:], dtype=tf.float32))
+				# compute action probability distirbution
+				action_probs = self.policy_net(tf.convert_to_tensor(state[None,:], dtype=tf.float32))
 
-				# get the q-values which is associated with actually taken actions in a game
+				# get the probability according to the taken action in an episode
 				actions_one_hot = tf.one_hot(action, self.num_action, 1.0, 0.0)
-				action_probs = tf.reduce_sum(actions_one_hot * q_values, reduction_indices=-1)
+				action_probs = tf.reduce_sum(actions_one_hot * action_probs, reduction_indices=-1)
 
 				# loss for policy network: TD_error * log p(a|s)
 				policy_net_loss = -tf.log(action_probs)*advantage
@@ -150,14 +159,6 @@ env = MyWrapper(gym.make("CartPole-v0"))
 agent = REINFORCE("CartPole", Policy_Network, Value_Network, num_action=env.action_space.n)
 params = Parameters(algo="REINFORCE", mode="CartPole")
 reward_buffer = deque(maxlen=params.reward_buffer_ep)
-
-if params.policy_fn == "Eps":
-	Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end,
-								decay_steps=params.decay_steps)
-	policy = EpsilonGreedyPolicy_eager(Epsilon_fn=Epsilon)
-elif params.policy_fn == "Boltzmann":
-	policy = BoltzmannQPolicy_eager()
-
 global_timestep = 0
 
 for i in range(params.num_episodes):
@@ -165,13 +166,12 @@ for i in range(params.num_episodes):
 	memory = list()
 	total_reward = 0
 	cnt_action = list()
-	policy.index_episode = i
 	start = time.time()
 
 	# generate an episode
 	for t in itertools.count():
 		# env.render()
-		action = policy.select_action(agent, state)
+		action = agent.predict(state)
 		next_state, reward, done, info = env.step(action)
 		memory.append([state, action, next_state, reward, done])
 
@@ -183,7 +183,7 @@ for i in range(params.num_episodes):
 			# logging purpose
 			reward_buffer.append(total_reward)
 
-			logging(global_timestep, params.num_frames, i, time.time() - start, total_reward, 0, policy.current_epsilon(), cnt_action)
+			logging(global_timestep, params.num_frames, i, time.time() - start, total_reward, 0, 0, cnt_action)
 			total_reward = 0
 
 			# update the networks according to the current episode
