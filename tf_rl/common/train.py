@@ -44,7 +44,7 @@ def train_DQN(agent, env, policy, replay_buffer, reward_buffer, params, summary_
 					state = next_state
 					cnt_action.append(action)
 
-					if global_timestep > params.learning_start:
+					if (global_timestep > params.learning_start) and (global_timestep % params.train_interval == 0):
 						states, actions, rewards, next_states, dones = replay_buffer.sample(params.batch_size)
 
 						loss, batch_loss = agent.update(states, actions, rewards, next_states, dones)
@@ -64,8 +64,10 @@ def train_DQN(agent, env, policy, replay_buffer, reward_buffer, params, summary_
 						reward_buffer.append(total_reward)
 
 						if global_timestep > params.learning_start:
-							logging(global_timestep, params.num_frames, i, time.time() - start, total_reward, np.mean(loss),
-									policy.current_epsilon(), cnt_action)
+							try:
+								logging(global_timestep, params.num_frames, i, time.time() - start, total_reward, np.mean(loss), policy.current_epsilon(), cnt_action)
+							except:
+								pass
 
 						break
 
@@ -114,6 +116,29 @@ def train_DQN_PER(agent, env, policy, replay_buffer, reward_buffer, params, Beta
 					cnt_action.append(action)
 					global_timestep += 1
 
+					if global_timestep > params.learning_start:
+						# PER returns: state, action, reward, next_state, done, weights(a weight for an episode), indices(indices for a batch of episode)
+						states, actions, rewards, next_states, dones, weights, indices = replay_buffer.sample(
+							params.batch_size, Beta.get_value(i))
+
+						loss, batch_loss = agent.update(states, actions, rewards, next_states, dones)
+						logging(global_timestep, params.num_frames, i, time.time() - start, total_reward, np.mean(loss),
+								policy.current_epsilon(), cnt_action)
+
+						# add noise to the priorities
+						batch_loss = np.abs(batch_loss) + params.prioritized_replay_noise
+
+						# Update a prioritised replay buffer using a batch of losses associated with each timestep
+						replay_buffer.update_priorities(indices, batch_loss)
+
+						if global_timestep % params.sync_freq == 0:
+							agent.manager.save()
+							if params.update_hard_or_soft == "hard":
+								agent.target_model.set_weights(agent.main_model.get_weights())
+							elif params.update_hard_or_soft == "soft":
+								soft_target_model_update_eager(agent.target_model, agent.main_model,
+															   tau=params.soft_update_tau)
+
 					if done:
 						tf.contrib.summary.scalar("reward", total_reward, step=i)
 						# store the episode reward
@@ -125,29 +150,6 @@ def train_DQN_PER(agent, env, policy, replay_buffer, reward_buffer, params, Beta
 					print("GAME OVER!!")
 					env.close()
 					break
-
-				if global_timestep > params.learning_start:
-					# PER returns: state, action, reward, next_state, done, weights(a weight for an episode), indices(indices for a batch of episode)
-					states, actions, rewards, next_states, dones, weights, indices = replay_buffer.sample(
-						params.batch_size, Beta.get_value(i))
-
-					loss, batch_loss = agent.update(states, actions, rewards, next_states, dones)
-					logging(global_timestep, params.num_frames, i, time.time() - start, total_reward, np.mean(loss),
-							policy.current_epsilon(), cnt_action)
-
-					# add noise to the priorities
-					batch_loss = np.abs(batch_loss) + params.prioritized_replay_noise
-
-					# Update a prioritised replay buffer using a batch of losses associated with each timestep
-					replay_buffer.update_priorities(indices, batch_loss)
-
-					if global_timestep % params.sync_freq == 0:
-						agent.manager.save()
-						if params.update_hard_or_soft == "hard":
-							agent.target_model.set_weights(agent.main_model.get_weights())
-						elif params.update_hard_or_soft == "soft":
-							soft_target_model_update_eager(agent.target_model, agent.main_model, tau=params.soft_update_tau)
-
 
 
 def train_DQN_afp(agent, expert, env, agent_policy, expert_policy, replay_buffer, reward_buffer, params, summary_writer):
@@ -190,35 +192,31 @@ def train_DQN_afp(agent, expert, env, agent_policy, expert_policy, replay_buffer
 					total_reward += reward
 					state = next_state
 					cnt_action.append(action)
+					global_timestep += 1
+
+					if global_timestep > params.learning_start:
+						states, actions, rewards, next_states, dones = replay_buffer.sample(params.batch_size)
+
+						loss, batch_loss = agent.update(states, actions, rewards, next_states, dones)
+						logging(global_timestep, params.num_frames, i, time.time() - start, total_reward, np.mean(loss), 0, cnt_action)
+
+						if np.random.rand() > 0.5:
+							agent.manager.save()
+							if params.update_hard_or_soft == "hard":
+								agent.target_model.set_weights(agent.main_model.get_weights())
+							elif params.update_hard_or_soft == "soft":
+								soft_target_model_update_eager(agent.target_model, agent.main_model, tau=params.soft_update_tau)
 
 					if done:
 						tf.contrib.summary.scalar("reward", total_reward, step=global_timestep)
-
-						if global_timestep > params.learning_start:
-							states, actions, rewards, next_states, dones = replay_buffer.sample(params.batch_size)
-
-							loss, batch_loss = agent.update(states, actions, rewards, next_states, dones)
-							logging(global_timestep, params.num_frames, i, time.time() - start, total_reward, np.mean(loss),
-									policy.current_epsilon(), cnt_action)
-
-							if np.random.rand() > 0.5:
-								agent.manager.save()
-								if params.update_hard_or_soft == "hard":
-									agent.target_model.set_weights(agent.main_model.get_weights())
-								elif params.update_hard_or_soft == "soft":
-									soft_target_model_update_eager(agent.target_model, agent.main_model, tau=params.soft_update_tau)
+						reward_buffer.append(total_reward)
 						break
 
-					global_timestep += 1
-
-				# store the episode reward
-				reward_buffer.append(total_reward)
 				# check the stopping condition
 				if np.mean(reward_buffer) > params.goal:
 					print("GAME OVER!!")
+					env.close()
 					break
-
-	env.close()
 
 
 def train_DRQN(agent, env, policy, replay_buffer, reward_buffer, params, summary_writer):
@@ -256,9 +254,44 @@ def train_DRQN(agent, env, policy, replay_buffer, reward_buffer, params, summary
 					total_reward += reward
 					state = next_state
 					cnt_action.append(action)
+					global_timestep += 1
+
+					if global_timestep > params.learning_start:
+						states, actions, rewards, next_states, dones = replay_buffer.sample(params.batch_size)
+						_states, _actions, _rewards, _next_states, _dones = [], [], [], [], []
+						for index, data in enumerate(zip(states, actions, rewards, next_states, dones)):
+							s1, a, r, s2, d = data
+							ep_start = np.random.randint(0, len(s1) + 1 - 4)
+							# states[i] = s1[ep_start:ep_start+4, :]
+							# actions[i] = a[ep_start:ep_start+4]
+							# rewards[i] = r[ep_start:ep_start+4]
+							# next_states[i] = s2[ep_start:ep_start+4, :]
+							# dones[i] = d[ep_start:ep_start+4]
+							_states.append(s1[ep_start:ep_start + 4, :])
+							_actions.append(a[ep_start:ep_start + 4])
+							_rewards.append(r[ep_start:ep_start + 4])
+							_next_states.append(s2[ep_start:ep_start + 4, :])
+							_dones.append(d[ep_start:ep_start + 4])
+
+						_states, _actions, _rewards, _next_states, _dones = np.array(_states), np.array(
+							_actions), np.array(_rewards), np.array(_next_states), np.array(_dones)
+
+						# loss, batch_loss = agent.update(states, actions, rewards, next_states, dones)
+						loss, batch_loss = agent.update(_states, _actions, _rewards, _next_states, _dones)
+						logging(global_timestep, params.num_frames, i, time.time() - start, total_reward, np.mean(loss),
+								policy.current_epsilon(), cnt_action)
+
+						if np.random.rand() > 0.5:
+							agent.manager.save()
+							if params.update_hard_or_soft == "hard":
+								agent.target_model.set_weights(agent.main_model.get_weights())
+							elif params.update_hard_or_soft == "soft":
+								soft_target_model_update_eager(agent.target_model, agent.main_model,
+															   tau=params.soft_update_tau)
 
 					if done:
 						tf.contrib.summary.scalar("reward", total_reward, step=global_timestep)
+						reward_buffer.append(total_reward)
 
 						s1, a, r, s2, d = [], [], [], [], []
 						for data in episode_memory:
@@ -269,50 +302,13 @@ def train_DRQN(agent, env, policy, replay_buffer, reward_buffer, params, summary
 							d.append(data[4])
 
 						replay_buffer.add(s1, a, r, s2, d)
-
-						if global_timestep > params.learning_start:
-							states, actions, rewards, next_states, dones = replay_buffer.sample(params.batch_size)
-							_states, _actions, _rewards, _next_states, _dones = [], [], [], [], []
-							for index, data in enumerate(zip(states, actions, rewards, next_states, dones)):
-								s1, a, r, s2, d = data
-								ep_start = np.random.randint(0, len(s1)+1-4)
-								# states[i] = s1[ep_start:ep_start+4, :]
-								# actions[i] = a[ep_start:ep_start+4]
-								# rewards[i] = r[ep_start:ep_start+4]
-								# next_states[i] = s2[ep_start:ep_start+4, :]
-								# dones[i] = d[ep_start:ep_start+4]
-								_states.append(s1[ep_start:ep_start+4, :])
-								_actions.append(a[ep_start:ep_start+4])
-								_rewards.append(r[ep_start:ep_start+4])
-								_next_states.append(s2[ep_start:ep_start+4, :])
-								_dones.append(d[ep_start:ep_start+4])
-
-							_states, _actions, _rewards, _next_states, _dones = np.array(_states), np.array(_actions), np.array(_rewards), np.array(_next_states), np.array(_dones)
-
-							# loss, batch_loss = agent.update(states, actions, rewards, next_states, dones)
-							loss, batch_loss = agent.update(_states, _actions, _rewards, _next_states, _dones)
-							logging(global_timestep, params.num_frames, i, time.time() - start, total_reward, np.mean(loss),
-									policy.current_epsilon(), cnt_action)
-
-							if np.random.rand() > 0.5:
-								agent.manager.save()
-								if params.update_hard_or_soft == "hard":
-									agent.target_model.set_weights(agent.main_model.get_weights())
-								elif params.update_hard_or_soft == "soft":
-									soft_target_model_update_eager(agent.target_model, agent.main_model, tau=params.soft_update_tau)
 						break
 
-					global_timestep += 1
-
-				# store the episode reward
-				reward_buffer.append(total_reward)
 				# check the stopping condition
 				if np.mean(reward_buffer) > params.goal:
 					print("GAME OVER!!")
+					env.close()
 					break
-
-	env.close()
-
 
 
 """

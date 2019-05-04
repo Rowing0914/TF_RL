@@ -81,6 +81,7 @@ class Parameters:
             self.policy_fn = "Eps"
             self.grad_clip_flg = "norm"
             self.sync_freq = 10000
+            self.train_interval = 4
             self.gamma = 0.99
             self.update_hard_or_soft = "hard"
             self.soft_update_tau = 1e-2
@@ -99,6 +100,7 @@ class Parameters:
             self.policy_fn = "Eps"
             self.grad_clip_flg = "by_value"
             self.sync_freq = 100
+            self.train_interval = 4
             self.gamma = 0.99
             self.update_hard_or_soft = "hard"
             self.soft_update_tau = 1e-2
