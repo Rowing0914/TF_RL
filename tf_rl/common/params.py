@@ -96,11 +96,11 @@ class Parameters:
             self.clip = (-500., 500.) # used in BoltzmannQPolicy
         elif mode == "CartPole":
             self.state_reshape = (1, 4)
-            self.loss_fn = "MSE"
+            self.loss_fn = "huber_loss"
             self.policy_fn = "Eps"
-            self.grad_clip_flg = "by_value"
+            self.grad_clip_flg = "norm"
             self.sync_freq = 100
-            self.train_interval = 4
+            self.train_interval = 1
             self.gamma = 0.99
             self.update_hard_or_soft = "hard"
             self.soft_update_tau = 1e-2
@@ -108,7 +108,7 @@ class Parameters:
             self.decay_steps = 10_000
             self.reward_buffer_ep = 5
             self.epsilon_start = 1.0
-            self.epsilon_end = 0.1
+            self.epsilon_end = 0.02
             self.batch_size = 32
             self.test_episodes = 10
             self.tau = 1. # used in BoltzmannQPolicy
@@ -119,13 +119,14 @@ class Parameters:
             self.state_reshape = (1, 84, 84, 1)
             self.loss_fn = "MSE"
             self.policy_fn = "Eps"
-            self.grad_clip_flg = "by_value"
+            self.grad_clip_flg = "norm"
             self.sync_freq = 10000
+            self.train_interval = 4
             self.gamma = 0.99
             self.update_hard_or_soft = "hard"
             self.soft_update_tau = 1e-2
             self.decay_type = "curved"
-            self.decay_steps = 1000
+            self.decay_steps = 1_000_000
             self.reward_buffer_ep = 2
             self.epsilon_start = 1.0
             self.epsilon_end = 0.1
@@ -135,18 +136,19 @@ class Parameters:
             self.clip = (-500., 500.) # used in BoltzmannQPolicy
         elif mode == "CartPole":
             self.state_reshape = (1, 4)
-            self.loss_fn = "MSE"
+            self.loss_fn = "huber_loss"
             self.policy_fn = "Eps"
-            self.grad_clip_flg = "by_value"
+            self.grad_clip_flg = "norm"
             self.sync_freq = 100
+            self.train_interval = 1
             self.gamma = 0.99
             self.update_hard_or_soft = "hard"
             self.soft_update_tau = 1e-2
             self.decay_type = "linear"
-            self.decay_steps = 1000
-            self.reward_buffer_ep = 2
+            self.decay_steps = 10_000
+            self.reward_buffer_ep = 5
             self.epsilon_start = 1.0
-            self.epsilon_end = 0.1
+            self.epsilon_end = 0.02
             self.batch_size = 32
             self.test_episodes = 10
             self.tau = 1. # used in BoltzmannQPolicy
@@ -159,6 +161,7 @@ class Parameters:
             self.policy_fn = "Eps"
             self.grad_clip_flg = "by_value"
             self.sync_freq = 10000
+            self.train_interval = 4
             self.gamma = 0.99
             self.update_hard_or_soft = "hard"
             self.soft_update_tau = 1e-2
@@ -181,6 +184,7 @@ class Parameters:
             self.policy_fn = "Eps"
             self.grad_clip_flg = "by_value"
             self.sync_freq = 100
+            self.train_interval = 4
             self.gamma = 0.99
             self.update_hard_or_soft = "hard"
             self.soft_update_tau = 1e-2
@@ -203,13 +207,14 @@ class Parameters:
             self.state_reshape = (1, 84, 84, 1)
             self.loss_fn = "MSE"
             self.policy_fn = "Eps"
-            self.grad_clip_flg = "by_value"
+            self.grad_clip_flg = "norm"
             self.sync_freq = 10000
+            self.train_interval = 4
             self.gamma = 0.99
             self.update_hard_or_soft = "hard"
             self.soft_update_tau = 1e-2
             self.decay_type = "curved"
-            self.decay_steps = 1000
+            self.decay_steps = 1_000_000
             self.reward_buffer_ep = 2
             self.epsilon_start = 1.0
             self.epsilon_end = 0.1
@@ -219,18 +224,19 @@ class Parameters:
             self.clip = (-500., 500.) # used in BoltzmannQPolicy
         elif mode == "CartPole":
             self.state_reshape = (1, 4)
-            self.loss_fn = "MSE"
+            self.loss_fn = "huber_loss"
             self.policy_fn = "Eps"
-            self.grad_clip_flg = "by_value"
+            self.grad_clip_flg = "norm"
             self.sync_freq = 100
+            self.train_interval = 1
             self.gamma = 0.99
             self.update_hard_or_soft = "hard"
             self.soft_update_tau = 1e-2
             self.decay_type = "linear"
-            self.decay_steps = 1000
-            self.reward_buffer_ep = 2
+            self.decay_steps = 10_000
+            self.reward_buffer_ep = 5
             self.epsilon_start = 1.0
-            self.epsilon_end = 0.1
+            self.epsilon_end = 0.02
             self.batch_size = 32
             self.test_episodes = 10
             self.tau = 1. # used in BoltzmannQPolicy
@@ -243,6 +249,7 @@ class Parameters:
             self.policy_fn = "Eps"
             self.grad_clip_flg = "by_value"
             self.sync_freq = 10000
+            self.train_interval = 4
             self.gamma = 0.99
             self.update_hard_or_soft = "hard"
             self.soft_update_tau = 1e-2
@@ -253,8 +260,8 @@ class Parameters:
             self.epsilon_end = 0.1
             self.batch_size = 32
             self.test_episodes = 10
-            self.tau = 1. # used in BoltzmannQPolicy
-            self.clip = (-500., 500.) # used in BoltzmannQPolicy
+            self.tau = 1.  # used in BoltzmannQPolicy
+            self.clip = (-500., 500.)  # used in BoltzmannQPolicy
             self.prioritized_replay_alpha = 0.6
             self.prioritized_replay_beta_start = 0.4
             self.prioritized_replay_beta_end = 1.0
@@ -265,6 +272,7 @@ class Parameters:
             self.policy_fn = "Eps"
             self.grad_clip_flg = "by_value"
             self.sync_freq = 100
+            self.train_interval = 4
             self.gamma = 0.99
             self.update_hard_or_soft = "hard"
             self.soft_update_tau = 1e-2
@@ -275,8 +283,8 @@ class Parameters:
             self.epsilon_end = 0.1
             self.batch_size = 32
             self.test_episodes = 10
-            self.tau = 1. # used in BoltzmannQPolicy
-            self.clip = (-500., 500.) # used in BoltzmannQPolicy
+            self.tau = 1.  # used in BoltzmannQPolicy
+            self.clip = (-500., 500.)  # used in BoltzmannQPolicy
             self.prioritized_replay_alpha = 0.6
             self.prioritized_replay_beta_start = 0.4
             self.prioritized_replay_beta_end = 1.0
@@ -289,6 +297,7 @@ class Parameters:
             self.policy_fn = "Eps"
             self.grad_clip_flg = "by_value"
             self.sync_freq = 10000
+            self.train_interval = 4
             self.gamma = 0.99
             self.update_hard_or_soft = "hard"
             self.soft_update_tau = 1e-2
@@ -307,12 +316,13 @@ class Parameters:
             self.prioritized_replay_noise = 1e-6
         elif mode == "CartPole":
             self.state_reshape = (1, 4)
-            # self.loss_fn = "MSE"
+            self.loss_fn = "MSE"
             self.policy_fn = "Eps"
-            self.grad_clip_flg = "norm"
+            self.grad_clip_flg = "by_value"
             self.sync_freq = 100
+            self.train_interval = 4
             self.gamma = 0.99
-            self.update_hard_or_soft = "soft"
+            self.update_hard_or_soft = "hard"
             self.soft_update_tau = 1e-2
             self.decay_type = "linear"
             self.decay_steps = 1000

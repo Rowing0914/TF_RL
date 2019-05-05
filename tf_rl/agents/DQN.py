@@ -10,6 +10,7 @@ class DQN:
     Replay buffer stores them as np.int8 because of memory issue this is also stated in OpenAI Baselines wrapper.
     """
     def __init__(self, env_type, main_model, target_model, num_action, params, checkpoint_dir="../logs/models/DQN/"):
+        self.env_type = env_type
         self.num_action = num_action
         self.params = params
         self.main_model = main_model(env_type, num_action)
@@ -26,11 +27,13 @@ class DQN:
         self.manager = tf.train.CheckpointManager(self.check_point, checkpoint_dir, max_to_keep=3)
 
     def predict(self, state):
-        state = state.astype('float32') / 255.
+        if self.env_type == "Atari":
+            state = state.astype('float32') / 255.
         return self.main_model(tf.convert_to_tensor(state[None,:], dtype=tf.float32)).numpy()[0]
 
     def update(self, states, actions, rewards, next_states, dones):
-        states, next_states = states.astype('float32') / 255., next_states.astype('float32') / 255.
+        if self.env_type == "Atari":
+            states, next_states = states.astype('float32') / 255., next_states.astype('float32') / 255.
         with tf.GradientTape() as tape:
             # make sure to fit all process to compute gradients within this Tape context!!
 
@@ -43,12 +46,12 @@ class DQN:
 
             # get the q-values which is associated with actually taken actions in a game
             actions_one_hot = tf.one_hot(actions, self.num_action, 1.0, 0.0)
-            action_probs = tf.reduce_sum(actions_one_hot * q_values, reduction_indices=-1)
+            action_probs = tf.reduce_sum(actions_one_hot*q_values, reduction_indices=1)
 
             if self.params.loss_fn == "huber_loss":
                 # use huber loss
-                loss = huber_loss(tf.subtract(Y, action_probs))
-                batch_loss = loss
+                batch_loss = huber_loss(tf.squared_difference(Y, action_probs))
+                loss = tf.reduce_mean(batch_loss)
             elif self.params.loss_fn == "MSE":
                 # use MSE
                 batch_loss = tf.squared_difference(Y, action_probs)
@@ -64,6 +67,8 @@ class DQN:
             grads = [ClipIfNotNone(grad, -1., 1.) for grad in grads]
         elif self.params.grad_clip_flg == "norm":
             grads, _ = tf.clip_by_global_norm(grads, 5.0)
+        elif self.params.grad_clip_flg == "None":
+            pass
 
         # apply processed gradients to the network
         self.optimizer.apply_gradients(zip(grads, self.main_model.trainable_weights))

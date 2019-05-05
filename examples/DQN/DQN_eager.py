@@ -50,9 +50,8 @@ class Model(tf.keras.Model):
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
 	parser.add_argument("--mode", default="Atari", help="game env type")
-	parser.add_argument("--loss_fn", default="MSE", help="types of loss function => MSE or huber_loss")
-	parser.add_argument("--policy_fn", default="Eps", help="types of policy function => Epsilon Greedy(Eps) or Boltzmann(Boltzmann)")
-	parser.add_argument("--grad_clip_flg", default="norm", help="types of a clipping method of gradients => by value(by_value) or global norm(norm)")
+	parser.add_argument("--loss_fn", default="huber_loss", help="types of loss function => MSE or huber_loss")
+	parser.add_argument("--grad_clip_flg", default="None", help="types of a clipping method of gradients => by value(by_value) or global norm(norm) or None")
 	parser.add_argument("--num_frames", default=10_000_000, help="total frame in a training")
 	parser.add_argument("--train_interval", default=4, help="a frequency of training occurring in training phase")
 	parser.add_argument("--memory_size", default=1_000_000, help="memory size in a training => this used for Experience Replay Memory or Prioritised Experience Replay Memory")
@@ -81,7 +80,6 @@ if __name__ == '__main__':
 	params = Parameters(algo="DQN", mode=args.mode)
 	if args.mode == "Atari":
 		params.loss_fn = args.loss_fn
-		params.policy_fn = args.policy_fn
 		params.grad_clip_flg = args.grad_clip_flg
 		params.num_frames = args.num_frames
 		params.memory_size = args.memory_size
@@ -104,12 +102,9 @@ if __name__ == '__main__':
 
 	replay_buffer = ReplayBuffer(params.memory_size)
 	agent = DQN(args.mode, Model, Model, env.action_space.n, params, args.model_dir)
-	if params.policy_fn == "Eps":
-		Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end,
-									decay_steps=params.decay_steps)
-		policy = EpsilonGreedyPolicy_eager(Epsilon_fn=Epsilon)
-	elif params.policy_fn == "Boltzmann":
-		policy = BoltzmannQPolicy_eager()
+	Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end,
+								decay_steps=params.decay_steps)
+	policy = EpsilonGreedyPolicy_eager(Epsilon_fn=Epsilon)
 
 	reward_buffer = deque(maxlen=params.reward_buffer_ep)
 	summary_writer = tf.contrib.summary.create_file_writer(args.log_dir)

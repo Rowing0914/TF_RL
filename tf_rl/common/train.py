@@ -117,14 +117,12 @@ def train_DQN_PER(agent, env, policy, replay_buffer, reward_buffer, params, Beta
 					cnt_action.append(action)
 					global_timestep += 1
 
-					if global_timestep > params.learning_start:
+					if (global_timestep > params.learning_start) and (global_timestep % params.train_interval == 0):
 						# PER returns: state, action, reward, next_state, done, weights(a weight for an episode), indices(indices for a batch of episode)
 						states, actions, rewards, next_states, dones, weights, indices = replay_buffer.sample(
 							params.batch_size, Beta.get_value(i))
 
 						loss, batch_loss = agent.update(states, actions, rewards, next_states, dones)
-						logging(global_timestep, params.num_frames, i, time.time() - start, total_reward, np.mean(loss),
-								policy.current_epsilon(), cnt_action)
 
 						# add noise to the priorities
 						batch_loss = np.abs(batch_loss) + params.prioritized_replay_noise
@@ -144,6 +142,13 @@ def train_DQN_PER(agent, env, policy, replay_buffer, reward_buffer, params, Beta
 						tf.contrib.summary.scalar("reward", total_reward, step=i)
 						# store the episode reward
 						reward_buffer.append(total_reward)
+
+						if global_timestep > params.learning_start:
+							try:
+								logging(global_timestep, params.num_frames, i, time.time() - start, total_reward, np.mean(loss), policy.current_epsilon(), cnt_action)
+							except:
+								pass
+
 						break
 
 				# check the stopping condition

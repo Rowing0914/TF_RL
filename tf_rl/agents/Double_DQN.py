@@ -7,6 +7,7 @@ class Double_DQN:
     Double_DQN
     """
     def __init__(self, env_type, main_model, target_model, num_action, params, checkpoint_dir="../logs/models/DQN/"):
+        self.env_type = env_type
         self.num_action = num_action
         self.params = params
         self.main_model = main_model(env_type, num_action)
@@ -23,9 +24,13 @@ class Double_DQN:
         self.manager = tf.train.CheckpointManager(self.check_point, checkpoint_dir, max_to_keep=3)
 
     def predict(self, state):
+        if self.env_type == "Atari":
+            state = state.astype('float32') / 255.
         return self.main_model(tf.convert_to_tensor(state[None,:], dtype=tf.float32)).numpy()[0]
 
     def update(self, states, actions, rewards, next_states, dones):
+        if self.env_type == "Atari":
+            states, next_states = states.astype('float32') / 255., next_states.astype('float32') / 255.
         with tf.GradientTape() as tape:
             # make sure to fit all process to compute gradients within this Tape context!!
 
@@ -50,8 +55,8 @@ class Double_DQN:
 
             if self.params.loss_fn == "huber_loss":
                 # use huber loss
-                loss = huber_loss(tf.subtract(Y, action_probs))
-                batch_loss = loss
+                batch_loss = huber_loss(tf.squared_difference(Y, action_probs))
+                loss = tf.reduce_mean(batch_loss)
             elif self.params.loss_fn == "MSE":
                 # use MSE
                 batch_loss = tf.squared_difference(Y, action_probs)
@@ -67,6 +72,8 @@ class Double_DQN:
             grads = [ClipIfNotNone(grad, -1., 1.) for grad in grads]
         elif self.params.grad_clip_flg == "norm":
             grads, _ = tf.clip_by_global_norm(grads, 5.0)
+        elif self.params.grad_clip_flg == "None":
+            pass
 
         # apply processed gradients to the network
         self.optimizer.apply_gradients(zip(grads, self.main_model.trainable_weights))
