@@ -12,7 +12,7 @@ class DQN:
         self.params = params
         self.main_model = main_model(env_type, num_action)
         self.target_model = target_model(env_type, num_action)
-        self.optimizer = tf.train.AdamOptimizer()
+        self.optimizer = tf.train.AdamOptimizer(learning_rate=1e-4)
         # self.optimizer = tf.train.RMSPropOptimizer(0.00025, 0.99, 0.0, 1e-6)
         self.index_episode = 0
 
