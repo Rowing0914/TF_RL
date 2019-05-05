@@ -34,8 +34,8 @@ def train_DQN(agent, env, policy, replay_buffer, reward_buffer, params, summary_
 				policy.index_episode = i
 				agent.index_episode = i
 				for t in itertools.count():
-					if i > 100:
-						env.render()
+					# if i > 100:
+					# 	env.render()
 					action = policy.select_action(agent, state)
 					next_state, reward, done, info = env.step(action)
 					replay_buffer.add(state, action, reward, next_state, done)
