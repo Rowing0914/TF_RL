@@ -1,10 +1,10 @@
 import time
 import numpy as np
 import tensorflow as tf
-from tf_rl.common.params import Parameters, logdirs
+from tf_rl.common.params import Parameters
 from tf_rl.common.memory import ReplayBuffer
 from tf_rl.common.utils import AnnealingSchedule, soft_target_model_update_eager, logging
-from tf_rl.common.policy import EpsilonGreedyPolicy_eager, BoltzmannQPolicy_eager
+from tf_rl.common.policy import EpsilonGreedyPolicy_eager
 from tf_rl.agents.DQN import DQN
 from examples.DQN.DQN_eager import Model
 

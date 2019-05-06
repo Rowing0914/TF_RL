@@ -317,8 +317,10 @@ class FrameStack(gym.Wrapper):
 
 	def _get_ob(self):
 		assert len(self.frames) == self.k
-		return np.concatenate(list(self.frames), axis=-1)
-		# return LazyFrames()
+		# don't do this.... LazyFrame is much more memory efficient
+		# on my local, it reduced from 1.4GB for ReplayBuffer(50000) to 397.1MB..... incredible.
+		# return np.concatenate(list(self.frames), axis=-1)
+		return LazyFrames(list(self.frames))
 
 
 class ScaledFloatFrame(gym.ObservationWrapper):
