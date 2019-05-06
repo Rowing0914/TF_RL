@@ -28,12 +28,12 @@ class DQN:
 
     def predict(self, state):
         if self.env_type == "Atari":
-            state = state.astype('float32') / 255.
+            state = np.array(state).astype('float32') / 255.
         return self.main_model(tf.convert_to_tensor(state[None,:], dtype=tf.float32)).numpy()[0]
 
     def update(self, states, actions, rewards, next_states, dones):
         if self.env_type == "Atari":
-            states, next_states = states.astype('float32') / 255., next_states.astype('float32') / 255.
+            states, next_states = np.array(states).astype('float32') / 255., np.array(next_states).astype('float32') / 255.
         with tf.GradientTape() as tape:
             # make sure to fit all process to compute gradients within this Tape context!!
 
