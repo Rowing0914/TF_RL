@@ -9,6 +9,7 @@ from tf_rl.agents.DQN import DQN
 from examples.DQN.DQN_eager import Model
 
 tf.enable_eager_execution()
+tf.random.set_random_seed(123)
 
 class Env:
 	def __init__(self, size):

@@ -63,13 +63,11 @@ class Parameters:
         if mode == "Atari":
             self.goal = 20
             self.num_frames = 10_000_000
-            self.num_episodes = 100
             self.memory_size = 1_000_000
             self.learning_start = 50_000
         elif mode == "CartPole":
             self.goal = 195
             self.num_frames = 100_000
-            self.num_episodes = 4000
             self.memory_size = 50_000
             self.learning_start = 100
 

@@ -9,6 +9,7 @@ from tf_rl.common.filters import Particle_Filter
 from tf_rl.common.wrappers import MyWrapper_revertable
 
 tf.enable_eager_execution()
+tf.random.set_random_seed(123)
 
 class Model(tf.keras.Model):
 	def __init__(self, num_action):

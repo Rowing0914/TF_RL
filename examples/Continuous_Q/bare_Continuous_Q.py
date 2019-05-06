@@ -7,6 +7,7 @@ from tf_rl.common.params import Parameters
 from tf_rl.common.utils import logging
 
 tf.enable_eager_execution()
+tf.random.set_random_seed(123)
 
 class Model(tf.keras.Model):
 	def __init__(self, num_action):

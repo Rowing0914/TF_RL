@@ -4,14 +4,15 @@ import os
 import tensorflow as tf
 from collections import deque
 from tf_rl.common.wrappers import MyWrapper, wrap_deepmind, make_atari
-from tf_rl.common.params import Parameters, logdirs
+from tf_rl.common.params import Parameters
 from tf_rl.common.memory import PrioritizedReplayBuffer
 from tf_rl.common.utils import AnnealingSchedule
-from tf_rl.common.policy import EpsilonGreedyPolicy_eager, BoltzmannQPolicy_eager
+from tf_rl.common.policy import EpsilonGreedyPolicy_eager
 from tf_rl.common.train import train_DQN_PER
 from tf_rl.agents.DQN import DQN
 
 tf.enable_eager_execution()
+tf.random.set_random_seed(123)
 
 class Model(tf.keras.Model):
 	def __init__(self, env_type, num_action):

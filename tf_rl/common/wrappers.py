@@ -317,7 +317,7 @@ class FrameStack(gym.Wrapper):
 
 	def _get_ob(self):
 		assert len(self.frames) == self.k
-		return np.concatenate(list(self.frames), axis=0)
+		return np.concatenate(list(self.frames), axis=-1)
 		# return LazyFrames()
 
 

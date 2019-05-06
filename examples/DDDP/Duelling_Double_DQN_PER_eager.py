@@ -12,6 +12,7 @@ from tf_rl.common.train import train_DQN_PER
 from tf_rl.agents.Double_DQN import Double_DQN
 
 tf.enable_eager_execution()
+tf.random.set_random_seed(123)
 
 class Model(tf.keras.Model):
 	def __init__(self, env_type, num_action, duelling_type="avg"):

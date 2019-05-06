@@ -26,7 +26,7 @@ from tf_rl.common.utils import AnnealingSchedule, logging, soft_target_model_upd
 from tf_rl.common.random_process import OrnsteinUhlenbeckProcess
 
 tf.enable_eager_execution()
-
+tf.random.set_random_seed(123)
 
 class Actor(tf.keras.Model):
 	def __init__(self, env_type, num_action):

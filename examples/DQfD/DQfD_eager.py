@@ -15,8 +15,8 @@ from tf_rl.common.utils import AnnealingSchedule, soft_target_model_update_eager
 from tf_rl.common.policy import EpsilonGreedyPolicy_eager, BoltzmannQPolicy_eager, TestPolicy
 from tf_rl.agents.DQN import DQN
 
-
 tf.enable_eager_execution()
+tf.random.set_random_seed(123)
 
 class Model(tf.keras.Model):
 	def __init__(self, env_type, num_action, duelling_type="avg"):

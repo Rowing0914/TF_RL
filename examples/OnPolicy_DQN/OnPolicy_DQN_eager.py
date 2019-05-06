@@ -10,6 +10,7 @@ from tf_rl.common.params import Parameters    # params for training
 from tf_rl.common.memory import ReplayBuffer  # Experience Replay Buffer
 
 tf.enable_eager_execution()
+tf.random.set_random_seed(123)
 
 class Model(tf.keras.Model):
 	def __init__(self, num_action):

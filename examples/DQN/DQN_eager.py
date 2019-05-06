@@ -7,11 +7,12 @@ from tf_rl.common.wrappers import MyWrapper, wrap_deepmind, make_atari
 from tf_rl.common.params import Parameters
 from tf_rl.common.memory import ReplayBuffer
 from tf_rl.common.utils import AnnealingSchedule
-from tf_rl.common.policy import EpsilonGreedyPolicy_eager, BoltzmannQPolicy_eager
+from tf_rl.common.policy import EpsilonGreedyPolicy_eager
 from tf_rl.common.train import train_DQN
 from tf_rl.agents.DQN import DQN
 
 tf.enable_eager_execution()
+tf.random.set_random_seed(123)
 
 class Model(tf.keras.Model):
 	def __init__(self, env_type, num_action):
@@ -51,12 +52,12 @@ if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
 	parser.add_argument("--mode", default="Atari", help="game env type")
 	parser.add_argument("--loss_fn", default="huber_loss", help="types of loss function => MSE or huber_loss")
-	parser.add_argument("--grad_clip_flg", default="None", help="types of a clipping method of gradients => by value(by_value) or global norm(norm) or None")
+	parser.add_argument("--grad_clip_flg", default="by_value", help="types of a clipping method of gradients => by value(by_value) or global norm(norm) or None")
 	parser.add_argument("--num_frames", default=10_000_000, help="total frame in a training")
-	parser.add_argument("--train_interval", default=4, help="a frequency of training occurring in training phase")
+	parser.add_argument("--train_interval", default=10, help="a frequency of training occurring in training phase")
 	parser.add_argument("--memory_size", default=1_000_000, help="memory size in a training => this used for Experience Replay Memory or Prioritised Experience Replay Memory")
 	parser.add_argument("--learning_start", default=10_000, help="frame number which specifies when to start updating the agent")
-	parser.add_argument("--sync_freq", default=1_000, help="frequency of updating a target model")
+	parser.add_argument("--sync_freq", default=5_000, help="frequency of updating a target model")
 	parser.add_argument("--batch_size", default=32, help="batch size of each iteration of update")
 	parser.add_argument("--gamma", default=0.99, help="discount factor => gamma > 1.0 or negative => does not converge!!")
 	parser.add_argument("--update_hard_or_soft", default="hard", help="types of synchronisation method of target and main models => soft or hard update")

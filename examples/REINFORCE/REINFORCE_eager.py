@@ -11,6 +11,7 @@ from tf_rl.common.utils import logging
 import tensorflow as tf
 
 tf.enable_eager_execution()
+tf.random.set_random_seed(123)
 
 class Policy_Network(tf.keras.Model):
 	"""
