@@ -376,7 +376,9 @@ def make_atari(env_id, max_episode_steps=None):
 
 # since my code does not have an function or APIs to repeat the same action several times,
 # I will rely on those wrappers.
-def wrap_deepmind(env, episode_life=True, clip_rewards=True, frame_stack=True, scale=False):
+# frame_stack and scale consumes a lot of memory so that if you have enough memory, then try it.
+# my local has 16GB RAM though, it was not enough.... 0.5M replay buffer took up about 8.5GB of RAM...
+def wrap_deepmind(env, episode_life=True, clip_rewards=True, frame_stack=False, scale=False):
 	"""Configure environment for DeepMind-style Atari.
 	"""
 	if episode_life:

@@ -54,7 +54,7 @@ if __name__ == '__main__':
 	parser.add_argument("--loss_fn", default="MSE", help="types of loss function => MSE or huber_loss")
 	parser.add_argument("--grad_clip_flg", default="by_value", help="types of a clipping method of gradients => by value(by_value) or global norm(norm) or None")
 	parser.add_argument("--num_frames", default=10_000_000, help="total frame in a training")
-	parser.add_argument("--train_interval", default=4, help="a frequency of training occurring in training phase")
+	parser.add_argument("--train_interval", default=8, help="a frequency of training occurring in training phase")
 	parser.add_argument("--memory_size", default=500_000, help="memory size in a training => this used for Experience Replay Memory or Prioritised Experience Replay Memory")
 	parser.add_argument("--learning_start", default=10_000, help="frame number which specifies when to start updating the agent")
 	parser.add_argument("--sync_freq", default=5_000, help="frequency of updating a target model")
