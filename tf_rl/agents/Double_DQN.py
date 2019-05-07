@@ -14,14 +14,14 @@ class Double_DQN:
 		self.params = params
 		self.main_model = main_model(env_type, num_action)
 		self.target_model = target_model(env_type, num_action)
-		self.learning_rate = AnnealingSchedule(start=0.01, end=1e-4, decay_steps=10000, decay_type="linear") # learning rate decay!!
-		self.optimizer = tf.train.AdamOptimizer
+		self.learning_rate = AnnealingSchedule(start=1e-2, end=1e-4, decay_steps=params.decay_steps,
+											   decay_type="linear")  # learning rate decay!!
+		self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate.get_value())
 		# self.optimizer = tf.train.RMSPropOptimizer(0.00025, 0.99, 0.0, 1e-6)
-		self.index_timestep = 0
 
 		# TF: checkpoint vs Saver => https://stackoverflow.com/questions/53569622/difference-between-tf-train-checkpoint-and-tf-train-saver
 		self.checkpoint_dir = checkpoint_dir
-		self.check_point = tf.train.Checkpoint(optimizer=self.optimizer(),
+		self.check_point = tf.train.Checkpoint(optimizer=self.optimizer,
 											   model=self.main_model,
 											   optimizer_step=tf.train.get_or_create_global_step())
 		self.manager = tf.train.CheckpointManager(self.check_point, checkpoint_dir, max_to_keep=3)
@@ -32,6 +32,13 @@ class Double_DQN:
 		return self.main_model(tf.convert_to_tensor(state[None, :], dtype=tf.float32)).numpy()[0]
 
 	def update(self, states, actions, rewards, next_states, dones):
+		# let's keep this for debug purpose!!
+		# if you feel that the agent does not keep up with the global time-step, pls open this!
+		# print("===== UPDATE ===== Train Step:{}".format(tf.train.get_or_create_global_step()))
+
+		# get the current global-timestep
+		self.index_timestep = tf.train.get_global_step()
+
 		if self.env_type == "Atari":
 			states, next_states = np.array(states).astype('float32') / 255., np.array(next_states).astype(
 				'float32') / 255.
@@ -84,8 +91,7 @@ class Double_DQN:
 			pass
 
 		# apply processed gradients to the network
-		lr = self.learning_rate.get_value(self.index_timestep)
-		self.optimizer(learning_rate=lr).apply_gradients(zip(grads, self.main_model.trainable_weights))
+		self.optimizer.apply_gradients(zip(grads, self.main_model.trainable_weights), global_step=self.index_timestep)
 
 		# for log purpose
 		for index, grad in enumerate(grads):
@@ -95,6 +101,6 @@ class Double_DQN:
 		tf.contrib.summary.scalar("mean_q_value", tf.math.reduce_mean(next_Q), step=self.index_timestep)
 		tf.contrib.summary.scalar("var_q_value", tf.math.reduce_variance(next_Q), step=self.index_timestep)
 		tf.contrib.summary.scalar("max_q_value", tf.reduce_max(next_Q), step=self.index_timestep)
-		tf.contrib.summary.scalar("learning_rate", lr, step=self.index_timestep)
+		tf.contrib.summary.scalar("learning_rate", self.learning_rate.get_value(), step=self.index_timestep)
 
 		return loss, batch_loss

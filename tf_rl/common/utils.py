@@ -22,7 +22,13 @@ class AnnealingSchedule:
 		self.annealed_value = np.linspace(start, end, decay_steps)
 		self.decay_type = decay_type
 
-	def get_value(self, timestep):
+	def old_get_value(self, timestep):
+		"""
+		Deprecated
+
+		:param timestep:
+		:return:
+		"""
 		if self.decay_type == "linear":
 			return self.annealed_value[min(timestep, self.decay_steps) - 1]
 		# don't use this!!
@@ -31,6 +37,18 @@ class AnnealingSchedule:
 				return self.start * 0.9 ** (timestep / self.decay_steps)
 			else:
 				return self.end
+
+	def get_value(self):
+		timestep = tf.train.get_or_create_global_step() # we are maintaining the global-step in train.py so it's accessible
+		if self.decay_type == "linear":
+			return self.annealed_value[min(timestep, self.decay_steps) - 1]
+		# don't use this!!
+		elif self.decay_type == "curved":
+			if timestep < self.decay_steps:
+				return self.start * 0.9 ** (timestep / self.decay_steps)
+			else:
+				return self.end
+
 
 
 def test(sess, agent, env, params):

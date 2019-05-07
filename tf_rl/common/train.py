@@ -21,17 +21,16 @@ def train_DQN(agent, env, policy, replay_buffer, reward_buffer, params, summary_
 	:param summary_writer:
 	:return:
 	"""
+	global_timestep = tf.train.get_or_create_global_step()
 	with summary_writer.as_default():
 		# for summary purpose, we put all codes in this context
 		with tf.contrib.summary.always_record_summaries():
 
-			global_timestep = 0
 			for i in itertools.count():
 				state = env.reset()
 				total_reward = 0
 				start = time.time()
 				cnt_action = list()
-				policy.index_episode = i
 				for t in itertools.count():
 					# if i > 100:
 					# 	env.render()
@@ -39,19 +38,18 @@ def train_DQN(agent, env, policy, replay_buffer, reward_buffer, params, summary_
 					next_state, reward, done, info = env.step(action)
 					replay_buffer.add(state, action, reward, next_state, done)
 
-					global_timestep += 1
-					agent.index_timestep = global_timestep
+					tf.assign(global_timestep, global_timestep + 1, name='update_global_step')
 					total_reward += reward
 					state = next_state
 					cnt_action.append(action)
 
-					if (global_timestep > params.learning_start) and (global_timestep % params.train_interval == 0):
+					if (global_timestep.numpy() > params.learning_start) and (global_timestep.numpy() % params.train_interval == 0):
 						states, actions, rewards, next_states, dones = replay_buffer.sample(params.batch_size)
 
 						loss, batch_loss = agent.update(states, actions, rewards, next_states, dones)
 
 					# synchronise the target and main models by hard or soft update
-					if (global_timestep > params.learning_start) and (global_timestep % params.sync_freq == 0):
+					if (global_timestep.numpy() > params.learning_start) and (global_timestep.numpy() % params.sync_freq == 0):
 						agent.manager.save()
 						if params.update_hard_or_soft == "hard":
 							agent.target_model.set_weights(agent.main_model.get_weights())
@@ -64,9 +62,9 @@ def train_DQN(agent, env, policy, replay_buffer, reward_buffer, params, summary_
 						# store the episode reward
 						reward_buffer.append(total_reward)
 
-						if global_timestep > params.learning_start:
+						if global_timestep.numpy() > params.learning_start:
 							try:
-								logging(global_timestep, params.num_frames, i, time.time() - start, total_reward, np.mean(loss), policy.current_epsilon(), cnt_action)
+								logging(global_timestep.numpy(), params.num_frames, i, time.time() - start, total_reward, np.mean(loss), policy.current_epsilon(), cnt_action)
 							except:
 								pass
 
@@ -120,7 +118,7 @@ def train_DQN_PER(agent, env, policy, replay_buffer, reward_buffer, params, Beta
 					if (global_timestep > params.learning_start) and (global_timestep % params.train_interval == 0):
 						# PER returns: state, action, reward, next_state, done, weights(a weight for an episode), indices(indices for a batch of episode)
 						states, actions, rewards, next_states, dones, weights, indices = replay_buffer.sample(
-							params.batch_size, Beta.get_value(i))
+							params.batch_size, Beta.get_value())
 
 						loss, batch_loss = agent.update(states, actions, rewards, next_states, dones)
 
