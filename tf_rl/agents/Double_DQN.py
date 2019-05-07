@@ -57,24 +57,25 @@ class Double_DQN:
 
 			# passing [-1] to tf.reshape means flatten the array
 			# using tf.gather, associate Q-values with the executed actions
-			action_probs = tf.gather(tf.reshape(next_Q, [-1]), idx_flattened)
+			chosen_next_q = tf.gather(tf.reshape(next_Q, [-1]), idx_flattened)
 
-			Y = rewards + self.params.gamma * action_probs * np.logical_not(dones)
+			Y = rewards + self.params.gamma * chosen_next_q * np.logical_not(dones)
+			Y = tf.stop_gradient(Y)
 
 			# calculate Q(s,a)
 			q_values = self.main_model(tf.convert_to_tensor(states, dtype=tf.float32))
 
 			# get the q-values which is associated with actually taken actions in a game
 			actions_one_hot = tf.one_hot(actions, self.num_action, 1.0, 0.0)
-			action_probs = tf.reduce_sum(actions_one_hot * q_values, reduction_indices=-1)
+			chosen_q = tf.reduce_sum(actions_one_hot * q_values, reduction_indices=-1)
 
 			if self.params.loss_fn == "huber_loss":
 				# use huber loss
-				batch_loss = huber_loss(tf.squared_difference(Y, action_probs))
+				batch_loss = tf.losses.huber_loss(Y, chosen_q, reduction=tf.losses.Reduction.NONE)
 				loss = tf.reduce_mean(batch_loss)
 			elif self.params.loss_fn == "MSE":
 				# use MSE
-				batch_loss = tf.squared_difference(Y, action_probs)
+				batch_loss = tf.squared_difference(Y, chosen_q)
 				loss = tf.reduce_mean(batch_loss)
 			else:
 				assert False

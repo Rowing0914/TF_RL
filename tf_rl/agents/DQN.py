@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from tf_rl.common.utils import huber_loss, ClipIfNotNone, AnnealingSchedule
+from tf_rl.common.utils import ClipIfNotNone, AnnealingSchedule
 
 
 class DQN:
@@ -46,7 +46,8 @@ class DQN:
         # we don't want to update the target model
         # calculate target: R + gamma * max_a Q(s',a')
         next_Q = self.target_model(tf.convert_to_tensor(next_states, dtype=tf.float32))
-        Y = rewards + self.params.gamma * np.max(next_Q, axis=-1).flatten() * np.logical_not(dones)
+        Y = rewards + self.params.gamma * np.max(next_Q, axis=-1).flatten()*(1. - tf.cast(dones, tf.float32))
+        Y = tf.stop_gradient(Y)
 
         # ===== make sure to fit all process to compute gradients within this Tape context!! =====
         with tf.GradientTape() as tape:
@@ -55,15 +56,15 @@ class DQN:
 
             # get the q-values which is associated with actually taken actions in a game
             actions_one_hot = tf.one_hot(actions, self.num_action, 1.0, 0.0)
-            action_probs = tf.reduce_sum(actions_one_hot*q_values, reduction_indices=1)
+            chosen_q = tf.reduce_sum(actions_one_hot*q_values, reduction_indices=1)
 
             if self.params.loss_fn == "huber_loss":
                 # use huber loss
-                batch_loss = huber_loss(tf.squared_difference(Y, action_probs))
+                batch_loss = tf.losses.huber_loss(Y, chosen_q, reduction=tf.losses.Reduction.NONE)
                 loss = tf.reduce_mean(batch_loss)
             elif self.params.loss_fn == "MSE":
                 # use MSE
-                batch_loss = tf.squared_difference(Y, action_probs)
+                batch_loss = tf.squared_difference(Y, chosen_q)
                 loss = tf.reduce_mean(batch_loss)
             else:
                 assert False

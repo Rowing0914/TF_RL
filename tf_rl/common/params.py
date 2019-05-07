@@ -96,8 +96,8 @@ class Parameters:
             self.state_reshape = (1, 4)
             self.loss_fn = "huber_loss"
             self.policy_fn = "Eps"
-            self.grad_clip_flg = "norm"
-            self.sync_freq = 100
+            self.grad_clip_flg = "None"
+            self.sync_freq = 1000
             self.train_interval = 1
             self.gamma = 0.99
             self.update_hard_or_soft = "hard"

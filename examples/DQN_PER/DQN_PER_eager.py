@@ -59,7 +59,7 @@ if __name__ == '__main__':
 	parser.add_argument("--learning_start", default=10_000, type=int, help="frame number which specifies when to start updating the agent")
 	parser.add_argument("--sync_freq", default=5_000, type=int, help="frequency of updating a target model")
 	parser.add_argument("--batch_size", default=64, type=int, help="batch size of each iteration of update")
-	parser.add_argument("--gamma", default=0.99, type=int, help="discount factor => gamma > 1.0 or negative => does not converge!!")
+	parser.add_argument("--gamma", default=0.99, type=float, help="discount factor => gamma > 1.0 or negative => does not converge!!")
 	parser.add_argument("--update_hard_or_soft", default="hard", help="types of synchronisation method of target and main models => soft or hard update")
 	parser.add_argument("--soft_update_tau", default=1e-2, type=float, help="in soft-update tau defines the ratio of main model remains and it seems 1e-2 is the optimal!")
 	parser.add_argument("--epsilon_start", default=1.0, type=float, help="initial value of epsilon")

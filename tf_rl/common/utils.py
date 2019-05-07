@@ -39,7 +39,7 @@ class AnnealingSchedule:
 				return self.end
 
 	def get_value(self):
-		timestep = tf.train.get_or_create_global_step() # we are maintaining the global-step in train.py so it's accessible
+		timestep = tf.train.get_or_create_global_step() # we are maintaining the global-step in train.py so it is accessible
 		if self.decay_type == "linear":
 			return self.annealed_value[min(timestep, self.decay_steps) - 1]
 		# don't use this!!
