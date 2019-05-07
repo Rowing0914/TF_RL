@@ -16,7 +16,7 @@ class DQN:
         self.main_model = main_model(env_type, num_action)
         self.target_model = target_model(env_type, num_action)
         self.index_timestep = 0
-        self.learning_rate = AnnealingSchedule(start=1e-2, end=1e-4, decay_steps=10000, decay_type="linear") # learning rate decay!!
+        self.learning_rate = AnnealingSchedule(start=1e-2, end=1e-4, decay_steps=params.decay_steps, decay_type="linear") # learning rate decay!!
         self.optimizer = tf.train.AdamOptimizer
         # self.optimizer = tf.train.RMSPropOptimizer(0.00025, 0.99, 0.0, 1e-6)
 
