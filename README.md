@@ -166,6 +166,7 @@ sudo apt-get update && \
 
 ## References
 
+- if you get stuck at DQN, you may want to refer to this great guy's entry: <https://adgefficiency.com/dqn-debugging/>
 - [@dennybritz's great repo](<https://github.com/dennybritz/reinforcement-learning>)
 - [my research repo](<https://github.com/Rowing0914/Reinforcement_Learning>)
 - [OpenAI Baselines](<https://github.com/openai/baselines>)

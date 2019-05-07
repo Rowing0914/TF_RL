@@ -16,7 +16,7 @@ class AnnealingSchedule:
 
 	"""
 	def __init__(self, start=1.0, end=0.1, decay_steps=500, decay_type="linear"):
-		self.start       = start
+		self.start = start
 		self.end = end
 		self.decay_steps = decay_steps
 		self.annealed_value = np.linspace(start, end, decay_steps)
@@ -25,8 +25,12 @@ class AnnealingSchedule:
 	def get_value(self, timestep):
 		if self.decay_type == "linear":
 			return self.annealed_value[min(timestep, self.decay_steps) - 1]
+		# don't use this!!
 		elif self.decay_type == "curved":
-			return max(self.end, min(1, 1.0 - np.log10((timestep + 1) / 25)))
+			if timestep < self.decay_steps:
+				return self.start * 0.9 ** (timestep / self.decay_steps)
+			else:
+				return self.end
 
 
 def test(sess, agent, env, params):
