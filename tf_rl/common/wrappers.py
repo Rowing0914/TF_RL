@@ -1,6 +1,5 @@
 import numpy as np
 import os, math
-from tf_rl.env.cartpole_pixel import RenderThread
 os.environ.setdefault('PATH', '')
 from collections import deque
 import gym
@@ -46,6 +45,7 @@ class CartPole_Pixel(gym.Wrapper):
 		"""
 		start new thread to deal with getting raw image
 		"""
+		from tf_rl.env.cartpole_pixel import RenderThread
 		self.renderer = RenderThread(env)
 		self.renderer.start()
 
