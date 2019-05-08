@@ -61,14 +61,15 @@ class Parameters:
 
         # load params corresponding to the env type
         if mode == "Atari":
-            self.goal = 20
+            # self.goal = 19
+            self.goal = 195
             self.num_frames = 10_000_000
             self.memory_size = 1_000_000
             self.learning_start = 50_000
         elif mode == "CartPole":
             self.goal = 195
-            self.num_frames = 100_000
-            self.memory_size = 50_000
+            self.num_frames = 6_000
+            self.memory_size = 5_000
             self.learning_start = 100
 
 
@@ -76,7 +77,6 @@ class Parameters:
         if mode == "Atari":
             self.state_reshape = (1, 84, 84, 1)
             self.loss_fn = "MSE"
-            self.policy_fn = "Eps"
             self.grad_clip_flg = "norm"
             self.sync_freq = 10000
             self.train_interval = 4
@@ -90,12 +90,43 @@ class Parameters:
             self.epsilon_end = 0.1
             self.batch_size = 32
             self.test_episodes = 10
-            self.tau = 1. # used in BoltzmannQPolicy
-            self.clip = (-500., 500.) # used in BoltzmannQPolicy
         elif mode == "CartPole":
             self.state_reshape = (1, 4)
             self.loss_fn = "huber_loss"
-            self.policy_fn = "Eps"
+            self.grad_clip_flg = "None"
+            self.sync_freq = 1000
+            self.train_interval = 1
+            self.gamma = 0.99
+            self.update_hard_or_soft = "hard"
+            self.soft_update_tau = 1e-2
+            self.decay_type = "linear"
+            self.decay_steps = 3_000
+            self.reward_buffer_ep = 5
+            self.epsilon_start = 1.0
+            self.epsilon_end = 0.02
+            self.batch_size = 32
+            self.test_episodes = 10
+
+    def _load_Double_DQN(self, mode):
+        if mode == "Atari":
+            self.state_reshape = (1, 84, 84, 1)
+            self.loss_fn = "MSE"
+            self.grad_clip_flg = "norm"
+            self.sync_freq = 10000
+            self.train_interval = 4
+            self.gamma = 0.99
+            self.update_hard_or_soft = "hard"
+            self.soft_update_tau = 1e-2
+            self.decay_type = "curved"
+            self.decay_steps = 1_000_000
+            self.reward_buffer_ep = 2
+            self.epsilon_start = 1.0
+            self.epsilon_end = 0.1
+            self.batch_size = 32
+            self.test_episodes = 10
+        elif mode == "CartPole":
+            self.state_reshape = (1, 4)
+            self.loss_fn = "huber_loss"
             self.grad_clip_flg = "None"
             self.sync_freq = 1000
             self.train_interval = 1
@@ -109,48 +140,6 @@ class Parameters:
             self.epsilon_end = 0.02
             self.batch_size = 32
             self.test_episodes = 10
-            self.tau = 1. # used in BoltzmannQPolicy
-            self.clip = (-500., 500.) # used in BoltzmannQPolicy
-
-    def _load_Double_DQN(self, mode):
-        if mode == "Atari":
-            self.state_reshape = (1, 84, 84, 1)
-            self.loss_fn = "MSE"
-            self.policy_fn = "Eps"
-            self.grad_clip_flg = "norm"
-            self.sync_freq = 10000
-            self.train_interval = 4
-            self.gamma = 0.99
-            self.update_hard_or_soft = "hard"
-            self.soft_update_tau = 1e-2
-            self.decay_type = "curved"
-            self.decay_steps = 1_000_000
-            self.reward_buffer_ep = 2
-            self.epsilon_start = 1.0
-            self.epsilon_end = 0.1
-            self.batch_size = 32
-            self.test_episodes = 10
-            self.tau = 1. # used in BoltzmannQPolicy
-            self.clip = (-500., 500.) # used in BoltzmannQPolicy
-        elif mode == "CartPole":
-            self.state_reshape = (1, 4)
-            self.loss_fn = "huber_loss"
-            self.policy_fn = "Eps"
-            self.grad_clip_flg = "norm"
-            self.sync_freq = 100
-            self.train_interval = 1
-            self.gamma = 0.99
-            self.update_hard_or_soft = "hard"
-            self.soft_update_tau = 1e-2
-            self.decay_type = "linear"
-            self.decay_steps = 10_000
-            self.reward_buffer_ep = 5
-            self.epsilon_start = 1.0
-            self.epsilon_end = 0.02
-            self.batch_size = 32
-            self.test_episodes = 10
-            self.tau = 1. # used in BoltzmannQPolicy
-            self.clip = (-500., 500.) # used in BoltzmannQPolicy
 
     def _load_DQN_PER(self, mode):
         if mode == "Atari":
@@ -178,23 +167,20 @@ class Parameters:
             self.prioritized_replay_noise = 1e-6
         elif mode == "CartPole":
             self.state_reshape = (1, 4)
-            self.loss_fn = "MSE"
-            self.policy_fn = "Eps"
-            self.grad_clip_flg = "by_value"
-            self.sync_freq = 100
-            self.train_interval = 4
+            self.loss_fn = "huber_loss"
+            self.grad_clip_flg = "None"
+            self.sync_freq = 1000
+            self.train_interval = 1
             self.gamma = 0.99
             self.update_hard_or_soft = "hard"
             self.soft_update_tau = 1e-2
             self.decay_type = "linear"
-            self.decay_steps = 1000
-            self.reward_buffer_ep = 2
+            self.decay_steps = 10_000
+            self.reward_buffer_ep = 5
             self.epsilon_start = 1.0
-            self.epsilon_end = 0.1
+            self.epsilon_end = 0.02
             self.batch_size = 32
             self.test_episodes = 10
-            self.tau = 1. # used in BoltzmannQPolicy
-            self.clip = (-500., 500.) # used in BoltzmannQPolicy
             self.prioritized_replay_alpha = 0.6
             self.prioritized_replay_beta_start = 0.4
             self.prioritized_replay_beta_end = 1.0
@@ -223,9 +209,8 @@ class Parameters:
         elif mode == "CartPole":
             self.state_reshape = (1, 4)
             self.loss_fn = "huber_loss"
-            self.policy_fn = "Eps"
-            self.grad_clip_flg = "norm"
-            self.sync_freq = 100
+            self.grad_clip_flg = "None"
+            self.sync_freq = 1000
             self.train_interval = 1
             self.gamma = 0.99
             self.update_hard_or_soft = "hard"
@@ -237,8 +222,6 @@ class Parameters:
             self.epsilon_end = 0.02
             self.batch_size = 32
             self.test_episodes = 10
-            self.tau = 1. # used in BoltzmannQPolicy
-            self.clip = (-500., 500.) # used in BoltzmannQPolicy
 
     def _load_Duelling_Double_DQN_PER(self, mode):
         if mode == "Atari":
@@ -266,23 +249,20 @@ class Parameters:
             self.prioritized_replay_noise = 1e-6
         elif mode == "CartPole":
             self.state_reshape = (1, 4)
-            self.loss_fn = "MSE"
-            self.policy_fn = "Eps"
-            self.grad_clip_flg = "by_value"
-            self.sync_freq = 100
-            self.train_interval = 4
+            self.loss_fn = "huber_loss"
+            self.grad_clip_flg = "None"
+            self.sync_freq = 1000
+            self.train_interval = 1
             self.gamma = 0.99
             self.update_hard_or_soft = "hard"
             self.soft_update_tau = 1e-2
             self.decay_type = "linear"
-            self.decay_steps = 1000
-            self.reward_buffer_ep = 2
+            self.decay_steps = 10_000
+            self.reward_buffer_ep = 5
             self.epsilon_start = 1.0
-            self.epsilon_end = 0.1
+            self.epsilon_end = 0.02
             self.batch_size = 32
             self.test_episodes = 10
-            self.tau = 1.  # used in BoltzmannQPolicy
-            self.clip = (-500., 500.)  # used in BoltzmannQPolicy
             self.prioritized_replay_alpha = 0.6
             self.prioritized_replay_beta_start = 0.4
             self.prioritized_replay_beta_end = 1.0
@@ -314,23 +294,20 @@ class Parameters:
             self.prioritized_replay_noise = 1e-6
         elif mode == "CartPole":
             self.state_reshape = (1, 4)
-            self.loss_fn = "MSE"
-            self.policy_fn = "Eps"
-            self.grad_clip_flg = "by_value"
-            self.sync_freq = 100
-            self.train_interval = 4
+            self.loss_fn = "huber_loss"
+            self.grad_clip_flg = "None"
+            self.sync_freq = 1000
+            self.train_interval = 1
             self.gamma = 0.99
             self.update_hard_or_soft = "hard"
             self.soft_update_tau = 1e-2
             self.decay_type = "linear"
-            self.decay_steps = 1000
-            self.reward_buffer_ep = 2
+            self.decay_steps = 10_000
+            self.reward_buffer_ep = 5
             self.epsilon_start = 1.0
-            self.epsilon_end = 0.1
+            self.epsilon_end = 0.02
             self.batch_size = 32
             self.test_episodes = 10
-            self.tau = 1. # used in BoltzmannQPolicy
-            self.clip = (-500., 500.) # used in BoltzmannQPolicy
             self.prioritized_replay_alpha = 0.6
             self.prioritized_replay_beta_start = 0.4
             self.prioritized_replay_beta_end = 1.0
@@ -357,22 +334,20 @@ class Parameters:
             self.clip = (-500., 500.) # used in BoltzmannQPolicy
         elif mode == "CartPole":
             self.state_reshape = (1, 4)
-            self.loss_fn = "MSE"
-            self.policy_fn = "Eps"
-            self.grad_clip_flg = "by_value"
-            self.sync_freq = 100
+            self.loss_fn = "huber_loss"
+            self.grad_clip_flg = "None"
+            self.sync_freq = 1000
+            self.train_interval = 1
             self.gamma = 0.99
             self.update_hard_or_soft = "hard"
             self.soft_update_tau = 1e-2
             self.decay_type = "linear"
-            self.decay_steps = 100
-            self.reward_buffer_ep = 2
+            self.decay_steps = 10_000
+            self.reward_buffer_ep = 5
             self.epsilon_start = 1.0
-            self.epsilon_end = 0.1
+            self.epsilon_end = 0.02
             self.batch_size = 32
             self.test_episodes = 10
-            self.tau = 1. # used in BoltzmannQPolicy
-            self.clip = (-500., 500.) # used in BoltzmannQPolicy
 
     def _load_DDPG(self, mode):
         if mode == "Atari": # not used
@@ -395,22 +370,20 @@ class Parameters:
             self.clip = (-500., 500.) # used in BoltzmannQPolicy
         elif mode == "CartPole": # not cartpole but pendulum
             self.state_reshape = (1, 4)
-            self.loss_fn = "MSE"
-            self.policy_fn = "Eps"
-            self.grad_clip_flg = "by_value"
-            self.sync_freq = 100
+            self.loss_fn = "huber_loss"
+            self.grad_clip_flg = "None"
+            self.sync_freq = 1000
+            self.train_interval = 1
             self.gamma = 0.99
             self.update_hard_or_soft = "hard"
             self.soft_update_tau = 1e-2
             self.decay_type = "linear"
-            self.decay_steps = 100
-            self.reward_buffer_ep = 2
+            self.decay_steps = 10_000
+            self.reward_buffer_ep = 5
             self.epsilon_start = 1.0
-            self.epsilon_end = 0.1
+            self.epsilon_end = 0.02
             self.batch_size = 32
             self.test_episodes = 10
-            self.tau = 1. # used in BoltzmannQPolicy
-            self.clip = (-500., 500.) # used in BoltzmannQPolicy
 
     def _load_HER(self, mode):
         if mode == "Atari":
@@ -433,37 +406,17 @@ class Parameters:
             self.clip = (-500., 500.) # used in BoltzmannQPolicy
         elif mode == "CartPole":
             self.state_reshape = (1, 4)
-            self.loss_fn = "MSE"
-            self.policy_fn = "Eps"
-            self.grad_clip_flg = "by_value"
-            self.sync_freq = 100
+            self.loss_fn = "huber_loss"
+            self.grad_clip_flg = "None"
+            self.sync_freq = 1000
+            self.train_interval = 1
             self.gamma = 0.99
             self.update_hard_or_soft = "hard"
             self.soft_update_tau = 1e-2
             self.decay_type = "linear"
-            self.decay_steps = 100
-            self.reward_buffer_ep = 2
+            self.decay_steps = 10_000
+            self.reward_buffer_ep = 5
             self.epsilon_start = 1.0
-            self.epsilon_end = 0.1
+            self.epsilon_end = 0.02
             self.batch_size = 32
             self.test_episodes = 10
-            self.tau = 1. # used in BoltzmannQPolicy
-            self.clip = (-500., 500.) # used in BoltzmannQPolicy
-
-
-class logdirs:
-    def __init__(self):
-        self.model_DQN = "../logs/models/DQN/"
-        self.log_DQN = "../logs/summaries/DQN/"
-        self.model_Double_DQN = "../logs/models/Double_DQN/"
-        self.log_Double_DQN = "../logs/summaries/Double_DQN/"
-        self.model_DQN_PER = "../logs/models/DQN_PER/"
-        self.log_DQN_PER = "../logs/summaries/DQN_PER/"
-        self.model_Duelling_DQN = "../logs/models/Duelling_DQN/"
-        self.log_Duelling_DQN = "../logs/summaries/Duelling_DQN/"
-        self.model_Duelling_Double_DQN_PER = "../logs/models/Duelling_Double_DQN_PER/"
-        self.log_Duelling_Double_DQN_PER = "../logs/summaries/Duelling_Double_DQN_PER/"
-        self.model_DQfD = "../logs/models/DQfD/"
-        self.log_DQfD = "../logs/summaries/DQfD/"
-        self.model_DQN_afp = "../logs/models/DQN_afp/"
-        self.log_DQN_afp = "../logs/summaries/DQN_afp/"

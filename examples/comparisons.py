@@ -8,18 +8,18 @@ args = parser.parse_args()
 
 if args.mode == "CartPole":
 	models = [
-		"Q_learning",
-		"REINFORCE",
-		"DQN_eager",
-		"Duelling_DQN_eager",
-		"Double_DQN_eager",
-		"DQN_PER_eager",
-		"Duelling_Double_DQN_PER_eager",
-		"DQfD_eager"
+		# "Q_learning",
+		# "REINFORCE",
+		"DQN/DQN_eager",
+		"Duelling_DQN/Duelling_DQN_eager",
+		"Double_DQN/Double_DQN_eager",
+		"DQN_PER/DQN_PER_eager",
+		"DDDP/Duelling_Double_DQN_PER_eager",
+		"DQfD/DQfD_eager"
 	]
 
 	for model in models:
-		os.system("python3.6 {}.py --num_episode 2000".format(model))
+		os.system("python3.6 {}.py --mode=CartPole".format(model))
 
 	# plot_comparison_graph(models)
 

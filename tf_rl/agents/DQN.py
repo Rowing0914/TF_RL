@@ -15,9 +15,12 @@ class DQN:
         self.params = params
         self.main_model = main_model(env_type, num_action)
         self.target_model = target_model(env_type, num_action)
-        self.learning_rate = AnnealingSchedule(start=1e-2, end=1e-4, decay_steps=params.decay_steps, decay_type="linear") # learning rate decay!!
-        self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate.get_value())
-        # self.optimizer = tf.train.RMSPropOptimizer(0.00025, 0.99, 0.0, 1e-6)
+        # self.learning_rate = AnnealingSchedule(start=1e-3, end=1e-5, decay_steps=params.decay_steps, decay_type="linear") # learning rate decay!!
+        # self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate.get_value())
+
+        self.learning_rate = AnnealingSchedule(start=0.0025, end=0.00025, decay_steps=params.decay_steps,
+                                               decay_type="linear")  # learning rate decay!!
+        self.optimizer = tf.train.RMSPropOptimizer(self.learning_rate.get_value(), 0.99, 0.0, 1e-6)
 
         # TF: checkpoint vs Saver => https://stackoverflow.com/questions/53569622/difference-between-tf-train-checkpoint-and-tf-train-saver
         self.checkpoint_dir = checkpoint_dir
@@ -42,15 +45,12 @@ class DQN:
         if self.env_type == "Atari":
             states, next_states = np.array(states).astype('float32') / 255., np.array(next_states).astype('float32') / 255.
 
-        # putting this outside the scope of GradientTape for safety purpose
-        # we don't want to update the target model
-        # calculate target: R + gamma * max_a Q(s',a')
-        next_Q = self.target_model(tf.convert_to_tensor(next_states, dtype=tf.float32))
-        Y = rewards + self.params.gamma * np.max(next_Q, axis=-1).flatten()*(1. - tf.cast(dones, tf.float32))
-        Y = tf.stop_gradient(Y)
-
         # ===== make sure to fit all process to compute gradients within this Tape context!! =====
         with tf.GradientTape() as tape:
+            next_Q = self.target_model(tf.convert_to_tensor(next_states, dtype=tf.float32))
+            Y = rewards + self.params.gamma * np.max(next_Q, axis=-1).flatten() * (1. - tf.cast(dones, tf.float32))
+            Y = tf.stop_gradient(Y)
+
             # calculate Q(s,a)
             q_values = self.main_model(tf.convert_to_tensor(states, dtype=tf.float32))
 

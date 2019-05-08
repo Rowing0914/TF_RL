@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from tf_rl.common.utils import huber_loss, ClipIfNotNone, AnnealingSchedule
+from tf_rl.common.utils import ClipIfNotNone, AnnealingSchedule
 
 
 class Double_DQN:
@@ -14,10 +14,12 @@ class Double_DQN:
 		self.params = params
 		self.main_model = main_model(env_type, num_action)
 		self.target_model = target_model(env_type, num_action)
-		self.learning_rate = AnnealingSchedule(start=1e-2, end=1e-4, decay_steps=params.decay_steps,
+		# self.learning_rate = AnnealingSchedule(start=1e-2, end=1e-4, decay_steps=params.decay_steps, decay_type="linear")  # learning rate decay!!
+		# self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate.get_value())
+
+		self.learning_rate = AnnealingSchedule(start=0.0025, end=0.00025, decay_steps=params.decay_steps,
 											   decay_type="linear")  # learning rate decay!!
-		self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate.get_value())
-		# self.optimizer = tf.train.RMSPropOptimizer(0.00025, 0.99, 0.0, 1e-6)
+		self.optimizer = tf.train.RMSPropOptimizer(self.learning_rate.get_value(), 0.99, 0.0, 1e-6)
 
 		# TF: checkpoint vs Saver => https://stackoverflow.com/questions/53569622/difference-between-tf-train-checkpoint-and-tf-train-saver
 		self.checkpoint_dir = checkpoint_dir
@@ -43,16 +45,12 @@ class Double_DQN:
 			states, next_states = np.array(states).astype('float32') / 255., np.array(next_states).astype(
 				'float32') / 255.
 
-		# putting this outside the scope of GradientTape for safety purpose
-		# we don't want to update the target model
-		# calculate target: R + gamma * max_a Q(s',a')
-		next_Q = self.target_model(tf.convert_to_tensor(next_states, dtype=tf.float32))
-
 		# ===== make sure to fit all process to compute gradients within this Tape context!! =====
 		with tf.GradientTape() as tape:
 			# this is where Double DQN comes in!!
 			# calculate target: R + gamma * max_a Q(s', max_a Q(s', a'; main_model); target_model)
 			next_Q_main = self.main_model(tf.convert_to_tensor(next_states, dtype=tf.float32))
+			next_Q = self.target_model(tf.convert_to_tensor(next_states, dtype=tf.float32))
 			idx_flattened = tf.range(0, tf.shape(next_Q)[0]) * tf.shape(next_Q)[1] + np.argmax(next_Q_main, axis=-1)
 
 			# passing [-1] to tf.reshape means flatten the array
