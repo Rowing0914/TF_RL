@@ -9,7 +9,7 @@ from tf_rl.common.memory import ReplayBuffer
 from tf_rl.common.utils import AnnealingSchedule
 from tf_rl.common.policy import EpsilonGreedyPolicy_eager
 from tf_rl.common.train import train_DQN
-from tf_rl.agents.DQN import DQN
+from tf_rl.agents.DQN import DQN, DQN_new
 
 tf.enable_eager_execution()
 tf.random.set_random_seed(123)
@@ -50,7 +50,7 @@ class Model(tf.keras.Model):
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
-	# parser.add_argument("--mode", default="Atari", help="game env type => Atari or CartPole")
+	# parser.add_argument("--mode", default="CartPole", help="game env type => Atari or CartPole")
 	# parser.add_argument("--loss_fn", default="MSE", help="types of loss function => MSE or huber_loss")
 	# parser.add_argument("--grad_clip_flg", default="norm", help="types of a clipping method of gradients => by value(by_value) or global norm(norm) or None")
 	# parser.add_argument("--num_frames", default=30000, type=int, help="total frame in a training")
@@ -90,6 +90,7 @@ if __name__ == '__main__':
 	parser.add_argument("--decay_type", default="linear", help="types of annealing method => linear or curved")
 	parser.add_argument("--log_dir", default="../../logs/logs/DQN/", help="directory for log")
 	parser.add_argument("--model_dir", default="../../logs/models/DQN/", help="directory for trained model")
+	parser.add_argument("--new_or_old", default="new", help="temp")
 
 	args = parser.parse_args()
 
@@ -125,7 +126,12 @@ if __name__ == '__main__':
 		# env = CartPole_Pixel(gym.make("CartPole-v0"))
 
 	replay_buffer = ReplayBuffer(params.memory_size)
-	agent = DQN(args.mode, Model, Model, env.action_space.n, params, args.model_dir)
+
+	if args.new_or_old == "new":
+		agent = DQN_new(args.mode, Model, Model, env.action_space.n, params, args.model_dir)
+	else:
+		agent = DQN(args.mode, Model, Model, env.action_space.n, params, args.model_dir)
+
 	Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end,
 								decay_steps=params.decay_steps)
 	policy = EpsilonGreedyPolicy_eager(Epsilon_fn=Epsilon)

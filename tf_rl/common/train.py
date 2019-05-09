@@ -59,6 +59,9 @@ def train_DQN(agent, env, policy, replay_buffer, reward_buffer, params, summary_
 
 					if done:
 						tf.contrib.summary.scalar("reward", total_reward, step=i)
+						tf.contrib.summary.scalar("exec time", time.time() - start, step=i)
+						tf.contrib.summary.histogram("taken actions", cnt_action, step=i)
+
 						# store the episode reward
 						reward_buffer.append(total_reward)
 
