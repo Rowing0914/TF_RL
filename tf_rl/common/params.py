@@ -420,3 +420,67 @@ class Parameters:
             self.epsilon_end = 0.02
             self.batch_size = 32
             self.test_episodes = 10
+
+ENV_LIST_NIPS = [
+    "BeamRiderNoFrameskip-v4",
+    "BreakoutNoFrameskip-v4",
+    "EnduroNoFrameskip-v4",
+    "PongNoFrameskip-v4",
+    "QbertNoFrameskip-v4",
+    "SeaquestNoFrameskip-v4",
+    "SpaceInvadersNoFrameskip-v4"
+            ]
+
+
+ENV_LIST_NATURE = [
+    "VideoPinballNoFrameskip-v4",
+    "BoxingNoFrameskip-v4",
+    "BreakoutNoFrameskip-v4",
+    "StarGunnerNoFrameskip-v4",
+    "RobotankNoFrameskip-v4",
+    "AtlantisNoFrameskip-v4",
+    "CrazyClimberNoFrameskip-v4",
+    "GopherNoFrameskip-v4",
+    "DemonAttackNoFrameskip-v4",
+    "NameThisGameNoFrameskip-v4",
+    "KrullNoFrameskip-v4",
+    "AssaultNoFrameskip-v4",
+    "RoadRunnerNoFrameskip-v4",
+    "KangarooNoFrameskip-v4",
+    "JamesbondNoFrameskip-v4",
+    "TennisNoFrameskip-v4",
+    "PongNoFrameskip-v4",
+    "SpaceInvadersNoFrameskip-v4",
+    "BeamRiderNoFrameskip-v4",
+    "TutankhamNoFrameskip-v4",
+    "KungFuMasterNoFrameskip-v4",
+    "FreewayNoFrameskip-v4",
+    "TimePilotNoFrameskip-v4",
+    "EnduroNoFrameskip-v4",
+    "FishingDerbyNoFrameskip-v4",
+    "UpNDownNoFrameskip-v4",
+    "IceHockeyNoFrameskip-v4",
+    "QbertNoFrameskip-v4",
+    "HeroNoFrameskip-v4",
+    "AsterixNoFrameskip-v4",
+    "BattleZoneNoFrameskip-v4",
+    "WizardOfWorNoFrameskip-v4",
+    "ChopperCommandNoFrameskip-v4",
+    "CentipedeNoFrameskip-v4",
+    "BankHeistNoFrameskip-v4",
+    "RiverraidNoFrameskip-v4",
+    "ZaxxonNoFrameskip-v4",
+    "AmidarNoFrameskip-v4",
+    "AlienNoFrameskip-v4",
+    "VentureNoFrameskip-v4",
+    "SeaquestNoFrameskip-v4",
+    "DoubleDunkNoFrameskip-v4",
+    "BowlingNoFrameskip-v4",
+    "MsPacmanNoFrameskip-v4",
+    "AsteroidsNoFrameskip-v4",
+    "FrostbiteNoFrameskip-v4",
+    "GravitarNoFrameskip-v4",
+    "PrivateEyeNoFrameskip-v4",
+    "MontezumaRevengeNoFrameskip-v4"
+            ]
+

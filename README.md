@@ -107,7 +107,51 @@ $ python3.6 unstable/{model_name}_train.py
 
 
 
-## Envs
+## Game Envs
+
+### Atari Envs
+
+```python
+from tf_rl.common.wrappers import wrap_deepmind, make_atari
+from tf_rl.common.params import ENV_LIST_NATURE, ENV_LIST_NIPS
+
+
+# for env_name in ENV_LIST_NIPS:
+for env_name in ENV_LIST_NATURE:
+    env = wrap_deepmind(make_atari(env_name))
+    state = env.reset()
+    for t in range(10):
+        # env.render()
+        action = env.action_space.sample()
+        next_state, reward, done, info = env.step(action)
+        # print(reward, next_state)
+        state = next_state
+        if done:
+            break
+    print("{}: Episode finished after {} timesteps".format(env_name, t + 1))
+    env.close()
+```
+
+### CartPole-Pixel(Obs: Raw Pixels in NumpyArray)
+
+```python
+import gym
+from tf_rl.common.wrappers import CartPole_Pixel
+
+env = CartPole_Pixel(gym.make('CartPole-v0'))
+for ep in range(2):
+	env.reset()
+	for t in range(100):
+		o, r, done, _ = env.step(env.action_space.sample())
+		print(o.shape)
+		if done:
+			break
+env.close()
+```
+
+
+
+## PC Envs
 
 - OS: Linux Ubuntu LTS 16.04
 - Python: 3.6

@@ -6,23 +6,21 @@ Author: Norio Kosaka
 
 """
 
-import gym
 from tf_rl.common.wrappers import wrap_deepmind, make_atari
+from tf_rl.common.params import ENV_LIST_NATURE, ENV_LIST_NIPS
 
-# env = gym.make("BreakoutDeterministic-v4")
-# env = wrap_deepmind(make_atari("PongNoFrameskip-v4"))
-env = gym.make("PongNoFrameskip-v4")
 
-for i in range(10):
+# for env_name in ENV_LIST_NIPS:
+for env_name in ENV_LIST_NATURE:
+    env = wrap_deepmind(make_atari(env_name))
     state = env.reset()
-    for t in range(100):
-        env.render()
+    for t in range(10):
+        # env.render()
         action = env.action_space.sample()
         next_state, reward, done, info = env.step(action)
-        print(reward, next_state)
-        if done:
-            print("Episode finished after {} timesteps".format(t+1))
-            break
+        # print(reward, next_state)
         state = next_state
-
-env.close()
+        if done:
+            break
+    print("{}: Episode finished after {} timesteps".format(env_name, t + 1))
+    env.close()
