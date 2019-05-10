@@ -25,6 +25,7 @@ def train_DQN(agent, env, policy, replay_buffer, reward_buffer, params, summary_
 	with summary_writer.as_default():
 		# for summary purpose, we put all codes in this context
 		with tf.contrib.summary.always_record_summaries():
+			# tf.contrib.summary.graph(tf.GraphDef()) # check: https://github.com/tensorflow/tensorflow/issues/23367
 
 			for i in itertools.count():
 				state = env.reset()
@@ -38,7 +39,7 @@ def train_DQN(agent, env, policy, replay_buffer, reward_buffer, params, summary_
 					next_state, reward, done, info = env.step(action)
 					replay_buffer.add(state, action, reward, next_state, done)
 
-					tf.assign(global_timestep, global_timestep + 1, name='update_global_step')
+					tf.assign(global_timestep, global_timestep.numpy() + 1, name='update_global_step')
 					total_reward += reward
 					state = next_state
 					cnt_action.append(action)
@@ -56,6 +57,10 @@ def train_DQN(agent, env, policy, replay_buffer, reward_buffer, params, summary_
 						elif params.update_hard_or_soft == "soft":
 							soft_target_model_update_eager(agent.target_model, agent.main_model,
 														   tau=params.soft_update_tau)
+
+						for index, (target_weights, main_weights) in enumerate(zip(agent.target_model.get_weights(), agent.main_model.get_weights())):
+							tf.contrib.summary.histogram("TargetNet: layer_{}".format(index), target_weights, step=global_timestep)
+							tf.contrib.summary.histogram("MainNet: layer_{}".format(index), main_weights, step=global_timestep)
 
 					if done:
 						tf.contrib.summary.scalar("reward", total_reward, step=i)

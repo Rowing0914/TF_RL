@@ -6,7 +6,7 @@ for ep in range(2):
 	env.reset()
 	for t in range(100):
 		o, r, done, _ = env.step(env.action_space.sample())
-		print(o.shape)
+		print(o.shape, o.min(), o.max())
 		if done:
 			break
 env.close()
