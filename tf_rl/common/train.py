@@ -89,7 +89,9 @@ def train_DQN(agent, env, policy, replay_buffer, reward_buffer, params, summary_
 					agent.eval_flg = False
 
 				# check the stopping condition
-				if np.mean(reward_buffer) > params.goal or global_timestep.numpy() > params.num_frames:
+				# TODO: maybe we don't need to have a goal...
+				# if np.mean(reward_buffer) > params.goal or global_timestep.numpy() > params.num_frames:
+				if global_timestep.numpy() > params.num_frames:
 					print("=== Training is Done ===")
 					test_Agent(agent, env, n_trial=10)
 					env.close()
@@ -186,7 +188,9 @@ def train_DQN_PER(agent, env, policy, replay_buffer, reward_buffer, params, Beta
 					agent.eval_flg = False
 
 				# check the stopping condition
-				if np.mean(reward_buffer) > params.goal or global_timestep.numpy() > params.num_frames:
+				# TODO: maybe we don't need to have a goal...
+				# if np.mean(reward_buffer) > params.goal or global_timestep.numpy() > params.num_frames:
+				if global_timestep.numpy() > params.num_frames:
 					print("=== Training is Done ===")
 					test_Agent(agent, env, n_trial=10)
 					env.close()
@@ -264,7 +268,8 @@ def train_DQN_afp(agent, expert, env, agent_policy, expert_policy, replay_buffer
 						break
 
 				# check the stopping condition
-				if np.mean(reward_buffer) > params.goal or global_timestep > params.num_frames:
+				# if np.mean(reward_buffer) > params.goal or global_timestep.numpy() > params.num_frames:
+				if global_timestep.numpy() > params.num_frames:
 					print("GAME OVER!!")
 					env.close()
 					break

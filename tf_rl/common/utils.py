@@ -41,11 +41,11 @@ class AnnealingSchedule:
 	def get_value(self):
 		timestep = tf.train.get_or_create_global_step() # we are maintaining the global-step in train.py so it is accessible
 		if self.decay_type == "linear":
-			return self.annealed_value[min(timestep, self.decay_steps) - 1]
+			return self.annealed_value[min(timestep.numpy(), self.decay_steps) - 1]
 		# don't use this!!
 		elif self.decay_type == "curved":
-			if timestep < self.decay_steps:
-				return self.start * 0.9 ** (timestep / self.decay_steps)
+			if timestep.numpy() < self.decay_steps:
+				return self.start * 0.9 ** (timestep.numpy() / self.decay_steps)
 			else:
 				return self.end
 

@@ -27,6 +27,20 @@ class DQN:
                                                optimizer_step=tf.train.get_or_create_global_step())
         self.manager = tf.train.CheckpointManager(self.check_point, checkpoint_dir, max_to_keep=3)
 
+        # try re-loading the previous training progress!
+        try:
+            print("Try loading the previous training progress")
+            self.check_point.restore(self.manager.latest_checkpoint)
+            assert tf.train.get_global_step().numpy() != 0
+            print("===================================================\n")
+            print("Restored the model from {}".format(checkpoint_dir))
+            print("Currently we are on time-step: {}".format(tf.train.get_global_step().numpy()))
+            print("\n===================================================")
+        except:
+            print("===================================================\n")
+            print("Previous Training files are not found in Directory: {}".format(checkpoint_dir))
+            print("\n===================================================")
+
     def predict(self, state):
         if self.env_type == "Atari":
             # We divide the grayscale pixel values by 255 here rather than storing

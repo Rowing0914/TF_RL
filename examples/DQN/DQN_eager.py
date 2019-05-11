@@ -1,6 +1,6 @@
+import os
 import gym
 import argparse
-import os
 from datetime import datetime
 import tensorflow as tf
 from collections import deque
