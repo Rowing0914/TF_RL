@@ -1,4 +1,3 @@
-import numpy as np
 import tensorflow as tf
 from tf_rl.common.utils import ClipIfNotNone, AnnealingSchedule
 
@@ -12,6 +11,7 @@ class DQN:
         self.env_type = env_type
         self.num_action = num_action
         self.params = params
+        self.eval_flg = False
         self.main_model = main_model(env_type, num_action)
         self.target_model = target_model(env_type, num_action)
         # self.learning_rate = AnnealingSchedule(start=1e-3, end=1e-5, decay_steps=params.decay_steps, decay_type="linear") # learning rate decay!!
@@ -35,10 +35,6 @@ class DQN:
         return self.main_model(tf.convert_to_tensor(state[None,:], dtype=tf.float32)).numpy()[0]
 
     def update(self, states, actions, rewards, next_states, dones):
-        # let's keep this for debug purpose!!
-        # if you feel that the agent does not keep up with the global time-step, pls open this!
-        # print("===== UPDATE ===== Train Step:{}".format(tf.train.get_global_step()))
-
         # get the current global-timestep
         self.index_timestep = tf.train.get_global_step()
 
@@ -117,6 +113,7 @@ class DQN_new:
         self.env_type = env_type
         self.num_action = num_action
         self.params = params
+        self.eval_flg = False
         self.main_model = main_model(env_type, num_action)
         self.target_model = target_model(env_type, num_action)
         # self.lr = AnnealingSchedule(start=1e-3, end=1e-5, decay_steps=params.decay_steps, decay_type="linear") # learning rate decay!!
@@ -139,10 +136,6 @@ class DQN_new:
         return self.main_model(tf.convert_to_tensor(state[None,:], dtype=tf.float32)).numpy()[0]
 
     def update(self, states, actions, rewards, next_states, dones):
-        # let's keep this for debug purpose!!
-        # if you feel that the agent does not keep up with the global time-step, pls open this!
-        # print("===== UPDATE ===== Train Step:{}".format(tf.train.get_global_step()))
-
         # get the current global-timestep
         self.index_timestep = tf.train.get_global_step()
 
@@ -161,9 +154,7 @@ class DQN_new:
 
             # at this point, instead of getting only q-values associated wit taken actions
             # we retain all values except that we update q-values associated wit taken actions by "Y"
-            # Shape of Q-values matrix: (32,2)
-            # target_values = tf.one_hot(actions, self.num_action, 1.0, 0.0)*np.array([Y,Y]).T + tf.one_hot(actions, self.num_action, 0.0, 1.0)*q_values
-            # target_values = tf.one_hot(actions, self.num_action, 1.0, 0.0)*tf.ones([Y, 1])*self.num_action + tf.one_hot(actions, self.num_action, 0.0, 1.0)*q_values
+            # Shape of Q-values matrix: (32, num_actions)
             target_values = tf.one_hot(actions, self.num_action, 1.0, 0.0)*tf.transpose(tf.stack([Y] * self.num_action)) + tf.one_hot(actions, self.num_action, 0.0, 1.0)*q_values
             assert tf.math.equal(target_values, q_values).numpy().all() == False, "Your target values are not updated correctly"
 

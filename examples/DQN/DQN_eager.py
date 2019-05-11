@@ -52,14 +52,15 @@ class Model(tf.keras.Model):
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
 	# parser.add_argument("--mode", default="CartPole", help="game env type => Atari or CartPole")
-	# parser.add_argument("--loss_fn", default="huber_loss", help="types of loss function => MSE or huber_loss")
-	# parser.add_argument("--grad_clip_flg", default="None", help="types of a clipping method of gradients => by value(by_value) or global norm(norm) or None")
+	# parser.add_argument("--loss_fn", default="MSE", help="types of loss function => MSE or huber_loss")
+	# parser.add_argument("--grad_clip_flg", default="norm", help="types of a clipping method of gradients => by value(by_value) or global norm(norm) or None")
 	# parser.add_argument("--num_frames", default=10000, type=int, help="total frame in a training")
 	# parser.add_argument("--train_interval", default=4, type=int, help="a frequency of training occurring in training phase")
+	# parser.add_argument("--eval_interval", default=2000, type=int, help="a frequency of evaluation occurring in training phase")
 	# parser.add_argument("--memory_size", default=5000, type=int, help="memory size in a training => this used for Experience Replay Memory or Prioritised Experience Replay Memory")
-	# parser.add_argument("--learning_start", default=50, type=int, help="frame number which specifies when to start updating the agent")
+	# parser.add_argument("--learning_start", default=200, type=int, help="frame number which specifies when to start updating the agent")
 	# parser.add_argument("--sync_freq", default=100, type=int, help="frequency of updating a target model")
-	# parser.add_argument("--batch_size", default=32, type=int, help="batch size of each iteration of update")
+	# parser.add_argument("--batch_size", default=128, type=int, help="batch size of each iteration of update")
 	# parser.add_argument("--gamma", default=0.99, type=float, help="discount factor => gamma > 1.0 or negative => does not converge!!")
 	# parser.add_argument("--update_hard_or_soft", default="hard", help="types of synchronisation method of target and main models => soft or hard update")
 	# parser.add_argument("--soft_update_tau", default=1e-2, type=float, help="in soft-update tau defines the ratio of main model remains and it seems 1e-2 is the optimal!")
@@ -69,7 +70,7 @@ if __name__ == '__main__':
 	# parser.add_argument("--decay_type", default="linear", help="types of annealing method => linear or curved")
 	# parser.add_argument("--log_dir", default="../../logs/logs/DQN/", help="directory for log")
 	# parser.add_argument("--model_dir", default="../../logs/models/DQN/", help="directory for trained model")
-	# parser.add_argument("--new_or_old", default="new", help="temp")
+	# parser.add_argument("--new_or_old", default="old", help="temp")
 
 
 	# ====== Params for Atari ======
@@ -79,10 +80,11 @@ if __name__ == '__main__':
 	parser.add_argument("--grad_clip_flg", default="norm", help="types of a clipping method of gradients => by value(by_value) or global norm(norm) or None")
 	parser.add_argument("--num_frames", default=20_000_000, type=int, help="total frame in a training")
 	parser.add_argument("--train_interval", default=4, type=int, help="a frequency of training occurring in training phase")
+	parser.add_argument("--eval_interval", default=250_000, type=int, help="a frequency of evaluation occurring in training phase")
 	parser.add_argument("--memory_size", default=500_000, type=int, help="memory size in a training => this used for Experience Replay Memory or Prioritised Experience Replay Memory")
 	parser.add_argument("--learning_start", default=20_000, type=int, help="frame number which specifies when to start updating the agent")
-	parser.add_argument("--sync_freq", default=8_000, type=int, help="frequency of updating a target model")
-	parser.add_argument("--batch_size", default=32, type=int, help="batch size of each iteration of update")
+	parser.add_argument("--sync_freq", default=1_000, type=int, help="frequency of updating a target model")
+	parser.add_argument("--batch_size", default=128, type=int, help="batch size of each iteration of update")
 	parser.add_argument("--gamma", default=0.99, type=float, help="discount factor => gamma > 1.0 or negative => does not converge!!")
 	parser.add_argument("--update_hard_or_soft", default="hard", help="types of synchronisation method of target and main models => soft or hard update")
 	parser.add_argument("--soft_update_tau", default=1e-2, type=float, help="in soft-update tau defines the ratio of main model remains and it seems 1e-2 is the optimal!")
@@ -110,6 +112,8 @@ if __name__ == '__main__':
 	params.num_frames = args.num_frames
 	params.memory_size = args.memory_size
 	params.learning_start = args.learning_start
+	params.train_interval = args.train_interval
+	params.eval_interval = args.eval_interval
 	params.sync_freq = args.sync_freq
 	params.batch_size = args.batch_size
 	params.gamma = args.gamma

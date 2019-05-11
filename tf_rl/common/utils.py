@@ -298,3 +298,40 @@ def ClipIfNotNone(grad, _min, _max):
 	if grad is None:
 		return grad
 	return tf.clip_by_value(grad, _min, _max)
+
+
+
+
+"""
+
+Test Methods
+
+"""
+
+
+def test_Agent(agent, env, n_trial=1):
+	"""
+	Evaluate the trained agent!
+
+	:return:
+	"""
+	all_rewards = list()
+	print("=== Evaluation Mode ===")
+	for ep in range(n_trial):
+		state = env.reset()
+		done = False
+		episode_reward = 0
+		while not done:
+			# env.render()
+			action = np.argmax(agent.predict(state))
+			next_state, reward, done, _ = env.step(action)
+			state = next_state
+			episode_reward += reward
+		all_rewards.append(episode_reward)
+		tf.contrib.summary.scalar("Eval_Score over 250,000 time-step", episode_reward, step=agent.index_timestep)
+		print("| Ep: {}/{} | Score: {} |".format(ep, n_trial, episode_reward+1))
+
+	if n_trial > 2:
+		print("=== Evaluation Result ===")
+		all_rewards = np.array([all_rewards])
+		print("| Max: {} | Min: {} | STD: {} | MEAN: {} |".format(np.max(all_rewards), np.min(all_rewards), np.std(all_rewards), np.mean(all_rewards)))
