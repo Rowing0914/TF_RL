@@ -136,9 +136,12 @@ if __name__ == '__main__':
 		# mount your drive on google colab
 		from google.colab import drive
 		drive.mount("/content/gdrive")
-		args.log_dir = "/content/gdrive/My Drive/logs/DQN/{}".format(args.env_name)
+		args.log_dir = "/content/gdrive/My Drive/logs/logs/DQN/{}".format(args.env_name)
+		args.model_dir = "/content/gdrive/My Drive/logs/models/DQN/{}".format(args.env_name)
 		os.makedirs(args.log_dir)
+		os.makedirs(args.model_dir)
 		assert os.path.isdir(args.log_dir), "Faild to create a directory on your My Drive, pls check it"
+		assert os.path.isdir(args.model_dir), "Faild to create a directory on your My Drive, pls check it"
 		if args.new_or_old == "new":
 			agent = DQN_new(args.mode, Model, Model, env.action_space.n, params, args.model_dir)
 		else:
