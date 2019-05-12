@@ -1,6 +1,6 @@
 ## TF-RL(Reinforcement Learning with Tensorflow: EAGER!!)
 
-  This is the repo for implementing and experimenting the variety of RL algorithms using **Tensorflow Eager Execution**.
+  This is the repo for implementing and experimenting the variety of RL algorithms using **Tensorflow Eager Execution**. And, since our Lord Google gracefully allows us to use their precious GPU resources without almost restriction, I have decided to enable most of codes run on **Google Colab**. So, if you don't have GPUs, please feel free to try it out on **Google Colab**
 
 
 
@@ -37,8 +37,6 @@ python setup.py install
 
 ```shell
 $ cd examples
-# as of 26th in April, this is still in development
-# so that it's not working! or check the path inside the scripts!
 $ python3.6 comparisons.py
 $ tensorboard --logdir=./logs/
 ```
@@ -48,9 +46,49 @@ $ tensorboard --logdir=./logs/
 ```shell
 $ cd examples
 # Eager Execution mode
-$ python3.6 {model_name}/{model_name}_eager.py
+$ python3.6 examples/{model_name}/{model_name}_eager.py
 # Graph mode Tensorflow: most of them are still under development...
-$ python3.6 unstable/{model_name}_train.py
+$ python3.6 examples/unstable/{model_name}_train.py
+```
+
+4. Ready-to-run on Google colab
+
+```shell
+# you can run on google colab, but make sure that there some restriction on session
+# 1. 90 minutes session reflesh
+# 2. 12 Hours session reflesh
+# Assuming you execute cmds below on Google Colab Jupyter Notebook
+$ !git clone https://github.com/Rowing0914/TF_RL.git
+$ pip install --index-url https://test.pypi.org/simple/ --no-deps TF_RL
+$ %cd TF_RL
+$ python3.6 examples/{model_name}/{model_name}_eager.py --mode Atari --env_name={env_name} --google_colab=True
+
+# === Execute On Your Local ===
+# My dirty workaroud to avoid breaking the connection to Colab is to execute below on local PC
+$ watch -n 3600 python3.6 {your_filename}.py
+
+""" Save this code to {your_filename}.py
+import pyautogui
+import time
+
+# terminal -> chrome or whatever
+pyautogui.hotkey("alt", "tab")
+time.sleep(0.5)
+# reflesh a page
+pyautogui.hotkey("ctrl", "r")
+time.sleep(1)
+# say "YES" to a confirmation dialogue
+pyautogui.hotkey("Enter")
+time.sleep(1)
+# next page
+pyautogui.hotkey("ctrl", "tab")
+# check all page reload properly
+pyautogui.hotkey("ctrl", "tab")
+time.sleep(1)
+# switch back to terminal
+pyautogui.hotkey("alt", "tab")
+time.sleep(0.5)
+"""
 ```
 
 
@@ -73,6 +111,8 @@ $ python3.6 unstable/{model_name}_train.py
 #### Future dev
 
 1. Noisy Networks for Exploration, M.Fortunato et al., 2017 [[arxiv]](https://arxiv.org/abs/1706.10295)
+2. Soft Actor-Critic
+3. Distributed DQN etc..
 
 
 

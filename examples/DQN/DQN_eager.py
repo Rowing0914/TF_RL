@@ -133,7 +133,7 @@ if __name__ == '__main__':
 	now = datetime.now()
 
 	if args.google_colab:
-		# mount your drive to google colab
+		# mount your drive on google colab
 		from google.colab import drive
 		drive.mount("/content/gdrive")
 		args.log_dir = "/content/gdrive/My Drive/logs/DQN/{}".format(args.env_name)
