@@ -1,5 +1,7 @@
 """
-Parameters for agents
+TODO: maybe we don't need Parameters class anymore. Consider just rely on argparse.
+
+Empirically Fixed Parameters for agents
 
 ===== ALL PARAMS =====
 state_reshape: state shape for pre-processing observations
@@ -27,12 +29,12 @@ tau = 1.
 clip = (-500., 500.)
 test_episodes = 10
 goal = 20
-reward_buffer_ep = 2
+reward_buffer_ep = 10
 
 """
 
 class Parameters:
-    def __init__(self, algo=None, mode=None):
+    def __init__(self, algo=None, mode=None, env_name=None):
         assert algo != None, "Give me a name of the learning algorithm"
         assert mode != None, "Give me a name of Env type => CartPole or Atari??"
         print("Loading Params for {} Environment".format(mode))
@@ -61,14 +63,13 @@ class Parameters:
 
         # load params corresponding to the env type
         if mode == "Atari":
-            # self.goal = 19
-            self.goal = 195
-            self.num_frames = 10_000_000
-            self.memory_size = 1_000_000
-            self.learning_start = 50_000
+            self.goal = ENV_LIST_NATURE["{}NoFrameskip-v4".format(env_name)]
+            self.num_frames = 200_000_000
+            self.memory_size = 400_000
+            self.learning_start = 20_000
         elif mode == "CartPole":
             self.goal = 195
-            self.num_frames = 6_000
+            self.num_frames = 10_000
             self.memory_size = 5_000
             self.learning_start = 100
 
@@ -78,14 +79,14 @@ class Parameters:
             self.state_reshape = (1, 84, 84, 1)
             self.loss_fn = "MSE"
             self.grad_clip_flg = "norm"
-            self.sync_freq = 10000
+            self.sync_freq = 1000
             self.train_interval = 4
             self.gamma = 0.99
             self.update_hard_or_soft = "hard"
             self.soft_update_tau = 1e-2
             self.decay_type = "curved"
             self.decay_steps = 1_000_000
-            self.reward_buffer_ep = 2
+            self.reward_buffer_ep = 10
             self.epsilon_start = 1.0
             self.epsilon_end = 0.1
             self.batch_size = 32
@@ -101,7 +102,7 @@ class Parameters:
             self.soft_update_tau = 1e-2
             self.decay_type = "linear"
             self.decay_steps = 3_000
-            self.reward_buffer_ep = 5
+            self.reward_buffer_ep = 10
             self.epsilon_start = 1.0
             self.epsilon_end = 0.02
             self.batch_size = 32
@@ -119,7 +120,7 @@ class Parameters:
             self.soft_update_tau = 1e-2
             self.decay_type = "curved"
             self.decay_steps = 1_000_000
-            self.reward_buffer_ep = 2
+            self.reward_buffer_ep = 10
             self.epsilon_start = 1.0
             self.epsilon_end = 0.1
             self.batch_size = 32
@@ -135,7 +136,7 @@ class Parameters:
             self.soft_update_tau = 1e-2
             self.decay_type = "linear"
             self.decay_steps = 10_000
-            self.reward_buffer_ep = 5
+            self.reward_buffer_ep = 10
             self.epsilon_start = 1.0
             self.epsilon_end = 0.02
             self.batch_size = 32
@@ -154,7 +155,7 @@ class Parameters:
             self.soft_update_tau = 1e-2
             self.decay_type = "curved"
             self.decay_steps = 1000
-            self.reward_buffer_ep = 2
+            self.reward_buffer_ep = 10
             self.epsilon_start = 1.0
             self.epsilon_end = 0.1
             self.batch_size = 32
@@ -176,7 +177,7 @@ class Parameters:
             self.soft_update_tau = 1e-2
             self.decay_type = "linear"
             self.decay_steps = 10_000
-            self.reward_buffer_ep = 5
+            self.reward_buffer_ep = 10
             self.epsilon_start = 1.0
             self.epsilon_end = 0.02
             self.batch_size = 32
@@ -199,7 +200,7 @@ class Parameters:
             self.soft_update_tau = 1e-2
             self.decay_type = "curved"
             self.decay_steps = 1_000_000
-            self.reward_buffer_ep = 2
+            self.reward_buffer_ep = 10
             self.epsilon_start = 1.0
             self.epsilon_end = 0.1
             self.batch_size = 32
@@ -217,7 +218,7 @@ class Parameters:
             self.soft_update_tau = 1e-2
             self.decay_type = "linear"
             self.decay_steps = 10_000
-            self.reward_buffer_ep = 5
+            self.reward_buffer_ep = 10
             self.epsilon_start = 1.0
             self.epsilon_end = 0.02
             self.batch_size = 32
@@ -236,7 +237,7 @@ class Parameters:
             self.soft_update_tau = 1e-2
             self.decay_type = "curved"
             self.decay_steps = 1000
-            self.reward_buffer_ep = 2
+            self.reward_buffer_ep = 10
             self.epsilon_start = 1.0
             self.epsilon_end = 0.1
             self.batch_size = 32
@@ -258,7 +259,7 @@ class Parameters:
             self.soft_update_tau = 1e-2
             self.decay_type = "linear"
             self.decay_steps = 10_000
-            self.reward_buffer_ep = 5
+            self.reward_buffer_ep = 10
             self.epsilon_start = 1.0
             self.epsilon_end = 0.02
             self.batch_size = 32
@@ -281,7 +282,7 @@ class Parameters:
             self.soft_update_tau = 1e-2
             self.decay_type = "curved"
             self.decay_steps = 1000
-            self.reward_buffer_ep = 2
+            self.reward_buffer_ep = 10
             self.epsilon_start = 1.0
             self.epsilon_end = 0.1
             self.batch_size = 32
@@ -303,7 +304,7 @@ class Parameters:
             self.soft_update_tau = 1e-2
             self.decay_type = "linear"
             self.decay_steps = 10_000
-            self.reward_buffer_ep = 5
+            self.reward_buffer_ep = 10
             self.epsilon_start = 1.0
             self.epsilon_end = 0.02
             self.batch_size = 32
@@ -325,7 +326,7 @@ class Parameters:
             self.soft_update_tau = 1e-2
             self.decay_type = "curved"
             self.decay_steps = 100
-            self.reward_buffer_ep = 2
+            self.reward_buffer_ep = 10
             self.epsilon_start = 1.0
             self.epsilon_end = 0.1
             self.batch_size = 32
@@ -343,7 +344,7 @@ class Parameters:
             self.soft_update_tau = 1e-2
             self.decay_type = "linear"
             self.decay_steps = 10_000
-            self.reward_buffer_ep = 5
+            self.reward_buffer_ep = 10
             self.epsilon_start = 1.0
             self.epsilon_end = 0.02
             self.batch_size = 32
@@ -361,7 +362,7 @@ class Parameters:
             self.soft_update_tau = 1e-2
             self.decay_type = "curved"
             self.decay_steps = 100
-            self.reward_buffer_ep = 2
+            self.reward_buffer_ep = 10
             self.epsilon_start = 1.0
             self.epsilon_end = 0.1
             self.batch_size = 32
@@ -379,7 +380,7 @@ class Parameters:
             self.soft_update_tau = 1e-2
             self.decay_type = "linear"
             self.decay_steps = 10_000
-            self.reward_buffer_ep = 5
+            self.reward_buffer_ep = 10
             self.epsilon_start = 1.0
             self.epsilon_end = 0.02
             self.batch_size = 32
@@ -397,7 +398,7 @@ class Parameters:
             self.soft_update_tau = 1e-2
             self.decay_type = "curved"
             self.decay_steps = 1000
-            self.reward_buffer_ep = 2
+            self.reward_buffer_ep = 10
             self.epsilon_start = 1.0
             self.epsilon_end = 0.1
             self.batch_size = 32
@@ -415,72 +416,71 @@ class Parameters:
             self.soft_update_tau = 1e-2
             self.decay_type = "linear"
             self.decay_steps = 10_000
-            self.reward_buffer_ep = 5
+            self.reward_buffer_ep = 10
             self.epsilon_start = 1.0
             self.epsilon_end = 0.02
             self.batch_size = 32
             self.test_episodes = 10
 
-ENV_LIST_NIPS = [
-    "BeamRiderNoFrameskip-v4",
-    "BreakoutNoFrameskip-v4",
-    "EnduroNoFrameskip-v4",
-    "PongNoFrameskip-v4",
-    "QbertNoFrameskip-v4",
-    "SeaquestNoFrameskip-v4",
-    "SpaceInvadersNoFrameskip-v4"
-            ]
+ENV_LIST_NIPS = {
+    "BeamRiderNoFrameskip-v4": 6846.0,
+    "BreakoutNoFrameskip-v4": 401.2,
+    "EnduroNoFrameskip-v4": 301.8,
+    "PongNoFrameskip-v4": 18.9,
+    "QbertNoFrameskip-v4": 10596,
+    "SeaquestNoFrameskip-v4": 5286.0,
+    "SpaceInvadersNoFrameskip-v4": 1976.0
+}
 
 
-ENV_LIST_NATURE = [
-    "VideoPinballNoFrameskip-v4",
-    "BoxingNoFrameskip-v4",
-    "BreakoutNoFrameskip-v4",
-    "StarGunnerNoFrameskip-v4",
-    "RobotankNoFrameskip-v4",
-    "AtlantisNoFrameskip-v4",
-    "CrazyClimberNoFrameskip-v4",
-    "GopherNoFrameskip-v4",
-    "DemonAttackNoFrameskip-v4",
-    "NameThisGameNoFrameskip-v4",
-    "KrullNoFrameskip-v4",
-    "AssaultNoFrameskip-v4",
-    "RoadRunnerNoFrameskip-v4",
-    "KangarooNoFrameskip-v4",
-    "JamesbondNoFrameskip-v4",
-    "TennisNoFrameskip-v4",
-    "PongNoFrameskip-v4",
-    "SpaceInvadersNoFrameskip-v4",
-    "BeamRiderNoFrameskip-v4",
-    "TutankhamNoFrameskip-v4",
-    "KungFuMasterNoFrameskip-v4",
-    "FreewayNoFrameskip-v4",
-    "TimePilotNoFrameskip-v4",
-    "EnduroNoFrameskip-v4",
-    "FishingDerbyNoFrameskip-v4",
-    "UpNDownNoFrameskip-v4",
-    "IceHockeyNoFrameskip-v4",
-    "QbertNoFrameskip-v4",
-    "HeroNoFrameskip-v4",
-    "AsterixNoFrameskip-v4",
-    "BattleZoneNoFrameskip-v4",
-    "WizardOfWorNoFrameskip-v4",
-    "ChopperCommandNoFrameskip-v4",
-    "CentipedeNoFrameskip-v4",
-    "BankHeistNoFrameskip-v4",
-    "RiverraidNoFrameskip-v4",
-    "ZaxxonNoFrameskip-v4",
-    "AmidarNoFrameskip-v4",
-    "AlienNoFrameskip-v4",
-    "VentureNoFrameskip-v4",
-    "SeaquestNoFrameskip-v4",
-    "DoubleDunkNoFrameskip-v4",
-    "BowlingNoFrameskip-v4",
-    "MsPacmanNoFrameskip-v4",
-    "AsteroidsNoFrameskip-v4",
-    "FrostbiteNoFrameskip-v4",
-    "GravitarNoFrameskip-v4",
-    "PrivateEyeNoFrameskip-v4",
-    "MontezumaRevengeNoFrameskip-v4"
-            ]
-
+ENV_LIST_NATURE = {
+    "VideoPinballNoFrameskip-v4": 42684.0,
+    "BoxingNoFrameskip-v4": 71.8,
+    "BreakoutNoFrameskip-v4": 401.2,
+    "StarGunnerNoFrameskip-v4": 57997.0,
+    "RobotankNoFrameskip-v4": 51.6,
+    "AtlantisNoFrameskip-v4": 85641.0,
+    "CrazyClimberNoFrameskip-v4": 114103.0,
+    "GopherNoFrameskip-v4": 8520.0,
+    "DemonAttackNoFrameskip-v4": 9711.0,
+    "NameThisGameNoFrameskip-v4": 7257.0,
+    "KrullNoFrameskip-v4": 3805.0,
+    "AssaultNoFrameskip-v4": 3359.0,
+    "RoadRunnerNoFrameskip-v4": 18257.0,
+    "KangarooNoFrameskip-v4": 6740.0,
+    "JamesbondNoFrameskip-v4": 576.7,
+    "TennisNoFrameskip-v4": -2.5,
+    "PongNoFrameskip-v4": 18.9,
+    "SpaceInvadersNoFrameskip-v4": 1976.0,
+    "BeamRiderNoFrameskip-v4": 6846.0,
+    "TutankhamNoFrameskip-v4": 186.7,
+    "KungFuMasterNoFrameskip-v4": 23270.0,
+    "FreewayNoFrameskip-v4": 30.3,
+    "TimePilotNoFrameskip-v4": 5947.0,
+    "EnduroNoFrameskip-v4": 301.8,
+    "FishingDerbyNoFrameskip-v4": -0.8,
+    "UpNDownNoFrameskip-v4": 8456.0,
+    "IceHockeyNoFrameskip-v4": -1.6,
+    "QbertNoFrameskip-v4": 10596.0,
+    "HeroNoFrameskip-v4": 19950.0,
+    "AsterixNoFrameskip-v4": 6012.0,
+    "BattleZoneNoFrameskip-v4": 26300.0,
+    "WizardOfWorNoFrameskip-v4": 4757.0,
+    "ChopperCommandNoFrameskip-v4": 6687.0,
+    "CentipedeNoFrameskip-v4": 8309.0,
+    "BankHeistNoFrameskip-v4": 429.7,
+    "RiverraidNoFrameskip-v4": 8316.0,
+    "ZaxxonNoFrameskip-v4": 4977.0,
+    "AmidarNoFrameskip-v4": 739.5,
+    "AlienNoFrameskip-v4": 3069.0,
+    "VentureNoFrameskip-v4": 380.0,
+    "SeaquestNoFrameskip-v4": 5286.0,
+    "DoubleDunkNoFrameskip-v4": -18.1,
+    "BowlingNoFrameskip-v4": 42.4,
+    "MsPacmanNoFrameskip-v4": 2311.0,
+    "AsteroidsNoFrameskip-v4": 1629.0,
+    "FrostbiteNoFrameskip-v4": 328.3,
+    "GravitarNoFrameskip-v4": 306.7,
+    "PrivateEyeNoFrameskip-v4": 1788.0,
+    "MontezumaRevengeNoFrameskip-v4": 0.0
+}

@@ -177,7 +177,7 @@ class Tracker:
 
 
 
-def logging(time_step, max_steps, current_episode, exec_time, reward, loss, epsilon, cnt_action):
+def logging(time_step, max_steps, current_episode, exec_time, params, reward_buffer, loss, epsilon, cnt_action):
 	"""
 	Logging function
 
@@ -191,8 +191,8 @@ def logging(time_step, max_steps, current_episode, exec_time, reward, loss, epsi
 	:return:
 	"""
 	cnt_actions = dict((x, cnt_action.count(x)) for x in set(cnt_action))
-	print("{0}/{1}: episode: {2}, duration: {3:.3f}s, episode reward: {4}, loss: {5:.6f}, epsilon: {6:.6f}, taken actions: {7}".format(
-		time_step, max_steps, current_episode, exec_time, reward, loss, epsilon, cnt_actions
+	print("{0}/{1}: ep: {2}, duration: {3:.3f}s, GOAL R: {4}, {5} Ep => [mean R: {6}, max R: {7}], loss(last ep): {8:.6f}, eps(last ep): {9:.6f}, act(last ep): {10}".format(
+		time_step, max_steps, current_episode, exec_time, params.goal, params.reward_buffer_ep, np.mean(reward_buffer), np.max(reward_buffer), loss, epsilon, cnt_actions
 	))
 
 

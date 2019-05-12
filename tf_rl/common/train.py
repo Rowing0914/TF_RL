@@ -73,14 +73,16 @@ def train_DQN(agent, env, policy, replay_buffer, reward_buffer, params, summary_
 
 				tf.contrib.summary.scalar("reward", total_reward, step=i)
 				tf.contrib.summary.scalar("exec time", time.time() - start, step=i)
+				if i >= params.reward_buffer_ep:
+					tf.contrib.summary.scalar("Moving Ave Reward", np.mean(reward_buffer), step=i)
 				tf.contrib.summary.histogram("taken actions", cnt_action, step=i)
 
 				# store the episode reward
 				reward_buffer.append(total_reward)
 
-				if global_timestep.numpy() > params.learning_start:
+				if global_timestep.numpy() > params.learning_start and i % params.reward_buffer_ep == 0:
 					try:
-						logging(global_timestep.numpy(), params.num_frames, i, time.time() - start, total_reward, np.mean(loss), policy.current_epsilon(), cnt_action)
+						logging(global_timestep.numpy(), params.num_frames, i, time.time() - start, params, reward_buffer, np.mean(loss), policy.current_epsilon(), cnt_action)
 					except:
 						pass
 
@@ -93,7 +95,7 @@ def train_DQN(agent, env, policy, replay_buffer, reward_buffer, params, summary_
 				# if np.mean(reward_buffer) > params.goal or global_timestep.numpy() > params.num_frames:
 				if global_timestep.numpy() > params.num_frames:
 					print("=== Training is Done ===")
-					test_Agent(agent, env, n_trial=10)
+					test_Agent(agent, env, n_trial=params.test_episodes)
 					env.close()
 					break
 
@@ -171,15 +173,15 @@ def train_DQN_PER(agent, env, policy, replay_buffer, reward_buffer, params, Beta
 
 				tf.contrib.summary.scalar("reward", total_reward, step=i)
 				tf.contrib.summary.scalar("exec time", time.time() - start, step=i)
+				tf.contrib.summary.scalar("Moving Ave Reward", np.mean(reward_buffer), step=i)
 				tf.contrib.summary.histogram("taken actions", cnt_action, step=i)
 
 				# store the episode reward
 				reward_buffer.append(total_reward)
 
-				if global_timestep.numpy() > params.learning_start:
+				if global_timestep.numpy() > params.learning_start and i % params.reward_buffer_ep == 0:
 					try:
-						logging(global_timestep.numpy(), params.num_frames, i, time.time() - start, total_reward,
-								np.mean(loss), policy.current_epsilon(), cnt_action)
+						logging(global_timestep.numpy(), params.num_frames, i, time.time() - start, params, reward_buffer, np.mean(loss), policy.current_epsilon(), cnt_action)
 					except:
 						pass
 
@@ -192,7 +194,7 @@ def train_DQN_PER(agent, env, policy, replay_buffer, reward_buffer, params, Beta
 				# if np.mean(reward_buffer) > params.goal or global_timestep.numpy() > params.num_frames:
 				if global_timestep.numpy() > params.num_frames:
 					print("=== Training is Done ===")
-					test_Agent(agent, env, n_trial=10)
+					test_Agent(agent, env, n_trial=params.test_episodes)
 					env.close()
 					break
 

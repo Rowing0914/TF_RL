@@ -75,7 +75,7 @@ if __name__ == '__main__':
 
 	# ====== Params for Atari ======
 	parser.add_argument("--mode", default="Atari", help="game env type => Atari or CartPole")
-	parser.add_argument("--env_name", default="Pong", help="game title")
+	parser.add_argument("--env_name", default="Breakout", help="game title")
 	parser.add_argument("--loss_fn", default="MSE", help="types of loss function => MSE or huber_loss")
 	parser.add_argument("--grad_clip_flg", default="norm", help="types of a clipping method of gradients => by value(by_value) or global norm(norm) or None")
 	parser.add_argument("--num_frames", default=20_000_000, type=int, help="total frame in a training")
@@ -94,19 +94,15 @@ if __name__ == '__main__':
 	parser.add_argument("--decay_type", default="linear", help="types of annealing method => linear or curved")
 	parser.add_argument("--log_dir", default="../../logs/logs/DQN/", help="directory for log")
 	parser.add_argument("--model_dir", default="../../logs/models/DQN/", help="directory for trained model")
-	parser.add_argument("--new_or_old", default="new", help="temp")
+	parser.add_argument("--new_or_old", default="new", help="new(vectorised back-prop), old(single-value back-prop)")
+	parser.add_argument("--google_colab", default=False, type=bool, help="if you are executing this on GoogleColab")
 
 	args = parser.parse_args()
-
-	try:
-		os.system("rm -rf {}".format(args.log_dir))
-	except:
-		pass
 
 	# I know this is not beautiful, but for the sake of ease of dev and finding the best params,
 	# i will leave this for a while
 	# TODO: you need to amend this design to the one only args, instead of params
-	params = Parameters(algo="DQN", mode=args.mode)
+	params = Parameters(algo="DQN", mode=args.mode, env_name=args.env_name)
 	params.loss_fn = args.loss_fn
 	params.grad_clip_flg = args.grad_clip_flg
 	params.num_frames = args.num_frames
@@ -129,20 +125,33 @@ if __name__ == '__main__':
 		env = MyWrapper(gym.make("CartPole-v0"))
 	elif args.mode == "Atari":
 		env = wrap_deepmind(make_atari("{}NoFrameskip-v4".format(args.env_name)))
-		# env = CartPole_Pixel(gym.make("CartPole-v0"))
+	elif args.mode == "CartPole-p":
+		env = CartPole_Pixel(gym.make("CartPole-v0"))
 
 	replay_buffer = ReplayBuffer(params.memory_size)
 
 	now = datetime.now()
 
-	if args.new_or_old == "new":
-		# args.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "DQN_new_not_pixel/"
-		args.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "DQN_new/"
-		agent = DQN_new(args.mode, Model, Model, env.action_space.n, params, args.model_dir)
+	if args.google_colab:
+		# mount your drive to google colab
+		from google.colab import drive
+		drive.mount("/content/gdrive")
+		args.log_dir = "/content/gdrive/My Drive/logs/DQN/{}".format(args.env_name)
+		os.mkdir(args.log_dir)
+		assert os.path.isdir(args.log_dir), "Faild to create a directory on your My Drive, pls check it"
+		if args.new_or_old == "new":
+			agent = DQN_new(args.mode, Model, Model, env.action_space.n, params, args.model_dir)
+		else:
+			agent = DQN(args.mode, Model, Model, env.action_space.n, params, args.model_dir)
 	else:
-		# args.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "DQN_old_not_pixel/"
-		args.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "DQN_old/"
-		agent = DQN(args.mode, Model, Model, env.action_space.n, params, args.model_dir)
+		if args.new_or_old == "new":
+			# args.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "DQN_new_not_pixel/"
+			args.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "DQN_new/"
+			agent = DQN_new(args.mode, Model, Model, env.action_space.n, params, args.model_dir)
+		else:
+			# args.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "DQN_old_not_pixel/"
+			args.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "DQN_old/"
+			agent = DQN(args.mode, Model, Model, env.action_space.n, params, args.model_dir)
 
 	Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end, decay_steps=params.decay_steps)
 	policy = EpsilonGreedyPolicy_eager(Epsilon_fn=Epsilon)
