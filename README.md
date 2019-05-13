@@ -196,7 +196,7 @@ env.close()
 - OS: Linux Ubuntu LTS 16.04
 - Python: 3.6
 - GPU: Gefoce GTX1060
-- Tensorflow: 1.13.1
+- Tensorflow: 1.13.0rc0
 - CUDA: 10.0
 - libcudnn: 7.4.1
 
