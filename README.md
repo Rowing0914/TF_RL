@@ -1,4 +1,4 @@
-<span style="color:blue">**As of 13 May 2019, I am in the middle of conversion of source code for Compatilibity to TF2.0 so please allow me to have some dirty codes and maybe some part of this README is not updated...**</span>
+<span style="color:blue">As of 13 May 2019, I am in the middle of conversion of source code for Compatilibity to TF2.0 so please allow me to have some dirty codes and maybe some part of this README is not updated...</span>
 ## TF-RL(Reinforcement Learning with Tensorflow: EAGER!!)
 
   This is the repo for implementing and experimenting the variety of RL algorithms using **Tensorflow Eager Execution**. And, since our Lord Google gracefully allows us to use their precious GPU resources without almost restriction, I have decided to enable most of codes run on **Google Colab**. So, if you don't have GPUs, please feel free to try it out on **Google Colab**
