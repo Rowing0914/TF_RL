@@ -336,7 +336,7 @@ def test_Agent(agent, env, n_trial=1):
 			episode_reward += reward
 		all_rewards.append(episode_reward)
 		tf.contrib.summary.scalar("Eval_Score over 250,000 time-step", episode_reward, step=agent.index_timestep)
-		print("| Ep: {}/{} | Score: {} |".format(ep, n_trial, episode_reward+1))
+		print("| Ep: {}/{} | Score: {} |".format(ep+1, n_trial, episode_reward))
 
 	if n_trial > 2:
 		print("=== Evaluation Result ===")
