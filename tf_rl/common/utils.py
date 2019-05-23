@@ -1,6 +1,6 @@
 import tensorflow as tf
 import numpy as np
-import os
+import os, datetime
 import itertools
 from tf_rl.common.visualise import plot_Q_values
 
@@ -176,24 +176,31 @@ class Tracker:
 		del prev_data
 
 
+class logger:
+	def __init__(self, params):
+		self.params = params
+		self.prev_update_step = 0
 
-def logging(time_step, max_steps, current_episode, exec_time, params, reward_buffer, loss, epsilon, cnt_action):
-	"""
-	Logging function
+	def logging(self, time_step, current_episode, exec_time, reward_buffer, loss, epsilon, cnt_action):
+		"""
+		Logging function
 
-	:param time_step:
-	:param max_steps:
-	:param current_episode:
-	:param exec_time:
-	:param reward:
-	:param loss:
-	:param cnt_action:
-	:return:
-	"""
-	cnt_actions = dict((x, cnt_action.count(x)) for x in set(cnt_action))
-	print("{0}/{1}: ep: {2}, duration: {3:.3f}s, GOAL R: {4}, {5} Ep => [mean R: {6}, max R: {7}], loss(last ep): {8:.6f}, eps(last ep): {9:.6f}, act(last ep): {10}".format(
-		time_step, max_steps, current_episode, exec_time, params.goal, params.reward_buffer_ep, np.mean(reward_buffer), np.max(reward_buffer), loss, epsilon, cnt_actions
-	))
+		:param time_step:
+		:param max_steps:
+		:param current_episode:
+		:param exec_time:
+		:param reward:
+		:param loss:
+		:param cnt_action:
+		:return:
+		"""
+		cnt_actions = dict((x, cnt_action.count(x)) for x in set(cnt_action))
+		# remaing_time_step/exec_time_for_one_step
+		remaining_time = str(datetime.timedelta(seconds=(self.params.num_frames - time_step)*exec_time/(time_step - self.prev_update_step)))
+		print("{0}/{1}: Ep: {2}({3:.3f}s), Remaining: {4}, (R) GOAL: {5}, {6} Ep => [MEAN: {7}, MAX: {8}], (last ep) Loss: {9:.6f}, Eps: {10:.6f}, Act: {11}".format(
+			time_step, self.params.num_frames, current_episode, exec_time, remaining_time, self.params.goal, self.params.reward_buffer_ep, np.mean(reward_buffer), np.max(reward_buffer), loss, epsilon, cnt_actions
+		))
+		self.prev_update_step = time_step
 
 
 """

@@ -6,7 +6,7 @@ from tf_rl.common.memory import ReplayBuffer
 from tf_rl.common.utils import AnnealingSchedule, soft_target_model_update_eager, logging
 from tf_rl.common.policy import EpsilonGreedyPolicy_eager
 from tf_rl.agents.DQN import DQN
-from examples.DQN.DQN_eager import Model
+from examples.DQN.DQN_eager_cartpole import Model
 
 tf.enable_eager_execution()
 tf.random.set_random_seed(123)

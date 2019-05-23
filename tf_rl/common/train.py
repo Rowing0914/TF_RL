@@ -1,7 +1,7 @@
 import time, itertools
 import tensorflow as tf
 import numpy as np
-from tf_rl.common.utils import soft_target_model_update_eager, logging, test_Agent
+from tf_rl.common.utils import soft_target_model_update_eager, logger, test_Agent
 
 """
 TODO: think about incorporating PER's memory updating procedure into the model
@@ -22,10 +22,11 @@ def train_DQN(agent, env, policy, replay_buffer, reward_buffer, params, summary_
 	:return:
 	"""
 	global_timestep = tf.train.get_or_create_global_step()
+	time_buffer = list()
+	log = logger(params)
 	with summary_writer.as_default():
 		# for summary purpose, we put all codes in this context
 		with tf.contrib.summary.always_record_summaries():
-			# tf.contrib.summary.graph(tf.GraphDef()) # check: https://github.com/tensorflow/tensorflow/issues/23367
 
 			for i in itertools.count():
 				state = env.reset()
@@ -52,9 +53,6 @@ def train_DQN(agent, env, policy, replay_buffer, reward_buffer, params, summary_
 
 						loss, batch_loss = agent.update(states, actions, rewards, next_states, dones)
 
-						for index, main_weights in enumerate(agent.main_model.get_weights()):
-							tf.contrib.summary.histogram("MainNet: layer_{}".format(index), main_weights, step=global_timestep)
-
 					# synchronise the target and main models by hard or soft update
 					if (global_timestep.numpy() > params.learning_start) and (global_timestep.numpy() % params.sync_freq == 0):
 						agent.manager.save()
@@ -62,10 +60,6 @@ def train_DQN(agent, env, policy, replay_buffer, reward_buffer, params, summary_
 							agent.target_model.set_weights(agent.main_model.get_weights())
 						elif params.update_hard_or_soft == "soft":
 							soft_target_model_update_eager(agent.target_model, agent.main_model, tau=params.soft_update_tau)
-
-						for index, target_weights in enumerate(agent.target_model.get_weights()):
-							tf.contrib.summary.histogram("TargetNet: layer_{}".format(index), target_weights, step=global_timestep)
-
 
 				"""
 				===== After 1 Episode is Done =====
@@ -79,10 +73,12 @@ def train_DQN(agent, env, policy, replay_buffer, reward_buffer, params, summary_
 
 				# store the episode reward
 				reward_buffer.append(total_reward)
+				time_buffer.append(time.time() - start)
 
 				if global_timestep.numpy() > params.learning_start and i % params.reward_buffer_ep == 0:
+					log.logging(global_timestep.numpy(), i, np.sum(time_buffer), reward_buffer, np.mean(loss), policy.current_epsilon(), cnt_action)
 					try:
-						logging(global_timestep.numpy(), params.num_frames, i, time.time() - start, params, reward_buffer, np.mean(loss), policy.current_epsilon(), cnt_action)
+						time_buffer = list()
 					except:
 						pass
 
@@ -91,8 +87,6 @@ def train_DQN(agent, env, policy, replay_buffer, reward_buffer, params, summary_
 					agent.eval_flg = False
 
 				# check the stopping condition
-				# TODO: maybe we don't need to have a goal...
-				# if np.mean(reward_buffer) > params.goal or global_timestep.numpy() > params.num_frames:
 				if global_timestep.numpy() > params.num_frames:
 					print("=== Training is Done ===")
 					test_Agent(agent, env, n_trial=params.test_episodes)
@@ -100,10 +94,9 @@ def train_DQN(agent, env, policy, replay_buffer, reward_buffer, params, summary_
 					break
 
 
-
 def train_DQN_PER(agent, env, policy, replay_buffer, reward_buffer, params, Beta, summary_writer):
 	"""
-	Training scripts for DQN with PER
+	Training script for DQN and other advanced models without PER
 
 	:param agent:
 	:param env:
@@ -115,10 +108,11 @@ def train_DQN_PER(agent, env, policy, replay_buffer, reward_buffer, params, Beta
 	:return:
 	"""
 	global_timestep = tf.train.get_or_create_global_step()
+	time_buffer = list()
+	log = logger(params)
 	with summary_writer.as_default():
 		# for summary purpose, we put all codes in this context
 		with tf.contrib.summary.always_record_summaries():
-			# tf.contrib.summary.graph(tf.GraphDef()) # check: https://github.com/tensorflow/tensorflow/issues/23367
 
 			for i in itertools.count():
 				state = env.reset()
@@ -153,9 +147,6 @@ def train_DQN_PER(agent, env, policy, replay_buffer, reward_buffer, params, Beta
 						# Update a prioritised replay buffer using a batch of losses associated with each timestep
 						replay_buffer.update_priorities(indices, batch_loss)
 
-						for index, main_weights in enumerate(agent.main_model.get_weights()):
-							tf.contrib.summary.histogram("MainNet: layer_{}".format(index), main_weights, step=global_timestep)
-
 					# synchronise the target and main models by hard or soft update
 					if (global_timestep.numpy() > params.learning_start) and (global_timestep.numpy() % params.sync_freq == 0):
 						agent.manager.save()
@@ -164,24 +155,24 @@ def train_DQN_PER(agent, env, policy, replay_buffer, reward_buffer, params, Beta
 						elif params.update_hard_or_soft == "soft":
 							soft_target_model_update_eager(agent.target_model, agent.main_model, tau=params.soft_update_tau)
 
-						for index, target_weights in enumerate(agent.target_model.get_weights()):
-							tf.contrib.summary.histogram("TargetNet: layer_{}".format(index), target_weights, step=global_timestep)
-
 				"""
 				===== After 1 Episode is Done =====
 				"""
 
 				tf.contrib.summary.scalar("reward", total_reward, step=i)
 				tf.contrib.summary.scalar("exec time", time.time() - start, step=i)
-				tf.contrib.summary.scalar("Moving Ave Reward", np.mean(reward_buffer), step=i)
+				if i >= params.reward_buffer_ep:
+					tf.contrib.summary.scalar("Moving Ave Reward", np.mean(reward_buffer), step=i)
 				tf.contrib.summary.histogram("taken actions", cnt_action, step=i)
 
 				# store the episode reward
 				reward_buffer.append(total_reward)
+				time_buffer.append(time.time() - start)
 
 				if global_timestep.numpy() > params.learning_start and i % params.reward_buffer_ep == 0:
+					log.logging(global_timestep.numpy(), i, np.sum(time_buffer), reward_buffer, np.mean(loss), policy.current_epsilon(), cnt_action)
 					try:
-						logging(global_timestep.numpy(), params.num_frames, i, time.time() - start, params, reward_buffer, np.mean(loss), policy.current_epsilon(), cnt_action)
+						time_buffer = list()
 					except:
 						pass
 
@@ -190,8 +181,6 @@ def train_DQN_PER(agent, env, policy, replay_buffer, reward_buffer, params, Beta
 					agent.eval_flg = False
 
 				# check the stopping condition
-				# TODO: maybe we don't need to have a goal...
-				# if np.mean(reward_buffer) > params.goal or global_timestep.numpy() > params.num_frames:
 				if global_timestep.numpy() > params.num_frames:
 					print("=== Training is Done ===")
 					test_Agent(agent, env, n_trial=params.test_episodes)

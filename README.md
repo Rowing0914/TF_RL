@@ -2,7 +2,7 @@
 
   This is the repo for implementing and experimenting the variety of RL algorithms using **Tensorflow Eager Execution**. And, since our Lord Google gracefully allows us to use their precious GPU resources without almost restriction, I have decided to enable most of codes run on **Google Colab**. So, if you don't have GPUs, please feel free to try it out on **Google Colab**
 
-
+Note: As it is known that **Eager mode** takes time than **Graph Execution** in general so that in this repo, I use **Eager** for debugging and **Graph** mode for training!!! The beauty of eager mode come here!! we can flexibly switch eager mode and graph mode with minimal modification(`@tf.contrib.eager.defun`), pls check [**the link**](<https://medium.com/tensorflow/code-with-eager-execution-run-with-graphs-optimizing-your-code-with-revnet-as-an-example-6162333f9b08>)
 
 ## Installation
 
@@ -31,14 +31,16 @@ python setup.py install
 
 <img src="assets/test_monitor.png" width="70%">
 
-2. Comparison: Performance of algorithms using Tensorboard
+2. Comparison: Performance of algorithms *Duelling DQN is not working well on CartPole..
 
 <img src="assets/result.gif" width="70%">
 
 ```shell
 $ cd examples
 $ python3.6 comparisons.py
-$ tensorboard --logdir=./logs/
+$ cd ../
+# run Tensorboard
+$ sh run_tensorboad.sh
 ```
 
 3. Unit Test of a specific algorithm
@@ -46,9 +48,12 @@ $ tensorboard --logdir=./logs/
 ```shell
 $ cd examples
 # Eager Execution mode
-$ python3.6 examples/{model_name}/{model_name}_eager.py
-# Graph mode Tensorflow: most of them are still under development...
-$ python3.6 examples/unstable/{model_name}_train.py
+$ python3.6 examples/{model_name}/{model_name}_eager_atari.py
+$ python3.6 examples/{model_name}/{model_name}_eager_cartpole.py
+
+# Graph Execution mode
+$ python3.6 examples/{model_name}/{model_name}_eager_atari.py --debug_flg=True
+$ python3.6 examples/{model_name}/{model_name}_eager_cartpole.py --debug_flg=True
 ```
 
 4. Ready-to-run on Google colab
@@ -196,7 +201,7 @@ env.close()
 - OS: Linux Ubuntu LTS 16.04
 - Python: 3.6
 - GPU: Gefoce GTX1060
-- Tensorflow: 1.13.0
+- Tensorflow: 1.13.1
 - CUDA: 10.0
 - libcudnn: 7.4.1
 

@@ -24,7 +24,7 @@ args = parser.parse_args()
 
 if args.mode == "CartPole":
     env = MyWrapper(gym.make("CartPole-v0"))
-    params = Parameters(mode="CartPole")
+    params = Parameters(mode="CartPole", algo="DQN")
     main_model = DQN_CartPole("DQN_main", env, params.loss_fn, grad_clip_flg=params.grad_clip_flg)
     target_model = DQN_CartPole("DQN_target", env, params.loss_fn, grad_clip_flg=params.grad_clip_flg)
     replay_buffer = ReplayBuffer(params.memory_size)

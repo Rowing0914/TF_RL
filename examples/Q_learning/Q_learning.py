@@ -1,29 +1,21 @@
+# TODO: Bug fix to compatible with Tensorflow.....
 import gym
 import numpy as np
 import collections
+import tensorflow as tf
 from tf_rl.common.utils import AnnealingSchedule
 from tf_rl.common.params import Parameters
 from tf_rl.common.wrappers import DiscretisedEnv
 from tf_rl.common.visualise import plot_Q_values
 
 class Q_Agent:
-	def __init__(self, env, params, policy_type="Eps"):
+	def __init__(self, env):
 		self.env = env
 		self.Q = np.zeros(self.env.buckets + (env.action_space.n,))
-		self.gamma = params.gamma
-		self.tau = params.tau
-		self.clip = params.clip
-		self.policy_type = policy_type
+		self.gamma = 0.95
 
 	def choose_action(self, state, epsilon):
-		if self.policy_type == "Eps":
-			return self.env.action_space.sample() if (np.random.random() <= epsilon) else np.argmax(self.Q[state])
-		# I have tried Boltzmann policy tho, it didn't converge...
-		elif self.policy_type == "Boltz":
-			q_values = self.Q[state]
-			exp_values = np.exp(np.clip(q_values / self.tau, self.clip[0], self.clip[1]))
-			probs = exp_values / np.sum(exp_values)
-			return np.random.choice(range(q_values.shape[0]), p=probs)
+		return self.env.action_space.sample() if (np.random.random() <= epsilon) else np.argmax(self.Q[state])
 
 	def update(self, state, action, reward, next_state, alpha):
 		# === I don't know why tho, self.gamma = 0.99 does not converge in Q-learning ===
@@ -66,8 +58,9 @@ if __name__ == '__main__':
 	params = Parameters(algo="DQN", mode="CartPole")
 	Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end, decay_steps=params.decay_steps)
 	Alpha = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end, decay_steps=params.decay_steps)
-	agent = Q_Agent(env, params)
+	agent = Q_Agent(env)
 
+	global_timestep = tf.train.get_or_create_global_step()
 	for episode in range(n_episodes):
 		current_state = env.reset()
 
@@ -77,15 +70,15 @@ if __name__ == '__main__':
 		# one episode of q learning
 		while not done:
 			# env.render()
-			action = agent.choose_action(current_state, Epsilon.get_value(episode))
+			action = agent.choose_action(current_state, Epsilon.get_value())
 			new_state, reward, done, _ = env.step(action)
-			agent.update(current_state, action, reward, new_state, Alpha.get_value(episode))
+			agent.update(current_state, action, reward, new_state, Alpha.get_value())
 			current_state = new_state
-			duration += 1
+			tf.assign(global_timestep, global_timestep.numpy() + 1, name='update_global_step')
 
 		# mean duration of last 100 episodes
-		durations.append(duration)
-		all_rewards.append(duration)
+		durations.append(global_timestep)
+		all_rewards.append(global_timestep)
 		mean_duration = np.mean(durations)
 
 		# check if our policy is good

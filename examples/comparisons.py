@@ -3,23 +3,21 @@ import os
 # from common.visualise import plot_comparison_graph
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--mode", default="CartPole", help="game env type")
+parser.add_argument("--mode", default="cartpole", help="game env type")
 args = parser.parse_args()
 
-if args.mode == "CartPole":
+if args.mode == "cartpole":
 	models = [
-		# "Q_learning",
-		# "REINFORCE",
 		"DQN/DQN_eager",
 		"Duelling_DQN/Duelling_DQN_eager",
 		"Double_DQN/Double_DQN_eager",
 		"DQN_PER/DQN_PER_eager",
 		"DDDP/Duelling_Double_DQN_PER_eager",
-		"DQfD/DQfD_eager"
+		# "DQfD/DQfD_eager"
 	]
 
 	for model in models:
-		os.system("python3.6 {}.py --mode=CartPole".format(model))
+		os.system("python3.6 {0}_{1}.py --mode=CartPole --log_dir=../logs/logs/{0}/ --model_dir=../logs/models/{0}/".format(model, args.mode))
 
 	# plot_comparison_graph(models)
 
