@@ -77,9 +77,9 @@ if __name__ == '__main__':
 
 		# create the logs directory under the root dir
 		if not os.path.isdir(params.log_dir):
-			os.mkdir(params.log_dir)
+			os.makedirs(params.log_dir)
 		if not os.path.isdir(params.model_dir):
-			os.mkdir(params.model_dir)
+			os.makedirs(params.model_dir)
 
 		# if the previous directory existed in My Drive, then we would continue training on top of the previous training
 		if os.path.isdir(params.log_dir_colab):
