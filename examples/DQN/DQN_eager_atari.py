@@ -1,6 +1,6 @@
 import os
 import argparse
-import shutil
+from shutil import copyfile
 from datetime import datetime
 import tensorflow as tf
 from collections import deque
@@ -76,12 +76,12 @@ if __name__ == '__main__':
 
 		# if the previous directory existed, then we would start on top of the previous training
 		if os.path.isdir(params.log_dir_colab):
-			shutil.move(params.log_dir_colab, params.log_dir)
+			copyfile(params.log_dir_colab+"/*", params.log_dir+"/*")
 		else:
 			os.makedirs(params.log_dir_colab)
 
 		if os.path.isdir(params.model_dir_colab):
-			shutil.move(params.model_dir_colab, params.model_dir)
+			copyfile(params.model_dir_colab+"/*", params.model_dir+"/*")
 		else:
 			os.makedirs(params.model_dir_colab)
 
