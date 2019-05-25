@@ -71,8 +71,8 @@ if __name__ == '__main__':
 		# mount your drive on google colab
 		from google.colab import drive
 		drive.mount("/content/gdrive")
-		params.log_dir         = "/content/TF_RL/logs/logs/DQN/"
-		params.model_dir       = "/content/TF_RL/logs/models/DQN/"
+		params.log_dir         = "/content/TF_RL/logs/logs/DQN/{}".format(params.env_name)
+		params.model_dir       = "/content/TF_RL/logs/models/DQN/{}".format(params.env_name)
 		params.log_dir_colab   = "/content/gdrive/My Drive/logs/logs/DQN/{}".format(params.env_name)
 		params.model_dir_colab = "/content/gdrive/My Drive/logs/models/DQN/{}".format(params.env_name)
 
