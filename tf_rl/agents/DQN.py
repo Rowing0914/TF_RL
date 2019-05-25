@@ -14,6 +14,7 @@ class DQN:
 		self.num_action = num_action
 		self.params = params
 		self.eval_flg = False
+		self.index_timestep = 0
 		self.main_model = main_model(num_action)
 		self.target_model = target_model(num_action)
 		# self.lr = AnnealingSchedule(start=1e-3, end=1e-5, decay_steps=params.decay_steps, decay_type="linear") # learning rate decay!!
@@ -106,6 +107,7 @@ class DQN_debug:
 		self.num_action = num_action
 		self.params = params
 		self.eval_flg = False
+		self.index_timestep = 0
 		self.main_model = main_model(num_action)
 		self.target_model = target_model(num_action)
 		# self.lr = AnnealingSchedule(start=1e-3, end=1e-5, decay_steps=params.decay_steps, decay_type="linear") # learning rate decay!!
@@ -223,6 +225,7 @@ class DQN_cartpole:
 		self.num_action = num_action
 		self.params = params
 		self.eval_flg = False
+		self.index_timestep = 0
 		self.main_model = main_model(num_action)
 		self.target_model = target_model(num_action)
 		# self.lr = AnnealingSchedule(start=1e-3, end=1e-5, decay_steps=params.decay_steps, decay_type="linear") # learning rate decay!!

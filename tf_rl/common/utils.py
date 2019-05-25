@@ -339,8 +339,8 @@ def test_Agent(agent, env, n_trial=1):
 
 	# if this is running on Google Colab, we would store the log/models to mounted MyDrive
 	if agent.params.google_colab:
-		os.remove(agent.params.log_dir_colab+"/*")
-		os.remove(agent.params.model_dir_colab+"/*")
+		os.remove(agent.params.log_dir_colab)
+		os.remove(agent.params.model_dir_colab)
 		os.system("cp {0}/* {1}".format(agent.params.log_dir, agent.params.log_dir_colab))
 		os.system("cp {0}/* {1}".format(agent.params.model_dir, agent.params.model_dir_colab))
 
