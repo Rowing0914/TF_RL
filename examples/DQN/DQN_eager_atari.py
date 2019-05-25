@@ -73,8 +73,8 @@ if __name__ == '__main__':
 		drive.mount("/content/gdrive")
 		params.log_dir         = "/content/TF_RL/logs/logs/DQN/"
 		params.model_dir       = "/content/TF_RL/logs/models/DQN/"
-		params.log_dir_colab   = "/content/gdrive/My*Drive/logs/logs/DQN/{}".format(params.env_name)
-		params.model_dir_colab = "/content/gdrive/My*Drive/logs/models/DQN/{}".format(params.env_name)
+		params.log_dir_colab   = "/content/gdrive/My Drive/logs/logs/DQN/{}".format(params.env_name)
+		params.model_dir_colab = "/content/gdrive/My Drive/logs/models/DQN/{}".format(params.env_name)
 
 		# if the previous directory existed, then we would start on top of the previous training
 		if os.path.isdir(params.log_dir_colab):

@@ -1,6 +1,6 @@
 import tensorflow as tf
 import numpy as np
-import os, datetime, itertools
+import os, datetime, itertools, shutil
 from tf_rl.common.visualise import plot_Q_values
 
 """
@@ -9,11 +9,13 @@ Utility functions
 
 """
 
+
 class AnnealingSchedule:
 	"""
 	Scheduling the gradually decreasing value, e.g., epsilon or beta params
 
 	"""
+
 	def __init__(self, start=1.0, end=0.1, decay_steps=500, decay_type="linear"):
 		self.start = start
 		self.end = end
@@ -38,7 +40,7 @@ class AnnealingSchedule:
 				return self.end
 
 	def get_value(self):
-		timestep = tf.train.get_or_create_global_step() # we are maintaining the global-step in train.py so it is accessible
+		timestep = tf.train.get_or_create_global_step()  # we are maintaining the global-step in train.py so it is accessible
 		if self.decay_type == "linear":
 			return self.annealed_value[min(timestep.numpy(), self.decay_steps) - 1]
 		# don't use this!!
@@ -48,6 +50,41 @@ class AnnealingSchedule:
 			else:
 				return self.end
 
+
+def copy_dir(src, dst, symlinks=False, ignore=None):
+	"""
+	copy the all contents in `src` directory to `dst` directory
+
+	Usage:
+		```python
+		delete_files("./bb/")
+		```
+	"""
+	for item in os.listdir(src):
+		s = os.path.join(src, item)
+		d = os.path.join(dst, item)
+		if os.path.isdir(s):
+			shutil.copytree(s, d, symlinks, ignore)
+		else:
+			shutil.copy2(s, d)
+
+
+def delete_files(folder):
+	"""
+	delete the all contents in `folder` directory
+
+	Usage:
+		```python
+		copy_dir("./aa/", "./bb/")
+		```
+	"""
+	for the_file in os.listdir(folder):
+		file_path = os.path.join(folder, the_file)
+		try:
+			if os.path.isfile(file_path):
+				os.unlink(file_path)
+		except Exception as e:
+			print(e)
 
 
 def test(sess, agent, env, params):
@@ -98,6 +135,7 @@ class Tracker:
 	```
 
 	"""
+
 	def __init__(self, play_data_file="../logs/data/log.npy", save_freq=1000):
 		self.file = play_data_file
 		self.save_freq = save_freq
@@ -120,8 +158,10 @@ class Tracker:
 		# refresh the content of target file
 		try:
 			os.remove(self.file)
-		except: pass
-		with open(self.file, "w"): pass
+		except:
+			pass
+		with open(self.file, "w"):
+			pass
 
 	def store(self, _key, value):
 		"""
@@ -195,10 +235,13 @@ class logger:
 		"""
 		cnt_actions = dict((x, cnt_action.count(x)) for x in set(cnt_action))
 		# remaing_time_step/exec_time_for_one_step
-		remaining_time = str(datetime.timedelta(seconds=(self.params.num_frames - time_step)*exec_time/(time_step - self.prev_update_step)))
-		print("{0}/{1}: Ep: {2}({3:.3f}s), Remaining: {4}, (R) GOAL: {5}, {6} Ep => [MEAN: {7}, MAX: {8}], (last ep) Loss: {9:.6f}, Eps: {10:.6f}, Act: {11}".format(
-			time_step, self.params.num_frames, current_episode, exec_time, remaining_time, self.params.goal, self.params.reward_buffer_ep, np.mean(reward_buffer), np.max(reward_buffer), loss, epsilon, cnt_actions
-		))
+		remaining_time = str(datetime.timedelta(
+			seconds=(self.params.num_frames - time_step) * exec_time / (time_step - self.prev_update_step)))
+		print(
+			"{0}/{1}: Ep: {2}({3:.3f}s), Remaining: {4}, (R) GOAL: {5}, {6} Ep => [MEAN: {7}, MAX: {8}], (last ep) Loss: {9:.6f}, Eps: {10:.6f}, Act: {11}".format(
+				time_step, self.params.num_frames, current_episode, exec_time, remaining_time, self.params.goal,
+				self.params.reward_buffer_ep, np.mean(reward_buffer), np.max(reward_buffer), loss, epsilon, cnt_actions
+			))
 		self.prev_update_step = time_step
 
 
@@ -207,6 +250,7 @@ class logger:
 Update methods of a target model based on a source model 
 
 """
+
 
 def sync_main_target(sess, target, source):
 	"""
@@ -227,7 +271,7 @@ def sync_main_target(sess, target, source):
 	for target_w, source_w in zip(target_params, source_params):
 		op = target_w.assign(source_w)
 		update_ops.append(op)
-		
+
 	sess.run(update_ops)
 
 
@@ -248,9 +292,8 @@ def soft_target_model_update(sess, target, source, tau=1e-2):
 
 	update_ops = []
 	for target_w, source_w in zip(target_params, source_params):
-
 		# θ_target = τ*θ_local + (1 - τ)*θ_target
-		op = target_w.assign(tau*source_w + (1 - tau)*target_w)
+		op = target_w.assign(tau * source_w + (1 - tau) * target_w)
 		update_ops.append(op)
 
 	sess.run(update_ops)
@@ -272,7 +315,7 @@ def soft_target_model_update_eager(target, source, tau=1e-2):
 
 	for target_w, source_w in zip(target_params, source_params):
 		# θ_target = τ*θ_local + (1 - τ)*θ_target
-		target_w = tau*target_w + (1 - tau)*source_w
+		target_w = tau * target_w + (1 - tau) * source_w
 
 	target.set_weights(target_params)
 
@@ -306,8 +349,6 @@ def ClipIfNotNone(grad, _min, _max):
 	return tf.clip_by_value(grad, _min, _max)
 
 
-
-
 """
 
 Test Methods
@@ -335,16 +376,17 @@ def test_Agent(agent, env, n_trial=1):
 			episode_reward += reward
 		all_rewards.append(episode_reward)
 		tf.contrib.summary.scalar("Eval_Score over 250,000 time-step", episode_reward, step=agent.index_timestep)
-		print("| Ep: {}/{} | Score: {} |".format(ep+1, n_trial, episode_reward))
+		print("| Ep: {}/{} | Score: {} |".format(ep + 1, n_trial, episode_reward))
 
 	# if this is running on Google Colab, we would store the log/models to mounted MyDrive
 	if agent.params.google_colab:
-		os.rmdir(agent.params.log_dir_colab)
-		os.rmdir(agent.params.model_dir_colab)
-		os.system("cp -r {0} {1}/".format(agent.params.log_dir, agent.params.log_dir_colab))
-		os.system("cp -r {0} {1}/".format(agent.params.model_dir, agent.params.model_dir_colab))
+		delete_files(agent.params.model_dir_colab)
+		delete_files(agent.params.log_dir_colab)
+		copy_dir(agent.params.log_dir, agent.params.log_dir_colab)
+		copy_dir(agent.params.model_dir, agent.params.model_dir_colab)
 
 	if n_trial > 2:
 		print("=== Evaluation Result ===")
 		all_rewards = np.array([all_rewards])
-		print("| Max: {} | Min: {} | STD: {} | MEAN: {} |".format(np.max(all_rewards), np.min(all_rewards), np.std(all_rewards), np.mean(all_rewards)))
+		print("| Max: {} | Min: {} | STD: {} | MEAN: {} |".format(np.max(all_rewards), np.min(all_rewards),
+																  np.std(all_rewards), np.mean(all_rewards)))
