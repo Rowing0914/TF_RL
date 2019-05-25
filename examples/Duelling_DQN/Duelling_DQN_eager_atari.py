@@ -6,7 +6,7 @@ from collections import deque
 from tf_rl.common.wrappers import wrap_deepmind, make_atari
 from tf_rl.common.params import ENV_LIST_NATURE
 from tf_rl.common.memory import ReplayBuffer
-from tf_rl.common.utils import AnnealingSchedule
+from tf_rl.common.utils import AnnealingSchedule, copy_dir
 from tf_rl.common.policy import EpsilonGreedyPolicy_eager
 from tf_rl.common.train import train_DQN
 from tf_rl.agents.DQN import DQN, DQN_debug
@@ -86,12 +86,34 @@ if __name__ == '__main__':
 		# mount your drive on google colab
 		from google.colab import drive
 		drive.mount("/content/gdrive")
-		params.log_dir = "/content/gdrive/My Drive/logs/logs/Duelling_DQN/{}".format(params.env_name)
-		params.model_dir = "/content/gdrive/My Drive/logs/models/Duelling_DQN/{}".format(params.env_name)
-		os.makedirs(params.log_dir)
-		os.makedirs(params.model_dir)
-		assert os.path.isdir(params.log_dir), "Faild to create a directory on your My Drive, pls check it"
-		assert os.path.isdir(params.model_dir), "Faild to create a directory on your My Drive, pls check it"
+		params.log_dir         = "/content/TF_RL/logs/logs/Duelling_DQN/{}".format(params.env_name)
+		params.model_dir       = "/content/TF_RL/logs/models/Duelling_DQN/{}".format(params.env_name)
+		params.log_dir_colab   = "/content/gdrive/My Drive/logs/logs/Duelling_DQN/{}".format(params.env_name)
+		params.model_dir_colab = "/content/gdrive/My Drive/logs/models/Duelling_DQN/{}".format(params.env_name)
+
+		# create the logs directory under the root dir
+		if not os.path.isdir(params.log_dir):
+			os.makedirs(params.log_dir)
+		if not os.path.isdir(params.model_dir):
+			os.makedirs(params.model_dir)
+
+		# if the previous directory existed in My Drive, then we would continue training on top of the previous training
+		if os.path.isdir(params.log_dir_colab):
+			print("=== {} IS FOUND ===".format(params.log_dir_colab))
+			copy_dir(params.log_dir_colab, params.log_dir, verbose=True)
+		else:
+			print("=== {} IS NOT FOUND ===".format(params.log_dir_colab))
+			os.makedirs(params.log_dir_colab)
+			print("=== FINISHED CREATING THE DIRECTORY ===")
+
+		if os.path.isdir(params.model_dir_colab):
+			print("=== {} IS FOUND ===".format(params.model_dir_colab))
+			copy_dir(params.model_dir_colab, params.model_dir, verbose=True)
+		else:
+			print("=== {} IS NOT FOUND ===".format(params.model_dir_colab))
+			os.makedirs(params.model_dir_colab)
+			print("=== FINISHED CREATING THE DIRECTORY ===")
+
 		if params.debug_flg:
 			agent = DQN_debug(Model, Model, env.action_space.n, params)
 		else:
