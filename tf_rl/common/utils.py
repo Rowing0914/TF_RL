@@ -51,7 +51,7 @@ class AnnealingSchedule:
 				return self.end
 
 
-def copy_dir(src, dst, symlinks=False, ignore=None):
+def copy_dir(src, dst, symlinks=False, ignore=None, verbose=False):
 	"""
 	copy the all contents in `src` directory to `dst` directory
 
@@ -63,14 +63,15 @@ def copy_dir(src, dst, symlinks=False, ignore=None):
 	for item in os.listdir(src):
 		s = os.path.join(src, item)
 		d = os.path.join(dst, item)
-		print("From:{}, To: {}".format(s, d))
+		if verbose:
+			print("From:{}, To: {}".format(s, d))
 		if os.path.isdir(s):
 			shutil.copytree(s, d, symlinks, ignore)
 		else:
 			shutil.copy2(s, d)
 
 
-def delete_files(folder):
+def delete_files(folder, verbose=False):
 	"""
 	delete the all contents in `folder` directory
 
@@ -84,6 +85,8 @@ def delete_files(folder):
 		try:
 			if os.path.isfile(file_path):
 				os.unlink(file_path)
+				if verbose:
+					print("{} has been deleted".format(file_path))
 		except Exception as e:
 			print(e)
 
@@ -112,7 +115,6 @@ def test(sess, agent, env, params):
 """
 Logging functions
 
-.... maybe I don't use Tracker class...
 
 """
 
@@ -331,6 +333,7 @@ Loss functions
 def huber_loss(x, delta=1.0):
 	"""
 	Reference: https://en.wikipedia.org/wiki/Huber_loss
+	TODO: think if we need this, use Tensorflow implmentation of Huber loss
 	"""
 	return tf.where(
 		tf.abs(x) < delta,

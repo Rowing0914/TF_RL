@@ -84,7 +84,7 @@ if __name__ == '__main__':
 		# if the previous directory existed in My Drive, then we would continue training on top of the previous training
 		if os.path.isdir(params.log_dir_colab):
 			print("=== {} IS FOUND ===".format(params.log_dir_colab))
-			copy_dir(params.log_dir_colab, params.log_dir)
+			copy_dir(params.log_dir_colab, params.log_dir, verbose=True)
 		else:
 			print("=== {} IS NOT FOUND ===".format(params.log_dir_colab))
 			os.makedirs(params.log_dir_colab)
@@ -92,7 +92,7 @@ if __name__ == '__main__':
 
 		if os.path.isdir(params.model_dir_colab):
 			print("=== {} IS FOUND ===".format(params.model_dir_colab))
-			copy_dir(params.model_dir_colab, params.model_dir)
+			copy_dir(params.model_dir_colab, params.model_dir, verbose=True)
 		else:
 			print("=== {} IS NOT FOUND ===".format(params.model_dir_colab))
 			os.makedirs(params.model_dir_colab)
