@@ -8,7 +8,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="TF_RL",
-    version="0.1.6",
+    version="0.1.7",
     author="Norio Kosaka",
     author_email="kosakaboat@gmail.com",
     description="Reinforcement Learning for Tensorflow",
