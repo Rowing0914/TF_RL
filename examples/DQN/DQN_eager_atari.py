@@ -76,12 +76,12 @@ if __name__ == '__main__':
 
 		# if the previous directory existed, then we would start on top of the previous training
 		if os.path.isdir(params.log_dir_colab):
-			copyfile(params.log_dir_colab+"/*", params.log_dir+"/*")
+			os.system("cp {0}/* {1}".format(params.log_dir_colab, params.log_dir))
 		else:
 			os.makedirs(params.log_dir_colab)
 
 		if os.path.isdir(params.model_dir_colab):
-			copyfile(params.model_dir_colab+"/*", params.model_dir+"/*")
+			os.system("cp {0}/* {1}".format(params.model_dir_colab, params.model_dir))
 		else:
 			os.makedirs(params.model_dir_colab)
 

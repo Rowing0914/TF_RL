@@ -1,7 +1,6 @@
 import tensorflow as tf
 import numpy as np
 import os, datetime, itertools
-from shutil import copyfile
 from tf_rl.common.visualise import plot_Q_values
 
 """
@@ -342,8 +341,8 @@ def test_Agent(agent, env, n_trial=1):
 	if agent.params.google_colab:
 		os.remove(agent.params.log_dir_colab+"/*")
 		os.remove(agent.params.model_dir_colab+"/*")
-		copyfile(agent.params.log_dir+"/*", agent.params.log_dir_colab+"/*")
-		copyfile(agent.params.model_dir+"/*", agent.params.model_dir_colab+"/*")
+		os.system("cp {0}/* {1}".format(agent.params.log_dir, agent.params.log_dir_colab))
+		os.system("cp {0}/* {1}".format(agent.params.model_dir, agent.params.model_dir_colab))
 
 	if n_trial > 2:
 		print("=== Evaluation Result ===")
