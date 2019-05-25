@@ -66,7 +66,7 @@ $ python3.6 examples/{model_name}/{model_name}_eager_cartpole.py --debug_flg=Tru
 $ !git clone https://github.com/Rowing0914/TF_RL.git
 $ pip install --index-url https://test.pypi.org/simple/ --no-deps TF_RL
 $ %cd TF_RL
-$ python3.6 examples/{model_name}/{model_name}_eager.py --mode Atari --env_name={env_name} --google_colab=True
+$ python3.6 examples/{model_name}/{model_name}_eager_atari.py --mode Atari --env_name={env_name} --google_colab=True
 
 # === Execute On Your Local ===
 # My dirty workaroud to avoid breaking the connection to Colab is to execute below on local PC
