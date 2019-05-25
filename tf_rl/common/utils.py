@@ -63,6 +63,7 @@ def copy_dir(src, dst, symlinks=False, ignore=None):
 	for item in os.listdir(src):
 		s = os.path.join(src, item)
 		d = os.path.join(dst, item)
+		print("From:{}, To: {}".format(s, d))
 		if os.path.isdir(s):
 			shutil.copytree(s, d, symlinks, ignore)
 		else:
