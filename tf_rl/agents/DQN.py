@@ -59,7 +59,7 @@ class DQN:
 
 		# get the q-values which is associated with actually taken actions in a game
 		actions_one_hot = tf.one_hot(actions, self.num_action, 1.0, 0.0)
-		chosen_q = tf.math.reduce_sum(actions_one_hot * q_values, reduction_indices=1)
+		chosen_q = tf.math.reduce_sum(tf.math.multiply(actions_one_hot, q_values), reduction_indices=1)
 
 		# use huber loss
 		batch_loss = tf.losses.huber_loss(Y, chosen_q, reduction=tf.losses.Reduction.NONE)
@@ -274,7 +274,7 @@ class DQN_cartpole:
 
 			# get the q-values which is associated with actually taken actions in a game
 			actions_one_hot = tf.one_hot(actions, self.num_action, 1.0, 0.0)
-			chosen_q = tf.math.reduce_sum(actions_one_hot * q_values, reduction_indices=1)
+			chosen_q = tf.math.reduce_sum(tf.math.multiply(actions_one_hot, q_values), reduction_indices=1)
 
 			if self.params.loss_fn == "huber_loss":
 				# use huber loss

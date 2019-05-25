@@ -77,10 +77,7 @@ def train_DQN(agent, env, policy, replay_buffer, reward_buffer, params, summary_
 
 				if global_timestep.numpy() > params.learning_start and i % params.reward_buffer_ep == 0:
 					log.logging(global_timestep.numpy(), i, np.sum(time_buffer), reward_buffer, np.mean(loss), policy.current_epsilon(), cnt_action)
-					try:
-						time_buffer = list()
-					except:
-						pass
+					time_buffer = list()
 
 				if agent.eval_flg:
 					test_Agent(agent, env)
@@ -171,10 +168,7 @@ def train_DQN_PER(agent, env, policy, replay_buffer, reward_buffer, params, Beta
 
 				if global_timestep.numpy() > params.learning_start and i % params.reward_buffer_ep == 0:
 					log.logging(global_timestep.numpy(), i, np.sum(time_buffer), reward_buffer, np.mean(loss), policy.current_epsilon(), cnt_action)
-					try:
-						time_buffer = list()
-					except:
-						pass
+					time_buffer = list()
 
 				if agent.eval_flg:
 					test_Agent(agent, env)
