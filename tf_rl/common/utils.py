@@ -341,8 +341,8 @@ def test_Agent(agent, env, n_trial=1):
 	if agent.params.google_colab:
 		os.rmdir(agent.params.log_dir_colab)
 		os.rmdir(agent.params.model_dir_colab)
-		os.system("cp -r {0} {1}".format(agent.params.log_dir, agent.params.log_dir_colab))
-		os.system("cp -r {0} {1}".format(agent.params.model_dir, agent.params.model_dir_colab))
+		os.system("cp -r {0} {1}/".format(agent.params.log_dir, agent.params.log_dir_colab))
+		os.system("cp -r {0} {1}/".format(agent.params.model_dir, agent.params.model_dir_colab))
 
 	if n_trial > 2:
 		print("=== Evaluation Result ===")

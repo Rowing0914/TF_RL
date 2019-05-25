@@ -83,7 +83,7 @@ if __name__ == '__main__':
 		else:
 			print("=== {} IS NOT FOUND ===".format(params.log_dir_colab))
 			os.makedirs(params.log_dir_colab)
-			print("=== FINISHED CREATING THE DIRECTORY")
+			print("=== FINISHED CREATING THE DIRECTORY ===")
 
 		if os.path.isdir(params.model_dir_colab):
 			print("=== {} IS FOUND ===".format(params.model_dir_colab))
@@ -91,7 +91,7 @@ if __name__ == '__main__':
 		else:
 			print("=== {} IS NOT FOUND ===".format(params.model_dir_colab))
 			os.makedirs(params.model_dir_colab)
-			print("=== FINISHED CREATING THE DIRECTORY")
+			print("=== FINISHED CREATING THE DIRECTORY ===")
 
 		if params.debug_flg:
 			agent = DQN_debug(Model, Model, env.action_space.n, params)
