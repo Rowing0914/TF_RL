@@ -1,7 +1,6 @@
 import tensorflow as tf
 import numpy as np
-import os, datetime
-import itertools
+import os, datetime, itertools, shutil
 from tf_rl.common.visualise import plot_Q_values
 
 """
@@ -337,6 +336,11 @@ def test_Agent(agent, env, n_trial=1):
 		all_rewards.append(episode_reward)
 		tf.contrib.summary.scalar("Eval_Score over 250,000 time-step", episode_reward, step=agent.index_timestep)
 		print("| Ep: {}/{} | Score: {} |".format(ep+1, n_trial, episode_reward))
+
+	# if this is running on Google Colab, we would store the log/models to mounted MyDrive
+	if agent.params.google_colab:
+		shutil.move(agent.params.log_dir, agent.params.log_dir_colab)
+		shutil.move(agent.params.model_dir, agent.params.model_dir_colab)
 
 	if n_trial > 2:
 		print("=== Evaluation Result ===")

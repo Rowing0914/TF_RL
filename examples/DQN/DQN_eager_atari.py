@@ -1,5 +1,6 @@
 import os
 import argparse
+import shutil
 from datetime import datetime
 import tensorflow as tf
 from collections import deque
@@ -70,12 +71,20 @@ if __name__ == '__main__':
 		# mount your drive on google colab
 		from google.colab import drive
 		drive.mount("/content/gdrive")
-		params.log_dir = "/content/gdrive/My Drive/logs/logs/DQN/{}".format(params.env_name)
-		params.model_dir = "/content/gdrive/My Drive/logs/models/DQN/{}".format(params.env_name)
-		os.makedirs(params.log_dir)
-		os.makedirs(params.model_dir)
-		assert os.path.isdir(params.log_dir), "Faild to create a directory on your My Drive, pls check it"
-		assert os.path.isdir(params.model_dir), "Faild to create a directory on your My Drive, pls check it"
+		params.log_dir_colab   = "/content/gdrive/My Drive/logs/logs/DQN/{}".format(params.env_name)
+		params.model_dir_colab = "/content/gdrive/My Drive/logs/models/DQN/{}".format(params.env_name)
+
+		# if the previous directory existed, then we would start on top of the previous training
+		if os.path.isdir(params.log_dir_colab):
+			shutil.move(params.log_dir_colab, params.log_dir)
+		else:
+			os.makedirs(params.log_dir_colab)
+
+		if os.path.isdir(params.model_dir_colab):
+			shutil.move(params.model_dir_colab, params.model_dir)
+		else:
+			os.makedirs(params.model_dir_colab)
+
 		if params.debug_flg:
 			agent = DQN_debug(Model, Model, env.action_space.n, params)
 		else:
