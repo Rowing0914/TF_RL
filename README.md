@@ -56,7 +56,7 @@ $ python3.6 examples/{model_name}/{model_name}_eager_atari.py --debug_flg=True
 $ python3.6 examples/{model_name}/{model_name}_eager_cartpole.py --debug_flg=True
 ```
 
-4. Ready-to-run on Google colab
+4. Ready-to-run on Google colab( [Result of DQN](https://github.com/Rowing0914/TF_RL/blob/master/result/DQN/README.md) )
 
 ```shell
 # you can run on google colab, but make sure that there some restriction on session
