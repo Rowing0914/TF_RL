@@ -1,4 +1,29 @@
+# Result Report
+
+All target values are derived from DQN of [Nature paper](https://www.nature.com/articles/nature14236.pdf)
+
+## Params
+
+|      Item      |        Value       |
+|:--------------:|:------------------:|
+|     loss_fn    |     Huber Loss     |
+|  grad_clip_flg |        None        |
+|   num_frames   |   10,000,000(10M)  |
+| train_interval |          5         |
+|   memory_size  |       500,000      |
+| learning_start | After 20,000 steps |
+|    sync_freq   |        1,000       |
+|   batch_size   |         32         |
+|      gamma     |        0.99        |
+|  target_update |     hard update    |
+|  epsilon_start |         1.0        |
+|   epsilon_end  |        0.02        |
+|   decay_steps  |       250,000      |
+
+
+
 # Without Target Line
+
 <img src="images/without_target_line/VideoPinball.png" width="70%">
 <img src="images/without_target_line/Boxing.png" width="70%">
 <img src="images/without_target_line/Breakout.png" width="70%">
