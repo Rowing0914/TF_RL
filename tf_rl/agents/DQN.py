@@ -6,7 +6,7 @@ from tf_rl.common.utils import ClipIfNotNone, AnnealingSchedule
 class DQN:
 	"""
 	DQN model which is reusable for duelling dqn as well
-	We only normalise a state/next_state pixels by 255 when we feed them into a model.
+	We only normalise a state/next_state pixels by 255. when we feed them into a model.
 	Replay buffer stores them as np.int8 because of memory issue this is also stated in OpenAI Baselines wrapper.
 	"""
 

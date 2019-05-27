@@ -422,6 +422,13 @@ class Parameters:
             self.batch_size = 32
             self.test_episodes = 10
 
+"""
+Env list and scores
+
+"""
+
+
+# https://www.cs.toronto.edu/~vmnih/docs/dqn.pdf
 ENV_LIST_NIPS = {
     "BeamRiderNoFrameskip-v4": 6846.0,
     "BreakoutNoFrameskip-v4": 401.2,
@@ -433,6 +440,7 @@ ENV_LIST_NIPS = {
 }
 
 
+# https://www.nature.com/articles/nature14236.pdf
 ENV_LIST_NATURE = {
     "VideoPinballNoFrameskip-v4": 42684.0,
     "BoxingNoFrameskip-v4": 71.8,
