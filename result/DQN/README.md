@@ -2,6 +2,8 @@
 
 All target values are derived from DQN of [Nature paper](https://www.nature.com/articles/nature14236.pdf)
 
+hmm.. i might re-train the agent again.
+
 ## Params
 
 |      Item      |        Value       |
