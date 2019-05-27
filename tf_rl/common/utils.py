@@ -373,11 +373,15 @@ def test_Agent(agent, env, n_trial=1):
 		done = False
 		episode_reward = 0
 		while not done:
-			# env.render()
-			action = np.argmax(agent.predict(state))
+			# epsilon-greedy for evaluation using a fixed epsilon of 0.01(Nature does this!)
+			if np.random.uniform() < 0.01:
+				action = np.random.randint(agent.num_action)
+			else:
+				action = np.argmax(agent.predict(state))
 			next_state, reward, done, _ = env.step(action)
 			state = next_state
 			episode_reward += reward
+
 		all_rewards.append(episode_reward)
 		tf.contrib.summary.scalar("Eval_Score over 250,000 time-step", episode_reward, step=agent.index_timestep)
 		print("| Ep: {}/{} | Score: {} |".format(ep + 1, n_trial, episode_reward))

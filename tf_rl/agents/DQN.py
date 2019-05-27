@@ -62,7 +62,10 @@ class DQN:
 		chosen_q = tf.math.reduce_sum(tf.math.multiply(actions_one_hot, q_values), reduction_indices=1)
 
 		# use huber loss
-		batch_loss = tf.losses.huber_loss(Y, chosen_q, reduction=tf.losses.Reduction.NONE)
+		# batch_loss = tf.losses.huber_loss(Y, chosen_q, reduction=tf.losses.Reduction.NONE)
+
+		# MSE
+		batch_loss = tf.math.squared_difference(Y, chosen_q)
 		loss = tf.math.reduce_mean(batch_loss)
 		return loss, batch_loss
 

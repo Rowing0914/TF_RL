@@ -41,19 +41,19 @@ if __name__ == '__main__':
 	parser.add_argument("--loss_fn", default="MSE", help="types of loss function => MSE or huber_loss")
 	parser.add_argument("--grad_clip_flg", default="norm", help="types of a clipping method of gradients => by value(by_value) or global norm(norm) or None")
 	parser.add_argument("--num_frames", default=10_000_000, type=int, help="total frame in a training")
-	parser.add_argument("--train_interval", default=5, type=int, help="a frequency of training occurring in training phase")
+	parser.add_argument("--train_interval", default=4, type=int, help="a frequency of training occurring in training phase")
 	parser.add_argument("--eval_interval", default=250_000, type=int, help="a frequency of evaluation occurring in training phase")
-	parser.add_argument("--memory_size", default=500_000, type=int, help="memory size in a training => this used for Experience Replay Memory or Prioritised Experience Replay Memory")
-	parser.add_argument("--learning_start", default=20_000, type=int, help="frame number which specifies when to start updating the agent")
-	parser.add_argument("--sync_freq", default=1_000, type=int, help="frequency of updating a target model")
+	parser.add_argument("--memory_size", default=1_000_000, type=int, help="memory size in a training => this used for Experience Replay Memory or Prioritised Experience Replay Memory")
+	parser.add_argument("--learning_start", default=50_000, type=int, help="frame number which specifies when to start updating the agent")
+	parser.add_argument("--sync_freq", default=10_000, type=int, help="frequency of updating a target model")
 	parser.add_argument("--batch_size", default=32, type=int, help="batch size of each iteration of update")
 	parser.add_argument("--reward_buffer_ep", default=100, type=int, help="reward_buffer size")
 	parser.add_argument("--gamma", default=0.99, type=float, help="discount factor => gamma > 1.0 or negative => does not converge!!")
 	parser.add_argument("--update_hard_or_soft", default="hard", help="types of synchronisation method of target and main models => soft or hard update")
 	parser.add_argument("--soft_update_tau", default=1e-2, type=float, help="in soft-update tau defines the ratio of main model remains and it seems 1e-2 is the optimal!")
 	parser.add_argument("--epsilon_start", default=1.0, type=float, help="initial value of epsilon")
-	parser.add_argument("--epsilon_end", default=0.02, type=float, help="final value of epsilon")
-	parser.add_argument("--decay_steps", default=250_000, type=int, help="a period for annealing a value(epsilon or beta)")
+	parser.add_argument("--epsilon_end", default=0.1, type=float, help="final value of epsilon")
+	parser.add_argument("--decay_steps", default=1_000_000, type=int, help="a period for annealing a value(epsilon or beta)")
 	parser.add_argument("--decay_type", default="linear", help="types of annealing method => linear or curved")
 	parser.add_argument("--log_dir", default="../../logs/logs/DQN/", help="directory for log")
 	parser.add_argument("--model_dir", default="../../logs/models/DQN/", help="directory for trained model")
@@ -105,12 +105,12 @@ if __name__ == '__main__':
 	else:
 		# run on the local machine
 		if params.debug_flg:
-			params.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "DQN_debug/"
-			params.model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "DQN_debug/"
+			params.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "-DQN_debug/"
+			params.model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "-DQN_debug/"
 			agent = DQN_debug(Model, Model, env.action_space.n, params)
 		else:
-			params.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "DQN/"
-			params.model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "DQN/"
+			params.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "-DQN/"
+			params.model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "-DQN/"
 			agent = DQN(Model, Model, env.action_space.n, params)
 
 	Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end, decay_steps=params.decay_steps)
