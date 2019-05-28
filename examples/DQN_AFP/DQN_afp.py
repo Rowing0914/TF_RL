@@ -19,7 +19,11 @@ from tf_rl.common.policy import EpsilonGreedyPolicy_eager, BoltzmannQPolicy_eage
 from tf_rl.common.train import train_DQN_afp
 from tf_rl.agents.DQN import DQN
 
-tf.enable_eager_execution()
+config = tf.ConfigProto(allow_soft_placement=True,
+						intra_op_parallelism_threads=1,
+						inter_op_parallelism_threads=1)
+config.gpu_options.allow_growth = True
+tf.enable_eager_execution(config=config)
 tf.random.set_random_seed(123)
 
 class Model(tf.keras.Model):

@@ -316,11 +316,16 @@ def soft_target_model_update_eager(target, source, tau=1e-2):
 	source_params = source.get_weights()
 	target_params = target.get_weights()
 
-	for target_w, source_w in zip(target_params, source_params):
-		# θ_target = τ*θ_local + (1 - τ)*θ_target
-		target_w = tau * target_w + (1 - tau) * source_w
+	assert len(source_params) == len(target_params)
 
-	target.set_weights(target_params)
+	soft_updates = list()
+	for target_w, source_w in zip(target_params, source_params):
+		# target = tau*source + (1 - tau)*target
+		soft_updates.append(tau * source_w + (1 - tau) * target_w)
+
+	assert len(soft_updates) == len(source_params)
+	target.set_weights(soft_updates)
+
 
 
 """
@@ -379,6 +384,43 @@ def test_Agent(agent, env, n_trial=1):
 			else:
 				action = np.argmax(agent.predict(state))
 			next_state, reward, done, _ = env.step(action)
+			state = next_state
+			episode_reward += reward
+
+		all_rewards.append(episode_reward)
+		tf.contrib.summary.scalar("Eval_Score over 250,000 time-step", episode_reward, step=agent.index_timestep)
+		print("| Ep: {}/{} | Score: {} |".format(ep + 1, n_trial, episode_reward))
+
+	# if this is running on Google Colab, we would store the log/models to mounted MyDrive
+	if agent.params.google_colab:
+		delete_files(agent.params.model_dir_colab)
+		delete_files(agent.params.log_dir_colab)
+		copy_dir(agent.params.log_dir, agent.params.log_dir_colab)
+		copy_dir(agent.params.model_dir, agent.params.model_dir_colab)
+
+	if n_trial > 2:
+		print("=== Evaluation Result ===")
+		all_rewards = np.array([all_rewards])
+		print("| Max: {} | Min: {} | STD: {} | MEAN: {} |".format(np.max(all_rewards), np.min(all_rewards),
+																  np.std(all_rewards), np.mean(all_rewards)))
+
+
+def test_Agent_policy_gradient(agent, env, n_trial=1):
+	"""
+	Evaluate the trained agent!
+
+	:return:
+	"""
+	all_rewards = list()
+	print("=== Evaluation Mode ===")
+	for ep in range(n_trial):
+		state = env.reset()
+		done = False
+		episode_reward = 0
+		while not done:
+			action = agent.predict(state)
+			# scale for execution in env (in DDPG, every action is clipped between [-1, 1] in agent.predict)
+			next_state, reward, done, _ = env.step(action * env.action_space.high)
 			state = next_state
 			episode_reward += reward
 

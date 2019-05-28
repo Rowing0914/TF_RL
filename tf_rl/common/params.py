@@ -496,15 +496,15 @@ ENV_LIST_NATURE = {
 
 # https://gym.openai.com/envs/#mujoco
 # https://github.com/openai/baselines-results/blob/master/param-noise/mujoco.md
-DDPG_ENV_LIST = [
-    "Ant-v2",
-    "HalfCheetah-v2",
-    "Hopper-v2",
-    "Humanoid-v2",
-    "HumanoidStandup-v2",
-    "InvertedDoublePendulum-v2",
-    "InvertedPendulum-v2",
-    "Reacher-v2",
-    "Swimmer-v2",
-    "Walker2d-v2"
-]
+DDPG_ENV_LIST = {
+    "Ant-v2": 3500,
+    "HalfCheetah-v2": 7000,
+    "Hopper-v2": 1500,
+    "Humanoid-v2": 2000,
+    "HumanoidStandup-v2": 0,
+    "InvertedDoublePendulum-v2": 6000,
+    "InvertedPendulum-v2": 800,
+    "Reacher-v2": -6,
+    "Swimmer-v2": 40,
+    "Walker2d-v2": 2500
+}

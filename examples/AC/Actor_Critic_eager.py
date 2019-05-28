@@ -10,7 +10,11 @@ from tf_rl.common.params import Parameters
 from tf_rl.common.utils import logging
 import tensorflow as tf
 
-tf.enable_eager_execution()
+config = tf.ConfigProto(allow_soft_placement=True,
+						intra_op_parallelism_threads=1,
+						inter_op_parallelism_threads=1)
+config.gpu_options.allow_growth = True
+tf.enable_eager_execution(config=config)
 tf.random.set_random_seed(123)
 
 class Actor(tf.keras.Model):

@@ -1,7 +1,7 @@
 import time, itertools
 import tensorflow as tf
 import numpy as np
-from tf_rl.common.utils import soft_target_model_update_eager, logger, test_Agent
+from tf_rl.common.utils import soft_target_model_update_eager, logger, test_Agent, test_Agent_policy_gradient
 
 """
 TODO: think about incorporating PER's memory updating procedure into the model
@@ -93,7 +93,7 @@ def train_DQN(agent, env, policy, replay_buffer, reward_buffer, params, summary_
 
 def train_DQN_PER(agent, env, policy, replay_buffer, reward_buffer, params, Beta, summary_writer):
 	"""
-	Training script for DQN and other advanced models without PER
+	Training script for DQN with PER
 
 	:param agent:
 	:param env:
@@ -178,6 +178,83 @@ def train_DQN_PER(agent, env, policy, replay_buffer, reward_buffer, params, Beta
 				if global_timestep.numpy() > params.num_frames:
 					print("=== Training is Done ===")
 					test_Agent(agent, env, n_trial=params.test_episodes)
+					env.close()
+					break
+
+
+def train_DDPG(agent, env, replay_buffer, reward_buffer, params, summary_writer):
+	"""
+	Training script for DDPG
+
+	"""
+	global_timestep = tf.train.get_or_create_global_step()
+	time_buffer = list()
+	log = logger(params)
+
+	with summary_writer.as_default():
+		# for summary purpose, we put all codes in this context
+		with tf.contrib.summary.always_record_summaries():
+
+			for i in itertools.count():
+				state = env.reset()
+				total_reward = 0
+				start = time.time()
+				agent.random_process.reset_states()
+				done = False
+				train_cnt = 0
+				while not done:
+					train_cnt += 1
+					action = agent.predict(state)
+					# print(action)
+					# scale for execution in env (in DDPG, every action is clipped between [-1, 1] in agent.predict)
+					next_state, reward, done, info = env.step(action * env.action_space.high)
+					replay_buffer.add(state, action, reward, next_state, done)
+
+					tf.assign(global_timestep, global_timestep.numpy() + 1, name='update_global_step')
+					total_reward += reward
+					state = next_state
+
+					# for evaluation purpose
+					if global_timestep.numpy() % params.eval_interval == 0:
+						agent.eval_flg = True
+
+					if (global_timestep.numpy() > params.learning_start) and (train_cnt == params.train_interval):
+						for t_train in range(params.nb_train_steps):
+							states, actions, rewards, next_states, dones = replay_buffer.sample(params.batch_size)
+							loss = agent.update(states, actions, rewards, next_states, dones)
+							soft_target_model_update_eager(agent.target_actor, agent.actor, tau=params.soft_update_tau)
+							soft_target_model_update_eager(agent.target_critic, agent.critic, tau=params.soft_update_tau)
+
+
+				"""
+				===== After 1 Episode is Done =====
+				"""
+
+				tf.contrib.summary.scalar("reward", total_reward, step=i)
+				tf.contrib.summary.scalar("exec time", time.time() - start, step=i)
+				if i >= params.reward_buffer_ep:
+					tf.contrib.summary.scalar("Moving Ave Reward", np.mean(reward_buffer), step=i)
+
+				# store the episode reward
+				reward_buffer.append(total_reward)
+				time_buffer.append(time.time() - start)
+
+				if global_timestep.numpy() > params.learning_start and i % params.reward_buffer_ep == 0:
+					# we don't log takes actions because it is continuous value, and actor network don't need Epsilon!!
+					try:
+						log.logging(global_timestep.numpy(), i, np.sum(time_buffer), reward_buffer, np.mean(loss), 0, [0])
+						time_buffer = list()
+					except:
+						pass
+
+				if agent.eval_flg:
+					test_Agent_policy_gradient(agent, env)
+					agent.eval_flg = False
+
+				# check the stopping condition
+				if global_timestep.numpy() > params.num_frames:
+					print("=== Training is Done ===")
+					test_Agent_policy_gradient(agent, env, n_trial=params.test_episodes)
 					env.close()
 					break
 

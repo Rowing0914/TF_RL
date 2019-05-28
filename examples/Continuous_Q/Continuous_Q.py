@@ -8,7 +8,11 @@ from tf_rl.common.utils import logging
 from tf_rl.common.filters import Particle_Filter
 from tf_rl.common.wrappers import MyWrapper_revertable
 
-tf.enable_eager_execution()
+config = tf.ConfigProto(allow_soft_placement=True,
+						intra_op_parallelism_threads=1,
+						inter_op_parallelism_threads=1)
+config.gpu_options.allow_growth = True
+tf.enable_eager_execution(config=config)
 tf.random.set_random_seed(123)
 
 class Model(tf.keras.Model):
