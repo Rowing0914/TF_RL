@@ -110,8 +110,8 @@ class DDPG:
 		self.critic = critic(env_type, num_action)
 		self.target_actor  = deepcopy(self.actor)
 		self.target_critic = deepcopy(self.critic)
-		self.actor_optimizer = tf.train.AdamOptimizer()
-		self.critic_optimizer = tf.train.AdamOptimizer()
+		self.actor_optimizer = tf.train.AdamOptimizer(learning_rate=10e-4)
+		self.critic_optimizer = tf.train.AdamOptimizer(learning_rate=10e-3)
 		self.random_process = OrnsteinUhlenbeckProcess(size=self.num_action, theta=0.15, mu=0.0, sigma=0.2)
 
 	def predict(self, state, epsilon=0.02):
@@ -183,10 +183,10 @@ if __name__ == '__main__':
 	parser.add_argument("--learning_start", default=500, type=int, help="frame number which specifies when to start updating the agent")
 	parser.add_argument("--sync_freq", default=1_000, type=int, help="frequency of updating a target model")
 	parser.add_argument("--batch_size", default=32, type=int, help="batch size of each iteration of update")
-	parser.add_argument("--reward_buffer_ep", default=5, type=int, help="reward_buffer size")
+	parser.add_argument("--reward_buffer_ep", default=10, type=int, help="reward_buffer size")
 	parser.add_argument("--gamma", default=0.99, type=float, help="discount factor => gamma > 1.0 or negative => does not converge!!")
 	parser.add_argument("--update_hard_or_soft", default="hard", help="types of synchronisation method of target and main models => soft or hard update")
-	parser.add_argument("--soft_update_tau", default=1e-2, type=float, help="in soft-update tau defines the ratio of main model remains and it seems 1e-2 is the optimal!")
+	parser.add_argument("--soft_update_tau", default=1e-3, type=float, help="in soft-update tau defines the ratio of main model remains and it seems 1e-2 is the optimal!")
 	parser.add_argument("--epsilon_start", default=1.0, type=float, help="initial value of epsilon")
 	parser.add_argument("--epsilon_end", default=0.02, type=float, help="final value of epsilon")
 	parser.add_argument("--decay_steps", default=100_000, type=int, help="a period for annealing a value(epsilon or beta)")
@@ -199,7 +199,8 @@ if __name__ == '__main__':
 	params.goal = 0
 	params.test_episodes = 10
 
-	env = gym.make("Pendulum-v0")
+
+	env = gym.make("Ant-v2")
 	# env = gym.make("MountainCarContinuous-v0")
 
 	agent = DDPG("CartPole", Actor, Critic, 1, params)
@@ -239,10 +240,6 @@ if __name__ == '__main__':
 			if (global_timestep.numpy() > params.learning_start) and (global_timestep.numpy() % params.sync_freq == 0):
 				soft_target_model_update_eager(agent.target_actor, agent.actor, tau=params.soft_update_tau)
 				soft_target_model_update_eager(agent.target_critic, agent.critic, tau=params.soft_update_tau)
-				# if params.update_hard_or_soft == "hard":
-				# 	agent.target_model.set_weights(agent.main_model.get_weights())
-				# elif params.update_hard_or_soft == "soft":
-				# 	soft_target_model_update_eager(agent.target_model, agent.main_model, tau=params.soft_update_tau)
 
 		"""
 		===== After 1 Episode is Done =====
