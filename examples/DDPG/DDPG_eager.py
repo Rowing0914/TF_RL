@@ -147,13 +147,17 @@ if __name__ == '__main__':
 	parser.add_argument("--debug_flg", default=False, type=bool, help="debug mode or not")
 	parser.add_argument("--google_colab", default=False, type=bool, help="if you are executing this on GoogleColab")
 	params = parser.parse_args()
+	params.test_episodes = 10
 
 	from datetime import datetime
 	now = datetime.now()
-	params.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "-DDPG/"
-	params.model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "-DDPG/"
+	if params.debug_flg:
+		params.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "-DDPG/"
+		params.model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "-DDPG/"
+	else:
+		params.log_dir = "../../logs/logs/{}".format(params.env_name)
+		params.model_dir = "../../logs/models/{}".format(params.env_name)
 
-	params.test_episodes = 10
 
 	env = gym.make(params.env_name)
 	# set seed

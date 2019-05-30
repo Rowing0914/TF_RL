@@ -75,12 +75,12 @@ class DDPG:
 		# apply processed gradients to the network
 		self.actor_optimizer.apply_gradients(zip(actor_grads, self.actor.trainable_variables))
 
-		tf.contrib.summary.histogram("Y", Y, step=self.index_timestep)
-		tf.contrib.summary.scalar("critic_loss", critic_loss, step=self.index_timestep)
-		tf.contrib.summary.scalar("actor_loss", actor_loss, step=self.index_timestep)
-		tf.contrib.summary.scalar("mean_next_Q", tf.math.reduce_mean(next_Q), step=self.index_timestep)
-		tf.contrib.summary.scalar("max_next_Q", tf.math.reduce_max(next_Q), step=self.index_timestep)
-		tf.contrib.summary.scalar("mean_q_value", tf.math.reduce_mean(q_values), step=self.index_timestep)
-		tf.contrib.summary.scalar("max_q_value", tf.math.reduce_max(q_values), step=self.index_timestep)
+		# tf.contrib.summary.histogram("Y", Y, step=self.index_timestep)
+		# tf.contrib.summary.scalar("critic_loss", critic_loss, step=self.index_timestep)
+		# tf.contrib.summary.scalar("actor_loss", actor_loss, step=self.index_timestep)
+		# tf.contrib.summary.scalar("mean_next_Q", tf.math.reduce_mean(next_Q), step=self.index_timestep)
+		# tf.contrib.summary.scalar("max_next_Q", tf.math.reduce_max(next_Q), step=self.index_timestep)
+		# tf.contrib.summary.scalar("mean_q_value", tf.math.reduce_mean(q_values), step=self.index_timestep)
+		# tf.contrib.summary.scalar("max_q_value", tf.math.reduce_max(q_values), step=self.index_timestep)
 
 		return np.sum(critic_loss + actor_loss)

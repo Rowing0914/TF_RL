@@ -285,6 +285,7 @@ def soft_target_model_update(sess, target, source, tau=1e-2):
 	sess.run(update_ops)
 
 
+@tf.contrib.eager.defun(autograph=False)
 def soft_target_model_update_eager(target, source, tau=1e-2):
 	"""
 	Soft update model parameters.
@@ -296,18 +297,8 @@ def soft_target_model_update_eager(target, source, tau=1e-2):
 	:return:
 	"""
 
-	source_params = source.get_weights()
-	target_params = target.get_weights()
-
-	assert len(source_params) == len(target_params)
-
-	soft_updates = list()
-	for target_w, source_w in zip(target_params, source_params):
-		# target = tau*source + (1 - tau)*target
-		soft_updates.append(tau * source_w + (1 - tau) * target_w)
-
-	assert len(soft_updates) == len(source_params)
-	target.set_weights(soft_updates)
+	for param, target_param in zip(source.weights, target.weights):
+		target_param.assign(tau * param + (1 - tau) * target_param)
 
 
 """
