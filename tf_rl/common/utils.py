@@ -91,6 +91,44 @@ def delete_files(folder, verbose=False):
 			print(e)
 
 
+class RunningMeanStd:
+	"""
+	Running Mean and Standard Deviation for normalising the observation!
+	This is mainly used in MuJoCo experiments, e.g. DDPG!
+
+	"""
+
+	def __init__(self, epsilon=1e-2):
+		self._sum = 0.0
+		self._sumsq = epsilon
+		self._count = epsilon
+		self.mean = tf.to_float(self._sum / self._count)
+		self.std = tf.math.sqrt(
+			tf.math.maximum(tf.to_float(self._sumsq / self._count) - tf.math.square(self.mean), 1e-2))
+
+	def _update(self, x):
+		"""
+		update the mean and std by given input
+
+		:param x: can be observation, reward, or action!!
+		:return:
+		"""
+		self._sum = x.sum(axis=0).ravel()
+		self._sumsq = np.square(x).sum(axis=0).ravel()
+		self._count = np.array([len(x)], dtype='float64')
+
+	def normalise(self, x):
+		"""
+		Using well-maintained mean and std, we normalise the input followed by update them.
+
+		:param x:
+		:return:
+		"""
+		result = (x - self.mean) / (self.std * 1e-8)
+		self._update(x)
+		return result
+
+
 def test(sess, agent, env, params):
 	xmax = agent.num_action
 	ymax = 3
@@ -113,109 +151,53 @@ def test(sess, agent, env, params):
 
 
 """
-Logging functions
+
+# Copyright 2018 The Dopamine Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+===== Tracker is A class for storing iteration-specific metrics. ====
 
 
 """
 
 
-class Tracker:
+class Tracker(object):
+	"""A class for storing iteration-specific metrics.
+
+	The internal format is as follows: we maintain a mapping from keys to lists.
+	Each list contains all the values corresponding to the given key.
+
+	For example, self.data_lists['train_episode_returns'] might contain the
+	  per-episode returns achieved during this iteration.
+
+	Attributes:
+	  data_lists: dict mapping each metric_name (str) to a list of said metric
+		across episodes.
 	"""
 
-	Tracking the data coming from the env and store them into a target file
-	in Numpy Array for data visualisation purpose.
+	def __init__(self):
+		self.data_lists = {}
 
-	Use store API to store the values, and since it does keep tracking the content of self.store
-	whenever it gets full, this class adds those values to self.data and in the end, converts them into Numpy array
-	and save them into a target file
+	def append(self, data_pairs):
+		"""Add the given values to their corresponding key-indexed lists.
 
-	```python
-	# instantiate
-	tracker = Tracker(save_freq=100)
-
-	# you can freely put the values in it
-	tracker.store('state', state)
-	```
-
-	"""
-
-	def __init__(self, play_data_file="../logs/data/log.npy", save_freq=1000):
-		self.file = play_data_file
-		self.save_freq = save_freq
-		self.cnt = 0
-		self.saved_cnt = 0
-		self.data = list()
-		self.value_names = [
-			"state",
-			"q_value",
-			"action",
-			"reward",
-			"done",
-			"loss",
-		]
-		self.storage_for_batch_names = ["loss"]
-
-		self.storage_for_batch = {}
-		self.storage = {}
-
-		# refresh the content of target file
-		try:
-			os.remove(self.file)
-		except:
-			pass
-		with open(self.file, "w"):
-			pass
-
-	def store(self, _key, value):
+		Args:
+		  data_pairs: A dictionary of key-value pairs to be recorded.
 		"""
-		Gets a value with a key and put them into a dictionary(self.storage)
-
-		:param _key:
-		:param value:
-		:return:
-		"""
-		assert _key in self.value_names, "choose the value to store from {}".format(str(self.value_names))
-
-		if len(self.storage) == len(self.value_names):
-			self.add()
-			self.storage = {}
-		elif _key in self.storage_for_batch_names:
-			if len(self.storage) == len(self.value_names):
-				self.add()
-				self.storage = {}
-			self.storage_for_batch[_key] = value
-
-		self.storage[_key] = value
-
-	def add(self):
-		"""
-		We store data for visualising them later on!
-
-		"""
-		if self.cnt == self.save_freq:
-			self._save_file()
-		else:
-			self.data.append(list(self.storage.values()))
-			self.cnt += 1
-
-	def _save_file(self):
-		"""
-		Save data into a file by Numpy array
-		:return:
-		"""
-		print("WE SAVE THE PLAY DATA INTO {}".format(self.file))
-		self.saved_cnt += 1
-		try:
-			prev_data = np.load(self.file)
-		except:
-			prev_data = np.zeros(len(self.storage))
-
-		prev_data = np.vstack([prev_data, np.array(self.data)])
-		self.cnt = 0
-		self.data = list()
-
-		np.save(self.file, prev_data)
-		del prev_data
+		for key, value in data_pairs.items():
+			if key not in self.data_lists:
+				self.data_lists[key] = []
+			self.data_lists[key].append(value)
 
 
 class logger:
@@ -237,12 +219,13 @@ class logger:
 		:return:
 		"""
 		cnt_actions = dict((x, cnt_action.count(x)) for x in set(cnt_action))
+		episode_steps = time_step - self.prev_update_step
 		# remaing_time_step/exec_time_for_one_step
 		remaining_time = str(datetime.timedelta(
-			seconds=(self.params.num_frames - time_step) * exec_time / (time_step - self.prev_update_step)))
+			seconds=(self.params.num_frames - time_step) * exec_time / (episode_steps)))
 		print(
-			"{0}/{1}: Ep: {2}({3:.3f}s), Remaining: {4}, (R) GOAL: {5}, {6} Ep => [MEAN: {7}, MAX: {8}], (last ep) Loss: {9:.6f}, Eps: {10:.6f}, Act: {11}".format(
-				time_step, self.params.num_frames, current_episode, exec_time, remaining_time, self.params.goal,
+			"{0}/{1}: Ep: {2}({3:.1f} fps), Remaining: {4}, (R) GOAL: {5}, {6} Ep => [MEAN: {7}, MAX: {8}], (last ep) Loss: {9:.6f}, Eps: {10:.6f}, Act: {11}".format(
+				time_step, self.params.num_frames, current_episode, episode_steps/exec_time, remaining_time, self.params.goal,
 				self.params.reward_buffer_ep, np.mean(reward_buffer), np.max(reward_buffer), loss, epsilon, cnt_actions
 			))
 		self.prev_update_step = time_step
@@ -325,7 +308,6 @@ def soft_target_model_update_eager(target, source, tau=1e-2):
 
 	assert len(soft_updates) == len(source_params)
 	target.set_weights(soft_updates)
-
 
 
 """

@@ -46,31 +46,24 @@ class DQN:
 			print("\n===================================================")
 
 	def predict(self, state):
-		state = np.expand_dims(state/255., axis=0).astype(np.float32)
+		state = np.expand_dims(state / 255., axis=0).astype(np.float32)
+		action = self._select_action(tf.constant(state))
+		return action.numpy()[0]
+
+	@tf.contrib.eager.defun(autograph=False)
+	def _select_action(self, state):
 		return self.main_model(state)
 
-	@tf.contrib.eager.defun
-	def inner_update(self, next_Q, q_values, actions, rewards, dones):
-		# Y = rewards + self.params.gamma * tf.math.reduce_max(next_Q, axis=-1) * (1. - tf.cast(dones, tf.float32))
-		Y = tf.math.multiply(self.params.gamma, tf.math.reduce_max(next_Q, axis=-1))
-		Y = tf.math.multiply(Y, (1. - tf.cast(dones, tf.float32)))
-		Y = tf.math.add(tf.cast(rewards, tf.float32), Y)
-		Y = tf.stop_gradient(Y)
-
-		# get the q-values which is associated with actually taken actions in a game
-		actions_one_hot = tf.one_hot(actions, self.num_action, 1.0, 0.0)
-		chosen_q = tf.math.reduce_sum(tf.math.multiply(actions_one_hot, q_values), reduction_indices=1)
-
-		# use huber loss
-		# batch_loss = tf.losses.huber_loss(Y, chosen_q, reduction=tf.losses.Reduction.NONE)
-
-		# MSE
-		batch_loss = tf.math.squared_difference(Y, chosen_q)
-		loss = tf.math.reduce_mean(batch_loss)
-		return loss, batch_loss
-
-
 	def update(self, states, actions, rewards, next_states, dones):
+		states = np.array(states, dtype=np.float32)
+		next_states = np.array(next_states, dtype=np.float32)
+		actions = np.array(actions, dtype=np.uint8)
+		rewards = np.array(rewards, dtype=np.float32)
+		dones = np.array(dones, dtype=np.float32)
+		return self.inner_update(states, actions, rewards, next_states, dones)
+
+	@tf.contrib.eager.defun(autograph=False)
+	def inner_update(self, states, actions, rewards, next_states, dones):
 		# get the current global-timestep
 		self.index_timestep = tf.train.get_global_step()
 
@@ -80,9 +73,21 @@ class DQN:
 
 		# ===== make sure to fit all process to compute gradients within this Tape context!! =====
 		with tf.GradientTape() as tape:
-			next_Q = self.target_model(tf.convert_to_tensor(next_states, dtype=tf.float32))
-			q_values = self.main_model(tf.convert_to_tensor(states, dtype=tf.float32))
-			loss, batch_loss = self.inner_update(next_Q, q_values, actions, rewards, dones)
+			next_Q = self.target_model(next_states)
+			q_values = self.main_model(states)
+			Y = rewards + self.params.gamma * tf.math.reduce_max(next_Q, axis=-1) * (1. - dones)
+			Y = tf.stop_gradient(Y)
+
+			# get the q-values which is associated with actually taken actions in a game
+			actions_one_hot = tf.one_hot(actions, self.num_action, 1.0, 0.0)
+			chosen_q = tf.math.reduce_sum(tf.math.multiply(actions_one_hot, q_values), reduction_indices=1)
+
+			# use huber loss
+			# batch_loss = tf.losses.huber_loss(Y, chosen_q, reduction=tf.losses.Reduction.NONE)
+
+			# MSE
+			batch_loss = tf.math.squared_difference(Y, chosen_q)
+			loss = tf.math.reduce_mean(batch_loss)
 
 		# get gradients
 		grads = tape.gradient(loss, self.main_model.trainable_weights)
@@ -260,20 +265,35 @@ class DQN_cartpole:
 			print("\n===================================================")
 
 	def predict(self, state):
-		return self.main_model(tf.convert_to_tensor(state[None, :], dtype=tf.float32)).numpy()[0]
+		state = np.expand_dims(state, axis=0).astype(np.float32)
+		action = self._select_action(tf.constant(state))
+		return action.numpy()[0]
+
+	@tf.contrib.eager.defun(autograph=False)
+	def _select_action(self, state):
+		return self.main_model(state)
 
 	def update(self, states, actions, rewards, next_states, dones):
+		states = np.array(states, dtype=np.float32)
+		next_states = np.array(next_states, dtype=np.float32)
+		actions = np.array(actions, dtype=np.uint8)
+		rewards = np.array(rewards, dtype=np.float32)
+		dones = np.array(dones, dtype=np.float32)
+		return self.inner_update(states, actions, rewards, next_states, dones)
+
+	@tf.contrib.eager.defun(autograph=False)
+	def inner_update(self, states, actions, rewards, next_states, dones):
 		# get the current global-timestep
 		self.index_timestep = tf.train.get_global_step()
 
 		# ===== make sure to fit all process to compute gradients within this Tape context!! =====
 		with tf.GradientTape() as tape:
-			next_Q = self.target_model(tf.convert_to_tensor(next_states, dtype=tf.float32))
-			Y = rewards + self.params.gamma * tf.math.reduce_max(next_Q, axis=-1) * (1. - tf.cast(dones, tf.float32))
+			next_Q = self.target_model(next_states)
+			Y = rewards + self.params.gamma * tf.math.reduce_max(next_Q, axis=-1) * (1. - dones)
 			Y = tf.stop_gradient(Y)
 
 			# calculate Q(s,a)
-			q_values = self.main_model(tf.convert_to_tensor(states, dtype=tf.float32))
+			q_values = self.main_model(states)
 
 			# get the q-values which is associated with actually taken actions in a game
 			actions_one_hot = tf.one_hot(actions, self.num_action, 1.0, 0.0)
@@ -320,6 +340,6 @@ class DQN_cartpole:
 		tf.contrib.summary.scalar("mean_q_value(MainModel)", tf.math.reduce_mean(q_values), step=self.index_timestep)
 		tf.contrib.summary.scalar("var_q_value(MainModel)", tf.math.reduce_variance(q_values), step=self.index_timestep)
 		tf.contrib.summary.scalar("max_q_value(MainModel)", tf.math.reduce_max(q_values), step=self.index_timestep)
-		tf.contrib.summary.scalar("learning_rate", self.lr.get_value(), step=self.index_timestep)
+		# tf.contrib.summary.scalar("learning_rate", self.lr.get_value(), step=self.index_timestep)
 
 		return loss, batch_loss

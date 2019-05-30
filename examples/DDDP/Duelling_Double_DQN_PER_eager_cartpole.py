@@ -15,7 +15,6 @@ config = tf.ConfigProto(allow_soft_placement=True,
 						inter_op_parallelism_threads=1)
 config.gpu_options.allow_growth = True
 tf.enable_eager_execution(config=config)
-tf.random.set_random_seed(123)
 
 class Model(tf.keras.Model):
 	def __init__(self, num_action, duelling_type="avg"):
@@ -27,7 +26,7 @@ class Model(tf.keras.Model):
 		self.q_value = tf.keras.layers.Dense(num_action, activation='linear')
 		self.v_value = tf.keras.layers.Dense(1, activation='linear')
 
-	@tf.contrib.eager.defun
+	@tf.contrib.eager.defun(autograph=False)
 	def call(self, inputs):
 		x = self.dense1(inputs)
 		x = self.dense2(x)
@@ -53,7 +52,7 @@ class Model(tf.keras.Model):
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
 	parser.add_argument("--mode", default="CartPole", help="game env type => Atari or CartPole")
-	parser.add_argument("--env_name", default="Breakout", help="game title") # temp
+	parser.add_argument("--seed", default=123, help="seed of randomness")
 	parser.add_argument("--loss_fn", default="huber_loss", help="types of loss function => MSE or huber_loss")
 	parser.add_argument("--grad_clip_flg", default="None", help="types of a clipping method of gradients => by value(by_value) or global norm(norm) or None")
 	parser.add_argument("--num_frames", default=10_000, type=int, help="total frame in a training")
@@ -71,8 +70,8 @@ if __name__ == '__main__':
 	parser.add_argument("--epsilon_end", default=0.02, type=float, help="final value of epsilon")
 	parser.add_argument("--decay_steps", default=3_000, type=int, help="a period for annealing a value(epsilon or beta)")
 	parser.add_argument("--decay_type", default="linear", help="types of annealing method => linear or curved")
-	parser.add_argument("--log_dir", default="../../logs/logs/DQN/", help="directory for log")
-	parser.add_argument("--model_dir", default="../../logs/models/DQN/", help="directory for trained model")
+	parser.add_argument("--log_dir", default="../../logs/logs/DDDP/", help="directory for log")
+	parser.add_argument("--model_dir", default="../../logs/models/DDDP/", help="directory for trained model")
 	parser.add_argument("--debug_flg", default=False, type=bool, help="debug mode or not")
 	parser.add_argument("--google_colab", default=False, type=bool, help="if you are executing this on GoogleColab")
 	params = parser.parse_args()
@@ -87,6 +86,10 @@ if __name__ == '__main__':
 		env = MyWrapper(gym.make("CartPole-v0"))
 	elif params.mode == "CartPole-p":
 		env = CartPole_Pixel(gym.make("CartPole-v0"))
+
+	# set seed
+	env.seed(params.seed)
+	tf.random.set_random_seed(params.seed)
 
 	if params.google_colab:
 		# mount your drive on google colab

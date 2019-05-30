@@ -1,6 +1,6 @@
-import os
 import gym
 import argparse
+from datetime import datetime
 import tensorflow as tf
 from collections import deque
 from tf_rl.common.wrappers import MyWrapper, CartPole_Pixel
@@ -15,7 +15,6 @@ config = tf.ConfigProto(allow_soft_placement=True,
 						inter_op_parallelism_threads=1)
 config.gpu_options.allow_growth = True
 tf.enable_eager_execution(config=config)
-tf.random.set_random_seed(123)
 
 class Model(tf.keras.Model):
 	def __init__(self, num_action):
@@ -25,7 +24,7 @@ class Model(tf.keras.Model):
 		self.dense3 = tf.keras.layers.Dense(16, activation='relu')
 		self.pred = tf.keras.layers.Dense(num_action, activation='linear')
 
-	@tf.contrib.eager.defun
+	@tf.contrib.eager.defun(autograph=False)
 	def call(self, inputs):
 		x = self.dense1(inputs)
 		x = self.dense2(x)
@@ -33,10 +32,30 @@ class Model(tf.keras.Model):
 		return self.pred(x)
 
 
+class Model_p(tf.keras.Model):
+	def __init__(self, num_action):
+		super(Model_p, self).__init__()
+		self.conv1 = tf.keras.layers.Conv2D(32, kernel_size=8, strides=8, activation='relu')
+		self.conv2 = tf.keras.layers.Conv2D(64, kernel_size=4, strides=2, activation='relu')
+		self.conv3 = tf.keras.layers.Conv2D(64, kernel_size=3, strides=1, activation='relu')
+		self.flat = tf.keras.layers.Flatten()
+		self.fc1 = tf.keras.layers.Dense(512, activation='relu')
+		self.pred = tf.keras.layers.Dense(num_action, activation='linear')
+
+	@tf.contrib.eager.defun(autograph=False)
+	def call(self, inputs):
+		x = self.conv1(inputs)
+		x = self.conv2(x)
+		x = self.conv3(x)
+		x = self.flat(x)
+		x = self.fc1(x)
+		return self.pred(x)
+
+
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
 	parser.add_argument("--mode", default="CartPole", help="game env type => Atari or CartPole")
-	parser.add_argument("--env_name", default="Breakout", help="game title") # temp
+	parser.add_argument("--seed", default=123, help="seed of randomness")
 	parser.add_argument("--loss_fn", default="huber_loss", help="types of loss function => MSE or huber_loss")
 	parser.add_argument("--grad_clip_flg", default="None", help="types of a clipping method of gradients => by value(by_value) or global norm(norm) or None")
 	parser.add_argument("--num_frames", default=10_000, type=int, help="total frame in a training")
@@ -62,24 +81,22 @@ if __name__ == '__main__':
 	params.goal = 195
 	params.test_episodes = 10
 
+	now = datetime.now()
+
 	if params.mode == "CartPole":
 		env = MyWrapper(gym.make("CartPole-v0"))
+		params.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "-DQN/"
+		params.model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "-DQN/"
+		agent = DQN_cartpole(Model, Model, env.action_space.n, params)
 	elif params.mode == "CartPole-p":
 		env = CartPole_Pixel(gym.make("CartPole-v0"))
+		params.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "-DQN-p/"
+		params.model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "-DQN-p/"
+		agent = DQN_cartpole(Model_p, Model_p, env.action_space.n, params)
 
-	if params.google_colab:
-		# mount your drive on google colab
-		from google.colab import drive
-		drive.mount("/content/gdrive")
-		params.log_dir = "/content/gdrive/My Drive/logs/logs/DQN/{}".format(params.env_name)
-		params.model_dir = "/content/gdrive/My Drive/logs/models/DQN/{}".format(params.env_name)
-		os.makedirs(params.log_dir)
-		os.makedirs(params.model_dir)
-		assert os.path.isdir(params.log_dir), "Faild to create a directory on your My Drive, pls check it"
-		assert os.path.isdir(params.model_dir), "Faild to create a directory on your My Drive, pls check it"
-		agent = DQN_cartpole(Model, Model, env.action_space.n, params)
-	else:
-		agent = DQN_cartpole(Model, Model, env.action_space.n, params)
+	# set seed
+	env.seed(params.seed)
+	tf.random.set_random_seed(params.seed)
 
 	Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end, decay_steps=params.decay_steps)
 	policy = EpsilonGreedyPolicy_eager(Epsilon_fn=Epsilon)

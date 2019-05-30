@@ -7,7 +7,7 @@ import time
 from collections import deque
 from tf_rl.common.wrappers import MyWrapper
 from tf_rl.common.params import Parameters
-from tf_rl.common.utils import logging
+from tf_rl.common.utils import logger
 import tensorflow as tf
 
 config = tf.ConfigProto(allow_soft_placement=True,

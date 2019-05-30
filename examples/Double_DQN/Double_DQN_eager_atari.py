@@ -16,7 +16,6 @@ config = tf.ConfigProto(allow_soft_placement=True,
 						inter_op_parallelism_threads=1)
 config.gpu_options.allow_growth = True
 tf.enable_eager_execution(config=config)
-tf.random.set_random_seed(123)
 
 class Model(tf.keras.Model):
 	def __init__(self, num_action):
@@ -28,7 +27,7 @@ class Model(tf.keras.Model):
 		self.fc1 = tf.keras.layers.Dense(512, activation='relu')
 		self.pred = tf.keras.layers.Dense(num_action, activation='linear')
 
-	@tf.contrib.eager.defun
+	@tf.contrib.eager.defun(autograph=False)
 	def call(self, inputs):
 		x = self.conv1(inputs)
 		x = self.conv2(x)
@@ -42,6 +41,7 @@ if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
 	parser.add_argument("--mode", default="Atari", help="game env type => Atari or CartPole")
 	parser.add_argument("--env_name", default="Breakout", help="game title")
+	parser.add_argument("--seed", default=123, help="seed of randomness")
 	parser.add_argument("--loss_fn", default="MSE", help="types of loss function => MSE or huber_loss")
 	parser.add_argument("--grad_clip_flg", default="norm", help="types of a clipping method of gradients => by value(by_value) or global norm(norm) or None")
 	parser.add_argument("--num_frames", default=10_000_000, type=int, help="total frame in a training")
@@ -68,6 +68,11 @@ if __name__ == '__main__':
 	params.test_episodes = 10
 
 	env = wrap_deepmind(make_atari("{}NoFrameskip-v4".format(params.env_name)))
+
+	# set seed
+	env.seed(params.seed)
+	tf.random.set_random_seed(params.seed)
+
 	replay_buffer = ReplayBuffer(params.memory_size)
 	now = datetime.now()
 

@@ -46,33 +46,24 @@ class Double_DQN:
 			print("\n===================================================")
 
 	def predict(self, state):
-		state = np.expand_dims(state/255., axis=0).astype(np.float32)
+		state = np.expand_dims(state / 255., axis=0).astype(np.float32)
+		action = self._select_action(tf.constant(state))
+		return action.numpy()[0]
+
+	@tf.contrib.eager.defun(autograph=False)
+	def _select_action(self, state):
 		return self.main_model(state)
 
-	@tf.contrib.eager.defun
-	def inner_update(self, next_Q_main, next_Q, q_values, actions, rewards, dones):
-		idx_flattened = tf.range(0, tf.shape(next_Q)[0]) * tf.shape(next_Q)[1] + tf.cast(tf.math.argmax(next_Q_main, axis=-1), tf.int32)
-
-		# passing [-1] to tf.reshape means flatten the array
-		# using tf.gather, associate Q-values with the executed actions
-		chosen_next_q = tf.gather(tf.reshape(next_Q, [-1]), idx_flattened)
-
-		Y = tf.math.multiply(self.params.gamma, chosen_next_q)
-		Y = tf.math.multiply(Y, (1. - tf.cast(dones, tf.float32)))
-		Y = tf.math.add(tf.cast(rewards, tf.float32), Y)
-		Y = tf.stop_gradient(Y)
-
-		# get the q-values which is associated with actually taken actions in a game
-		actions_one_hot = tf.one_hot(actions, self.num_action, 1.0, 0.0)
-		chosen_q = tf.math.reduce_sum(tf.math.multiply(actions_one_hot, q_values), reduction_indices=1)
-
-		# use huber loss
-		batch_loss = tf.losses.huber_loss(Y, chosen_q, reduction=tf.losses.Reduction.NONE)
-		loss = tf.math.reduce_mean(batch_loss)
-		return loss, batch_loss
-
-
 	def update(self, states, actions, rewards, next_states, dones):
+		states = np.array(states, dtype=np.float32)
+		next_states = np.array(next_states, dtype=np.float32)
+		actions = np.array(actions, dtype=np.uint8)
+		rewards = np.array(rewards, dtype=np.float32)
+		dones = np.array(dones, dtype=np.float32)
+		return self.inner_update(states, actions, rewards, next_states, dones)
+
+	@tf.contrib.eager.defun(autograph=False)
+	def inner_update(self, states, actions, rewards, next_states, dones):
 		# get the current global-timestep
 		self.index_timestep = tf.train.get_global_step()
 
@@ -82,10 +73,26 @@ class Double_DQN:
 
 		# ===== make sure to fit all process to compute gradients within this Tape context!! =====
 		with tf.GradientTape() as tape:
-			next_Q_main = self.main_model(tf.convert_to_tensor(next_states, dtype=tf.float32))
-			next_Q = self.target_model(tf.convert_to_tensor(next_states, dtype=tf.float32))
-			q_values = self.main_model(tf.convert_to_tensor(states, dtype=tf.float32))
-			loss, batch_loss = self.inner_update(next_Q_main, next_Q, q_values, actions, rewards, dones)
+			next_Q_main = self.main_model(next_states)
+			next_Q = self.target_model(next_states)
+			q_values = self.main_model(states)
+			idx_flattened = tf.range(0, tf.shape(next_Q)[0]) * tf.shape(next_Q)[1] + tf.cast(
+				tf.math.argmax(next_Q_main, axis=-1), tf.int32)
+
+			# passing [-1] to tf.reshape means flatten the array
+			# using tf.gather, associate Q-values with the executed actions
+			chosen_next_q = tf.gather(tf.reshape(next_Q, [-1]), idx_flattened)
+
+			Y = rewards + self.params.gamma * chosen_next_q * (1. - dones)
+			Y = tf.stop_gradient(Y)
+
+			# get the q-values which is associated with actually taken actions in a game
+			actions_one_hot = tf.one_hot(actions, self.num_action, 1.0, 0.0)
+			chosen_q = tf.math.reduce_sum(tf.math.multiply(actions_one_hot, q_values), reduction_indices=1)
+
+			# use huber loss
+			batch_loss = tf.losses.huber_loss(Y, chosen_q, reduction=tf.losses.Reduction.NONE)
+			loss = tf.math.reduce_mean(batch_loss)
 
 		# get gradients
 		grads = tape.gradient(loss, self.main_model.trainable_weights)
@@ -265,9 +272,24 @@ class Double_DQN_cartpole:
 			print("\n===================================================")
 
 	def predict(self, state):
-		return self.main_model(tf.convert_to_tensor(state[None, :], dtype=tf.float32)).numpy()[0]
+		state = np.expand_dims(state, axis=0).astype(np.float32)
+		action = self._select_action(tf.constant(state))
+		return action.numpy()[0]
+
+	@tf.contrib.eager.defun(autograph=False)
+	def _select_action(self, state):
+		return self.main_model(state)
 
 	def update(self, states, actions, rewards, next_states, dones):
+		states = np.array(states, dtype=np.float32)
+		next_states = np.array(next_states, dtype=np.float32)
+		actions = np.array(actions, dtype=np.uint8)
+		rewards = np.array(rewards, dtype=np.float32)
+		dones = np.array(dones, dtype=np.float32)
+		return self.inner_update(states, actions, rewards, next_states, dones)
+
+	@tf.contrib.eager.defun(autograph=False)
+	def inner_update(self, states, actions, rewards, next_states, dones):
 		# get the current global-timestep
 		self.index_timestep = tf.train.get_global_step()
 
@@ -275,19 +297,19 @@ class Double_DQN_cartpole:
 		with tf.GradientTape() as tape:
 			# this is where Double DQN comes in!!
 			# calculate target: R + gamma * max_a Q(s', max_a Q(s', a'; main_model); target_model)
-			next_Q_main = self.main_model(tf.convert_to_tensor(next_states, dtype=tf.float32))
-			next_Q = self.target_model(tf.convert_to_tensor(next_states, dtype=tf.float32))
-			idx_flattened = tf.range(0, tf.shape(next_Q)[0]) * tf.shape(next_Q)[1] + tf.math.argmax(next_Q_main, axis=-1).numpy()
+			next_Q_main = self.main_model(next_states)
+			next_Q = self.target_model(next_states)
+			idx_flattened = tf.range(0, tf.shape(next_Q)[0]) * tf.shape(next_Q)[1] + tf.cast(tf.math.argmax(next_Q_main, axis=-1), dtype=tf.int32)
 
 			# passing [-1] to tf.reshape means flatten the array
 			# using tf.gather, associate Q-values with the executed actions
 			chosen_next_q = tf.gather(tf.reshape(next_Q, [-1]), idx_flattened)
 
-			Y = rewards + self.params.gamma * chosen_next_q * (1. - tf.cast(dones, tf.float32))
+			Y = rewards + self.params.gamma * chosen_next_q * (1. - dones)
 			Y = tf.stop_gradient(Y)
 
 			# calculate Q(s,a)
-			q_values = self.main_model(tf.convert_to_tensor(states, dtype=tf.float32))
+			q_values = self.main_model(states)
 
 			# get the q-values which is associated with actually taken actions in a game
 			actions_one_hot = tf.one_hot(actions, self.num_action, 1.0, 0.0)
@@ -334,6 +356,5 @@ class Double_DQN_cartpole:
 		tf.contrib.summary.scalar("mean_q_value(MainModel)", tf.math.reduce_mean(q_values), step=self.index_timestep)
 		tf.contrib.summary.scalar("var_q_value(MainModel)", tf.math.reduce_variance(q_values), step=self.index_timestep)
 		tf.contrib.summary.scalar("max_q_value(MainModel)", tf.math.reduce_max(q_values), step=self.index_timestep)
-		tf.contrib.summary.scalar("learning_rate", self.lr.get_value(), step=self.index_timestep)
 
 		return loss, batch_loss

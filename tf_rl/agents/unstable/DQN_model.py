@@ -2,19 +2,78 @@ import numpy as np
 import time
 import os
 import tensorflow as tf
-from tf_rl.common.utils import sync_main_target, soft_target_model_update, huber_loss, logging, ClipIfNotNone
+from tf_rl.common.utils import sync_main_target, soft_target_model_update, huber_loss, logger, ClipIfNotNone
 
 
-class _DQN:
+class DQN:
 	"""
 	Boilerplate for DQN Agent
 	"""
 
-	def __init__(self):
+	def __init__(self, params, num_action, state_shape):
 		"""
 		define the deep learning model here!
 
 		"""
+		self.num_action = num_action
+		self.params = params
+		self.state = tf.placeholder(shape=[None, state_shape], dtype=tf.float32, name="state")
+		self.next_state = tf.placeholder(shape=[None, state_shape], dtype=tf.float32, name="next_state")
+		self.action = tf.placeholder(shape=[None], dtype=tf.int32, name="action")
+		self.reward = tf.placeholder(shape=[None], dtype=tf.int32, name="reward")
+		self.Y = tf.placeholder(shape=[None], dtype=tf.float32, name="Y")
+		self.main_model = self._init_model("main")
+		self.target_model = self._init_model("target")
+
+		# indices of the executed actions
+		self.idx_flattened = tf.range(0, tf.shape(self.main_model)[0]) * tf.shape(self.main_model)[1] + self.action
+
+		# passing [-1] to tf.reshape means flatten the array
+		# using tf.gather, associate Q-values with the executed actions
+		self.action_probs = tf.gather(tf.reshape(self.main_model, [-1]), self.idx_flattened)
+
+		# same operation as above..
+		# self.actions_one_hot = tf.one_hot(self.action, self.num_action, 1.0, 0.0, name='action_one_hot')
+		# self.action_probs = tf.reduce_sum(self.actions_one_hot*self.pred, reduction_indices=-1)
+
+		if self.params.loss_fn == "huber_loss":
+			# use huber loss
+			self.losses = tf.losses.huber_loss(tf.stop_gradient(self.Y), self.action_probs, reduction=tf.losses.Reduction.NONE)
+			self.loss = tf.math.reduce_mean(self.losses)
+		elif self.params.loss_fn == "MSE":
+			# use MSE
+			self.losses = tf.math.squared_difference(tf.stop_gradient(self.Y), self.action_probs)
+			self.loss = tf.math.reduce_mean(self.losses)
+		else:
+			assert False
+
+		# you can choose whatever you want for the optimiser
+		self.optimizer = tf.train.RMSPropOptimizer(0.00025, 0.99, 0.0, 1e-6)
+		# self.optimizer = tf.train.AdamOptimizer(learning_rate=1e-3)
+
+		if self.params.grad_clip_flg == "by_value":
+			self.grads_and_vars = self.optimizer.compute_gradients(self.loss)
+			self.clipped_grads_and_vars = [(ClipIfNotNone(grad, -1., 1.), var) for grad, var in self.grads_and_vars]
+			self.train_op = self.optimizer.apply_gradients(self.clipped_grads_and_vars)
+		elif self.params.grad_clip_flg == "norm":
+			self.gradients, self.variables = zip(*self.optimizer.compute_gradients(self.loss))
+			self.gradients, _ = tf.clip_by_global_norm(self.gradients, 5.0)
+			self.train_op = self.optimizer.apply_gradients(zip(self.gradients, self.variables))
+		else:
+			self.train_op = self.optimizer.minimize(self.loss)
+
+	def _init_model(self, scope):
+		"""
+		Initialise the model and operations to compute the output within a scope
+
+		:param scope:
+		:return:
+		"""
+		with tf.variable_scope(scope):
+			x = tf.keras.layers.Dense(16, activation=tf.nn.relu)(self.state)
+			x = tf.keras.layers.Dense(16, activation=tf.nn.relu)(x)
+			x = tf.keras.layers.Dense(16, activation=tf.nn.relu)(x)
+		return tf.keras.layers.Dense(self.num_action, activation=tf.nn.relu)(x)
 
 	def predict(self, sess, state):
 		"""
@@ -33,7 +92,7 @@ class _DQN:
 		return loss
 
 
-class DQN_CartPole(_DQN):
+class DQN_CartPole(DQN):
 	"""
 	DQN Agent for CartPole game
 	"""
@@ -126,7 +185,7 @@ class DQN_CartPole(_DQN):
 
 
 
-class DQN_Atari(_DQN):
+class DQN_Atari(DQN):
 	"""
 	DQN Agent for Atari Games
 	"""
@@ -204,7 +263,7 @@ class DQN_Atari(_DQN):
 			self.summaries = tf.summary.merge_all()
 
 
-def train_DQN(main_model, target_model, env, replay_buffer, policy, params):
+def train_DQN(agent, env, policy, replay_buffer, reward_buffer, params, summary_writer):
 	"""
 	Train DQN agent which defined above
 
@@ -216,20 +275,21 @@ def train_DQN(main_model, target_model, env, replay_buffer, policy, params):
 	"""
 
 	# Create a glboal step variable
-	global_step = tf.Variable(0, name='global_step', trainable=False)
+	# global_step = tf.Variable(0, name='global_step', trainable=False)
 
 	# log purpose
 	losses, all_rewards, cnt_action = [], [], []
 	episode_reward, index_episode = 0, 0
+	log = logger(params)
 
 	with tf.Session() as sess:
 		# initialise all variables used in the model
 		sess.run(tf.global_variables_initializer())
-		global_step = sess.run(tf.train.get_global_step())
+		global_step = sess.run(tf.train.get_or_create_global_step())
 		state = env.reset()
 		start = time.time()
 		for frame_idx in range(1, params.num_frames + 1):
-			action = policy.select_action(sess, main_model, state.reshape(params.state_reshape))
+			action = policy.select_action(sess, agent.main_model, state.reshape(params.state_reshape))
 			cnt_action.append(action)
 			next_state, reward, done, _ = env.step(action)
 
@@ -247,21 +307,14 @@ def train_DQN(main_model, target_model, env, replay_buffer, policy, params):
 
 				if frame_idx > params.learning_start and len(replay_buffer) > params.batch_size:
 					states, actions, rewards, next_states, dones = replay_buffer.sample(params.batch_size)
-					next_Q = target_model.predict(sess, next_states)
+					next_Q = agent.target_model.predict(sess, next_states)
 					# Y = rewards + params.gamma * np.max(next_Q, axis=1)
 					Y = rewards + params.gamma * np.max(next_Q, axis=1) * np.logical_not(dones)
-					loss = main_model.update(sess, states, actions, Y)
+					loss = agent.main_model.update(sess, states, actions, Y)
 
 					# Logging and refreshing log purpose values
 					losses.append(loss)
-					logging(frame_idx, params.num_frames, index_episode, time.time()-start, episode_reward, np.mean(loss), policy.current_epsilon(), cnt_action)
-
-					episode_summary = tf.Summary()
-					episode_summary.value.add(simple_value=episode_reward, node_name="episode_reward",
-											  tag="episode_reward")
-					episode_summary.value.add(simple_value=index_episode, node_name="episode_length",
-											  tag="episode_length")
-					main_model.summary_writer.add_summary(episode_summary, global_step)
+					log.logging(frame_idx, params.num_frames, index_episode, time.time()-start, episode_reward, np.mean(loss), policy.current_epsilon(), cnt_action)
 
 				episode_reward = 0
 				cnt_action = []
@@ -271,9 +324,9 @@ def train_DQN(main_model, target_model, env, replay_buffer, policy, params):
 					# soft update means we partially add the original weights of target model instead of completely
 					# sharing the weights among main and target models
 					if params.update_hard_or_soft == "hard":
-						sync_main_target(sess, target_model, main_model)
+						sync_main_target(sess, agent.target_model, agent.main_model)
 					elif params.update_hard_or_soft == "soft":
-						soft_target_model_update(sess, target_model, main_model, tau=params.soft_update_tau)
+						soft_target_model_update(sess, agent.target_model, agent.main_model, tau=params.soft_update_tau)
 
 		# test(sess, main_model, env, params)
 

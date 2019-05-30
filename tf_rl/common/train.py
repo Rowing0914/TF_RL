@@ -39,7 +39,7 @@ def train_DQN(agent, env, policy, replay_buffer, reward_buffer, params, summary_
 					next_state, reward, done, info = env.step(action)
 					replay_buffer.add(state, action, reward, next_state, done)
 
-					tf.assign(global_timestep, global_timestep.numpy() + 1, name='update_global_step')
+					global_timestep.assign_add(1)
 					total_reward += reward
 					state = next_state
 					cnt_action.append(action)
@@ -122,7 +122,7 @@ def train_DQN_PER(agent, env, policy, replay_buffer, reward_buffer, params, Beta
 					next_state, reward, done, info = env.step(action)
 					replay_buffer.add(state, action, reward, next_state, done)
 
-					tf.assign(global_timestep, global_timestep.numpy() + 1, name='update_global_step')
+					global_timestep.assign_add(1)
 					total_reward += reward
 					state = next_state
 					cnt_action.append(action)
@@ -182,6 +182,8 @@ def train_DQN_PER(agent, env, policy, replay_buffer, reward_buffer, params, Beta
 					break
 
 
+# I have referred to https://github.com/laket/DDPG_Eager in terms of design of algorithm
+# I know this is not precisely accurate to the original algo, but this works better than that... lol
 def train_DDPG(agent, env, replay_buffer, reward_buffer, params, summary_writer):
 	"""
 	Training script for DDPG
@@ -201,16 +203,19 @@ def train_DDPG(agent, env, replay_buffer, reward_buffer, params, summary_writer)
 				start = time.time()
 				agent.random_process.reset_states()
 				done = False
-				train_cnt = 0
+				episode_len = 0
 				while not done:
-					train_cnt += 1
-					action = agent.predict(state)
-					# print(action)
+					# env.render()
+					if global_timestep.numpy() < params.learning_start:
+						action = env.action_space.sample()
+					else:
+						action = agent.predict(state)
 					# scale for execution in env (in DDPG, every action is clipped between [-1, 1] in agent.predict)
 					next_state, reward, done, info = env.step(action * env.action_space.high)
 					replay_buffer.add(state, action, reward, next_state, done)
 
-					tf.assign(global_timestep, global_timestep.numpy() + 1, name='update_global_step')
+					global_timestep.assign_add(1)
+					episode_len += 1
 					total_reward += reward
 					state = next_state
 
@@ -218,17 +223,16 @@ def train_DDPG(agent, env, replay_buffer, reward_buffer, params, summary_writer)
 					if global_timestep.numpy() % params.eval_interval == 0:
 						agent.eval_flg = True
 
-					if (global_timestep.numpy() > params.learning_start) and (train_cnt == params.train_interval):
-						for t_train in range(params.nb_train_steps):
-							states, actions, rewards, next_states, dones = replay_buffer.sample(params.batch_size)
-							loss = agent.update(states, actions, rewards, next_states, dones)
-							soft_target_model_update_eager(agent.target_actor, agent.actor, tau=params.soft_update_tau)
-							soft_target_model_update_eager(agent.target_critic, agent.critic, tau=params.soft_update_tau)
-
-
 				"""
 				===== After 1 Episode is Done =====
 				"""
+
+				# train the model at this point
+				for t_train in range(episode_len): # in mujoco, this will be 1,000 iterations!
+					states, actions, rewards, next_states, dones = replay_buffer.sample(params.batch_size)
+					loss = agent.update(states, actions, rewards, next_states, dones)
+					soft_target_model_update_eager(agent.target_actor, agent.actor, tau=params.soft_update_tau)
+					soft_target_model_update_eager(agent.target_critic, agent.critic, tau=params.soft_update_tau)
 
 				tf.contrib.summary.scalar("reward", total_reward, step=i)
 				tf.contrib.summary.scalar("exec time", time.time() - start, step=i)
@@ -240,7 +244,7 @@ def train_DDPG(agent, env, replay_buffer, reward_buffer, params, summary_writer)
 				time_buffer.append(time.time() - start)
 
 				if global_timestep.numpy() > params.learning_start and i % params.reward_buffer_ep == 0:
-					# we don't log takes actions because it is continuous value, and actor network don't need Epsilon!!
+					# we don't log taken actions because it is continuous value, and actor network don't need Epsilon!!
 					try:
 						log.logging(global_timestep.numpy(), i, np.sum(time_buffer), reward_buffer, np.mean(loss), 0, [0])
 						time_buffer = list()

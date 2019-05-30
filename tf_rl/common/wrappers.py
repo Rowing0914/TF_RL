@@ -1,5 +1,6 @@
 import numpy as np
 import os, math
+
 os.environ.setdefault('PATH', '')
 from collections import deque
 import gym
@@ -34,13 +35,14 @@ class CartPole_Pixel(gym.Wrapper):
 	we dispose 100pxl from each side of width to make the frame divisible(Square) in CNN
 
 	"""
+
 	def __init__(self, env):
-		self.width  = 400
+		self.width = 400
 		self.height = 400
 
 		gym.Wrapper.__init__(self, env)
 		self.env = env.unwrapped
-		self.env.seed(123)  # fix the randomness for reproducibility purpose
+		# self.env.seed(123)  # fix the randomness for reproducibility purpose
 
 		"""
 		start new thread to deal with getting raw image
@@ -57,7 +59,7 @@ class CartPole_Pixel(gym.Wrapper):
 
 	def step(self, ac):
 		_, reward, done, info = self.env.step(ac)
-		self.renderer.begin_render() # move screen one step
+		self.renderer.begin_render()  # move screen one step
 		observation = self._pre_process(self.renderer.get_screen())
 
 		if done:
@@ -66,12 +68,12 @@ class CartPole_Pixel(gym.Wrapper):
 
 	def reset(self, **kwargs):
 		self.env.reset()
-		self.renderer.begin_render() # move screen one step
-		return self._pre_process(self.renderer.get_screen()) # overwrite observation by raw image pixels of screen
+		self.renderer.begin_render()  # move screen one step
+		return self._pre_process(self.renderer.get_screen())  # overwrite observation by raw image pixels of screen
 
 	def close(self):
-		self.renderer.stop() # terminate the threads
-		self.renderer.join() # collect the dead threads and notice all threads are safely terminated
+		self.renderer.stop()  # terminate the threads
+		self.renderer.join()  # collect the dead threads and notice all threads are safely terminated
 		if self.env:
 			return self.env.close()
 
@@ -81,10 +83,12 @@ class MyWrapper(gym.Wrapper):
 	wrapper to fix the randomeness in gym env
 
 	"""
+
 	def __init__(self, env):
 		gym.Wrapper.__init__(self, env)
 		self.env = env
-		self.env.seed(123)  # fix the randomness for reproducibility purpose
+
+	# self.env.seed(123)  # fix the randomness for reproducibility purpose
 
 	def step(self, ac):
 		observation, reward, done, info = self.env.step(ac)
@@ -101,6 +105,7 @@ class DiscretisedEnv(gym.Wrapper):
 	Wrapper for getting discredited observation from cartpole
 
 	"""
+
 	def __init__(self, env):
 		gym.Wrapper.__init__(self, env)
 		self.env = env
@@ -109,7 +114,8 @@ class DiscretisedEnv(gym.Wrapper):
 		self.low1 = env.observation_space.low[0]
 		self.low2 = env.observation_space.low[2]
 		self.buckets = (1, 1, 6, 12,)
-		self.env.seed(123)  # fix the randomness for reproducibility purpose
+
+	# self.env.seed(123)  # fix the randomness for reproducibility purpose
 
 	def step(self, ac):
 		observation, reward, done, info = self.env.step(ac)
@@ -136,10 +142,12 @@ class MyWrapper_revertable(gym.Wrapper):
 	we need this to simulate each particle on cartpole env
 
 	"""
+
 	def __init__(self, env):
 		gym.Wrapper.__init__(self, env)
 		self.env = env.unwrapped
-		self.env.seed(123)  # fix the randomness for reproducibility purpose
+
+	# self.env.seed(123)  # fix the randomness for reproducibility purpose
 
 	def step(self, ac):
 		next_state, reward, done, info = self.env.step(ac)
@@ -155,6 +163,28 @@ class MyWrapper_revertable(gym.Wrapper):
 
 	def set_state(self, state):
 		self.env.state = state
+
+
+
+"""
+Wrapper for MuJoCo env, this normalises the observation using Running/Moving Mean/Std.
+As of 29/05/2019: it was not working well... so let's not use it for now!!
+"""
+
+class MuJoCo_wrapper(gym.Wrapper):
+	def __init__(self, env):
+		gym.Wrapper.__init__(self, env)
+		from tf_rl.common.utils import RunningMeanStd
+		self.env = env
+		self.rms_obs = RunningMeanStd()
+
+	def step(self, act):
+		next_state, reward, done, info = self.env.step(act)
+		self.rms_obs.normalise(next_state) # you can take this out and feed current state! but I don't see so much difference!
+		return next_state, reward, done, info
+
+	def reset(self, **kwargs):
+		return self.rms_obs.normalise(self.env.reset())
 
 
 """
@@ -435,6 +465,7 @@ def make_atari(env_id, max_episode_steps=None):
 	if max_episode_steps is not None:
 		env = TimeLimit(env, max_episode_steps=max_episode_steps)
 	return env
+
 
 # since my code does not have an function or APIs to repeat the same action several times,
 # I will rely on those wrappers.
