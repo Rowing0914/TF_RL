@@ -147,3 +147,37 @@ class DDPG_Critic(tf.keras.Model):
 		x = self.batch2(x)
 		pred = self.pred(x)
 		return pred
+
+
+class HER_Actor(tf.keras.Model):
+	def __init__(self, num_action=1):
+		super(HER_Actor, self).__init__()
+		self.dense1 = tf.keras.layers.Dense(64, activation='relu', kernel_initializer=KERNEL_INIT)
+		self.dense2 = tf.keras.layers.Dense(64, activation='relu', kernel_initializer=KERNEL_INIT)
+		self.dense3 = tf.keras.layers.Dense(64, activation='relu', kernel_initializer=KERNEL_INIT)
+		self.pred = tf.keras.layers.Dense(num_action, activation='tanh', kernel_initializer=KERNEL_INIT)
+
+	@tf.contrib.eager.defun(autograph=False)
+	def call(self, inputs):
+		x = self.dense1(inputs)
+		x = self.dense2(x)
+		x = self.dense3(x)
+		pred = self.pred(x)
+		return pred
+
+
+class HER_Critic(tf.keras.Model):
+	def __init__(self, output_shape):
+		super(HER_Critic, self).__init__()
+		self.dense1 = tf.keras.layers.Dense(64, activation='relu', kernel_regularizer=L2, bias_regularizer=L2, kernel_initializer=KERNEL_INIT)
+		self.dense2 = tf.keras.layers.Dense(64, activation='relu', kernel_regularizer=L2, bias_regularizer=L2, kernel_initializer=KERNEL_INIT)
+		self.dense3 = tf.keras.layers.Dense(64, activation='relu', kernel_regularizer=L2, bias_regularizer=L2, kernel_initializer=KERNEL_INIT)
+		self.pred = tf.keras.layers.Dense(output_shape, activation='linear', kernel_regularizer=L2, bias_regularizer=L2, kernel_initializer=KERNEL_INIT)
+
+	@tf.contrib.eager.defun(autograph=False)
+	def call(self, obs, act):
+		x = self.dense1(obs)
+		x = self.dense2(tf.concat([x, act], axis=-1))
+		x = self.dense3(x)
+		pred = self.pred(x)
+		return pred

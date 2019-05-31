@@ -6,7 +6,7 @@ from tf_rl.common.visualise import plot_Q_values
 
 """
 
-TF basic utility function
+TF basic Utility functions
 
 """
 
@@ -28,11 +28,30 @@ def eager_setup():
 
 """
 
-Utility functions 
+Common Utility functions 
 
 """
 
+def get_ready(params):
+	"""
+	Print out the content of params
+
+	:param params:
+	:return:
+	"""
+	for key, item in vars(params).items():
+		print(key, " : ", item)
+
+
 def create_checkpoint(model, optimizer, model_dir):
+	"""
+	Create a checkpoint for managing a model
+
+	:param model:
+	:param optimizer:
+	:param model_dir:
+	:return:
+	"""
 	checkpoint_dir = model_dir
 	check_point = tf.train.Checkpoint(optimizer=optimizer,
 										   model=model,
@@ -56,6 +75,13 @@ def create_checkpoint(model, optimizer, model_dir):
 
 
 def setup_on_colab(env_name):
+	"""
+	Mount MyDrive to current instance through authentication of Google account
+	Then use it as a backup of training related files
+
+	:param env_name:
+	:return:
+	"""
 	# mount your drive on google colab
 	from google.colab import drive
 	drive.mount("/content/gdrive")
@@ -259,6 +285,48 @@ class logger:
 			))
 		self.prev_update_step = time_step
 
+
+
+"""
+Algorithm Specific Utility functions
+
+"""
+
+def her_strategy(n, k):
+	"""
+	Future Strategy
+	randomly select k time-steps which come from the same episode and observed after it
+
+	:param n:
+	:param k:
+	:return:
+	"""
+	if k > n:
+		return np.random.choice(n, k, replace=True)
+	else:
+		return np.random.choice(n, k, replace=False)
+
+
+def state_unpacker(state):
+	"""
+	Given the dictionary of state, it unpacks and returns items insisde as numpy.ndarray
+
+	Sample input:
+		{'observation': array([ 1.34193265e+00,  7.49100375e-01,  5.34722720e-01,  1.30179339e+00, 8.86399624e-01,
+								4.24702091e-01, -4.01392554e-02,  1.37299250e-01, -1.10020629e-01,  2.91834773e-06,
+								-4.72661656e-08, -3.85214084e-07, 5.92637053e-07,  1.12208536e-13, -7.74656889e-06,
+								-7.65027248e-08, 4.92570535e-05,  1.88857148e-07, -2.90549459e-07, -1.18156686e-18,
+								7.73934983e-06,  7.18103404e-08, -2.42928780e-06,  4.93607091e-07, 1.70999820e-07]),
+        'achieved_goal': array([1.30179339, 0.88639962, 0.42470209]),
+        'desired_goal': array([1.4018907 , 0.62021174, 0.4429846 ])}
+
+	:param state:
+	:return:
+	"""
+	obs = np.array(state["observation"])
+	achieved_goal = np.array(state["achieved_goal"])
+	desired_goal = np.array(state["desired_goal"])
+	return obs, achieved_goal, desired_goal
 
 
 """
@@ -497,12 +565,37 @@ def test_Agent_policy_gradient(agent, env, n_trial=1):
 		tf.contrib.summary.scalar("Eval_Score over 250,000 time-step", episode_reward, step=agent.index_timestep)
 		print("| Ep: {}/{} | Score: {} |".format(ep + 1, n_trial, episode_reward))
 
-	# if this is running on Google Colab, we would store the log/models to mounted MyDrive
-	if agent.params.google_colab:
-		delete_files(agent.params.model_dir_colab)
-		delete_files(agent.params.log_dir_colab)
-		copy_dir(agent.params.log_dir, agent.params.log_dir_colab)
-		copy_dir(agent.params.model_dir, agent.params.model_dir_colab)
+	if n_trial > 2:
+		print("=== Evaluation Result ===")
+		all_rewards = np.array([all_rewards])
+		print("| Max: {} | Min: {} | STD: {} | MEAN: {} |".format(np.max(all_rewards), np.min(all_rewards),
+																  np.std(all_rewards), np.mean(all_rewards)))
+
+
+def test_Agent_HER(agent, env, n_trial=1):
+	"""
+	Evaluate the trained agent!
+
+	:return:
+	"""
+	all_rewards = list()
+	print("=== Evaluation Mode ===")
+	for ep in range(n_trial):
+		state = env.reset()
+		# obs, achieved_goal, desired_goal in `numpy.ndarray`
+		obs, ag, dg = state_unpacker(state)
+		done = False
+		episode_reward = 0
+		while not done:
+			action = agent.predict(np.concatenate([obs, ag], axis=-1))
+			next_state, reward, done, _ = env.step(action)
+			# obs, achieved_goal, desired_goal in `numpy.ndarray`
+			state = next_state
+			episode_reward += reward
+
+		all_rewards.append(episode_reward)
+		tf.contrib.summary.scalar("Eval_Score over 250,000 time-step", episode_reward, step=agent.index_timestep)
+		print("| Ep: {}/{} | Score: {} |".format(ep + 1, n_trial, episode_reward))
 
 	if n_trial > 2:
 		print("=== Evaluation Result ===")

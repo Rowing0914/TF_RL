@@ -1,6 +1,7 @@
 import gym
 import argparse
 import tensorflow as tf
+from datetime import datetime
 from collections import deque
 from tf_rl.common.memory import ReplayBuffer
 from tf_rl.common.utils import eager_setup
@@ -18,7 +19,7 @@ DDPG_ENV_LIST = {
 	"HalfCheetah-v2": 7000,
 	"Hopper-v2": 1500,
 	"Humanoid-v2": 2000,
-	"HumanoidStandup-v2": 0,
+	"HumanoidStandup-v2": 0, # maybe we don't need this...
 	"InvertedDoublePendulum-v2": 6000,
 	"InvertedPendulum-v2": 800,
 	"Reacher-v2": -6,
@@ -48,9 +49,10 @@ parser.add_argument("--debug_flg", default=False, type=bool, help="debug mode or
 parser.add_argument("--google_colab", default=False, type=bool, help="if you are executing this on GoogleColab")
 params = parser.parse_args()
 params.test_episodes = 10
+params.goal = DDPG_ENV_LIST[params.env_name]
 
-from datetime import datetime
 now = datetime.now()
+
 if params.debug_flg:
 	params.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "-DDPG/"
 	params.model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "-DDPG/"
@@ -58,13 +60,11 @@ else:
 	params.log_dir = "../../logs/logs/{}".format(params.env_name)
 	params.model_dir = "../../logs/models/{}".format(params.env_name)
 
-
 env = gym.make(params.env_name)
 # set seed
 env.seed(params.seed)
 tf.random.set_random_seed(params.seed)
 
-params.goal = DDPG_ENV_LIST[params.env_name]
 agent = DDPG(Actor, Critic, env.action_space.shape[0], params)
 replay_buffer = ReplayBuffer(params.memory_size)
 reward_buffer = deque(maxlen=params.reward_buffer_ep)

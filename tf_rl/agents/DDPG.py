@@ -15,14 +15,14 @@ class DDPG:
 		self.target_critic = deepcopy(self.critic)
 		self.actor_optimizer = tf.train.AdamOptimizer(learning_rate=1e-4)
 		self.critic_optimizer = tf.train.AdamOptimizer(learning_rate=1e-3)
-		self.random_process = OrnsteinUhlenbeckProcess(size=self.num_action, theta=0.15, mu=0.0, sigma=0.2)
+		self.random_process = OrnsteinUhlenbeckProcess(size=self.num_action, theta=0.15, mu=0.0, sigma=0.05)
 
 		#  TODO: implement the checkpoints for model
 
 	def predict(self, state):
 		state = np.expand_dims(state, axis=0).astype(np.float32)
 		action = self._select_action(tf.constant(state))
-		return action.numpy()[0]
+		return action.numpy()[0] + self.random_process.sample()
 
 	@tf.contrib.eager.defun(autograph=False)
 	def _select_action(self, state):
@@ -89,14 +89,14 @@ class DDPG_debug:
 		self.target_critic = deepcopy(self.critic)
 		self.actor_optimizer = tf.train.AdamOptimizer(learning_rate=1e-4)
 		self.critic_optimizer = tf.train.AdamOptimizer(learning_rate=1e-3)
-		self.random_process = OrnsteinUhlenbeckProcess(size=self.num_action, theta=0.15, mu=0.0, sigma=0.2)
+		self.random_process = OrnsteinUhlenbeckProcess(size=self.num_action, theta=0.15, mu=0.0, sigma=0.05)
 
 		#  TODO: implement the checkpoints for model
 
 	def predict(self, state):
 		state = np.expand_dims(state, axis=0).astype(np.float32)
 		action = self._select_action(tf.constant(state))
-		return action.numpy()[0]
+		return action.numpy()[0] + self.random_process.sample()
 
 	@tf.contrib.eager.defun(autograph=False)
 	def _select_action(self, state):

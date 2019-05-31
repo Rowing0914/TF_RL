@@ -508,3 +508,11 @@ DDPG_ENV_LIST = {
     "Swimmer-v2": 40,
     "Walker2d-v2": 2500
 }
+
+
+ROBOTICS_ENV_LIST = {
+    "FetchPickAndPlace-v1": 0,
+    "FetchPush-v1": 0,
+    "FetchReach-v1": 0,
+    "FetchSlide-v1": 0
+}
