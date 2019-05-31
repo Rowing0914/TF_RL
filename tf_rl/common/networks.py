@@ -1,5 +1,10 @@
 import tensorflow as tf
 
+
+L2 = tf.keras.regularizers.l2(1e-2)
+KERNEL_INIT = tf.random_uniform_initializer(minval=-3e-3, maxval=3e-3)
+
+
 class Nature_DQN(tf.keras.Model):
 	def __init__(self, num_action):
 		super(Nature_DQN, self).__init__()
@@ -104,3 +109,41 @@ class Duelling_cartpole(tf.keras.Model):
 			output = 0 # defun does not accept the variable may not be intialised, so that temporarily initialise it
 			assert False, "dueling_type must be one of {'avg','max','naive'}"
 		return output
+
+
+class DDPG_Actor(tf.keras.Model):
+	def __init__(self, num_action=1):
+		super(DDPG_Actor, self).__init__()
+		self.dense1 = tf.keras.layers.Dense(400, activation='relu', kernel_initializer=KERNEL_INIT)
+		self.batch1 = tf.keras.layers.BatchNormalization()
+		self.dense2 = tf.keras.layers.Dense(300, activation='relu', kernel_initializer=KERNEL_INIT)
+		self.batch2 = tf.keras.layers.BatchNormalization()
+		self.pred = tf.keras.layers.Dense(num_action, activation='tanh', kernel_initializer=KERNEL_INIT)
+
+	@tf.contrib.eager.defun(autograph=False)
+	def call(self, inputs):
+		x = self.dense1(inputs)
+		# x = self.batch1(x)
+		x = self.dense2(x)
+		x = self.batch2(x)
+		pred = self.pred(x)
+		return pred
+
+
+class DDPG_Critic(tf.keras.Model):
+	def __init__(self, output_shape):
+		super(DDPG_Critic, self).__init__()
+		self.dense1 = tf.keras.layers.Dense(400, activation='relu', kernel_regularizer=L2, bias_regularizer=L2, kernel_initializer=KERNEL_INIT)
+		self.batch1 = tf.keras.layers.BatchNormalization()
+		self.dense2 = tf.keras.layers.Dense(300, activation='relu', kernel_regularizer=L2, bias_regularizer=L2, kernel_initializer=KERNEL_INIT)
+		self.batch2 = tf.keras.layers.BatchNormalization()
+		self.pred = tf.keras.layers.Dense(output_shape, activation='linear', kernel_regularizer=L2, bias_regularizer=L2, kernel_initializer=KERNEL_INIT)
+
+	@tf.contrib.eager.defun(autograph=False)
+	def call(self, obs, act):
+		x = self.dense1(obs)
+		# x = self.batch1(x)
+		x = self.dense2(tf.concat([x, act], axis=-1))
+		x = self.batch2(x)
+		pred = self.pred(x)
+		return pred

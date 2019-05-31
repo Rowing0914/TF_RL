@@ -107,17 +107,19 @@ time.sleep(0.5)
 5. Asynchronous Methods for Deep Reinforcement Learning, Mnih et al., 2016 [[arxiv]](<https://arxiv.org/pdf/1602.01783.pdf>) [[code]](<https://github.com/Rowing0914/TF_RL/blob/master/agents/A3C.py>)
 6. Deep Q-learning from Demonstrations, T.Hester et al., 2017 [[arxiv]](<https://arxiv.org/pdf/1704.03732.pdf>) [[code]](<https://github.com/Rowing0914/TF_RL/blob/master/examples/DQfD/DQfD_eager.py>)
 7. Actor-Critic Algorithms, VR Konda and JN Tsitsiklis., 2000 NIPS [[arxiv]](<https://papers.nips.cc/paper/1786-actor-critic-algorithms.pdf>) [[code]](<https://github.com/Rowing0914/TF_RL/blob/master/examples/AC/Actor_Critic_eager.py>)
-8. Policy Gradient Methods for Reinforcement Learning with Function Approximation., RS Sutton et al., 2000 NIPS [[arxiv]](<https://papers.nips.cc/paper/1713-policy-gradient-methods-for-reinforcement-learning-with-function-approximation.pdf>) [[code]](<https://github.com/Rowing0914/TF_RL/blob/master/examples/REINFORCE/REINFORCE_eager.py>)
+8. Policy Gradient Methods for Reinforcement Learning with Function Approximation, RS Sutton et al., 2000 NIPS [[arxiv]](<https://papers.nips.cc/paper/1713-policy-gradient-methods-for-reinforcement-learning-with-function-approximation.pdf>) [[code]](<https://github.com/Rowing0914/TF_RL/blob/master/examples/REINFORCE/REINFORCE_eager.py>)
 9. Continuous Control with Deep Reinforcement Leaning, TP Lillicrap et al., 2015 [[arxiv]](<https://arxiv.org/pdf/1509.02971.pdf>) [[code]](<https://github.com/Rowing0914/TF_RL/blob/master/examples/DDPG/DDPG_eager.py>)
 10. Deep Recurrent Q-Learning for Partially Observable MDPs, M Hausknecht., 2015 [[arxiv]](<https://arxiv.org/abs/1507.06527>) [[code]](https://github.com/Rowing0914/TF_RL/blob/master/examples/DRQN/DRQN_eager.py)
 11. Hindsight Experience Replay, M.Andrychowicz et al., 2017 [[arxiv]](<https://arxiv.org/pdf/1707.01495.pdf>) [[code]](https://github.com/Rowing0914/TF_RL/blob/master/examples/HER/HER_eager.py)
+12. Soft Actor-Critic: Off-Policy Maximum Entropy Deep Reinforcement Learning with a Stochastic Actor, Haarnoja et al., 2018 [[arxiv]](<https://arxiv.org/abs/1801.01290>) [[code]]()
 
 
 #### Future dev
 
 1. Noisy Networks for Exploration, M.Fortunato et al., 2017 [[arxiv]](https://arxiv.org/abs/1706.10295)
-2. Soft Actor-Critic
-3. Distributed DQN etc..
+3. Distributed DQN
+3. C51
+4. Rainbow etc...
 
 
 

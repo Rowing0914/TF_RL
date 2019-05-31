@@ -3,7 +3,7 @@ import tensorflow as tf
 from copy import deepcopy
 from tf_rl.common.random_process import OrnsteinUhlenbeckProcess
 
-class DDPG:
+class SAC:
 	def __init__(self, actor, critic, num_action, params):
 		self.params = params
 		self.num_action = num_action
@@ -77,7 +77,7 @@ class DDPG:
 		return np.sum(critic_loss + actor_loss)
 
 
-class DDPG_debug:
+class SAC_debug:
 	def __init__(self, actor, critic, num_action, params):
 		self.params = params
 		self.num_action = num_action

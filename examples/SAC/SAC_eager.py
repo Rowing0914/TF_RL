@@ -4,8 +4,8 @@ import tensorflow as tf
 from collections import deque
 from tf_rl.common.memory import ReplayBuffer
 from tf_rl.common.utils import eager_setup
-from tf_rl.agents.DDPG import DDPG
-from tf_rl.common.train import train_DDPG
+from tf_rl.agents.SAC import SAC
+from tf_rl.common.train import train_SAC
 from tf_rl.common.params import DDPG_ENV_LIST
 from tf_rl.common.networks import DDPG_Actor as Actor, DDPG_Critic as Critic
 
@@ -42,8 +42,8 @@ parser.add_argument("--gamma", default=0.99, type=float, help="discount factor =
 parser.add_argument("--soft_update_tau", default=1e-2, type=float, help="soft-update needs tau to define the ratio of main model remains")
 parser.add_argument("--L2_reg", default=0.5, type=float, help="magnitude of L2 regularisation")
 parser.add_argument("--action_range", default=[-1., 1.], type=list, help="magnitude of L2 regularisation")
-parser.add_argument("--log_dir", default="../../logs/logs/DDPG/", help="directory for log")
-parser.add_argument("--model_dir", default="../../logs/models/DDPG/", help="directory for trained model")
+parser.add_argument("--log_dir", default="../../logs/logs/SAC/", help="directory for log")
+parser.add_argument("--model_dir", default="../../logs/models/SAC/", help="directory for trained model")
 parser.add_argument("--debug_flg", default=False, type=bool, help="debug mode or not")
 parser.add_argument("--google_colab", default=False, type=bool, help="if you are executing this on GoogleColab")
 params = parser.parse_args()
@@ -52,8 +52,8 @@ params.test_episodes = 10
 from datetime import datetime
 now = datetime.now()
 if params.debug_flg:
-	params.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "-DDPG/"
-	params.model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "-DDPG/"
+	params.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "-SAC/"
+	params.model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "-SAC/"
 else:
 	params.log_dir = "../../logs/logs/{}".format(params.env_name)
 	params.model_dir = "../../logs/models/{}".format(params.env_name)
@@ -65,8 +65,8 @@ env.seed(params.seed)
 tf.random.set_random_seed(params.seed)
 
 params.goal = DDPG_ENV_LIST[params.env_name]
-agent = DDPG(Actor, Critic, env.action_space.shape[0], params)
+agent = SAC(Actor, Critic, env.action_space.shape[0], params)
 replay_buffer = ReplayBuffer(params.memory_size)
 reward_buffer = deque(maxlen=params.reward_buffer_ep)
 summary_writer = tf.contrib.summary.create_file_writer(params.log_dir)
-train_DDPG(agent, env, replay_buffer, reward_buffer, params, summary_writer)
+train_SAC(agent, env, replay_buffer, reward_buffer, params, summary_writer)
