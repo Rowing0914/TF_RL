@@ -3,11 +3,90 @@ import numpy as np
 import os, datetime, itertools, shutil
 from tf_rl.common.visualise import plot_Q_values
 
+
+"""
+
+TF basic utility function
+
+"""
+
+def eager_setup():
+	"""
+	it eables an eager execution in tensorflow with config that allows us to flexibly access to a GPU
+	from multiple python scripts
+
+	:return:
+	"""
+	config = tf.ConfigProto(allow_soft_placement=True,
+							intra_op_parallelism_threads=1,
+							inter_op_parallelism_threads=1)
+	config.gpu_options.allow_growth = True
+	tf.enable_eager_execution(config=config)
+	tf.enable_resource_variables()
+
+
+
 """
 
 Utility functions 
 
 """
+
+def create_checkpoint(model, optimizer, model_dir):
+	checkpoint_dir = model_dir
+	check_point = tf.train.Checkpoint(optimizer=optimizer,
+										   model=model,
+										   optimizer_step=tf.train.get_or_create_global_step())
+	manager = tf.train.CheckpointManager(check_point, checkpoint_dir, max_to_keep=3)
+
+	# try re-loading the previous training progress!
+	try:
+		print("Try loading the previous training progress")
+		check_point.restore(manager.latest_checkpoint)
+		assert tf.train.get_global_step().numpy() != 0
+		print("===================================================\n")
+		print("Restored the model from {}".format(checkpoint_dir))
+		print("Currently we are on time-step: {}".format(tf.train.get_global_step().numpy()))
+		print("\n===================================================")
+	except:
+		print("===================================================\n")
+		print("Previous Training files are not found in Directory: {}".format(checkpoint_dir))
+		print("\n===================================================")
+	return manager
+
+
+def setup_on_colab(env_name):
+	# mount your drive on google colab
+	from google.colab import drive
+	drive.mount("/content/gdrive")
+	log_dir = "/content/TF_RL/logs/logs/DQN/{}".format(env_name)
+	model_dir = "/content/TF_RL/logs/models/DQN/{}".format(env_name)
+	log_dir_colab = "/content/gdrive/My Drive/logs/logs/DQN/{}".format(env_name)
+	model_dir_colab = "/content/gdrive/My Drive/logs/models/DQN/{}".format(env_name)
+
+	# create the logs directory under the root dir
+	if not os.path.isdir(log_dir):
+		os.makedirs(log_dir)
+	if not os.path.isdir(model_dir):
+		os.makedirs(model_dir)
+
+	# if the previous directory existed in My Drive, then we would continue training on top of the previous training
+	if os.path.isdir(log_dir_colab):
+		print("=== {} IS FOUND ===".format(log_dir_colab))
+		copy_dir(log_dir_colab, log_dir, verbose=True)
+	else:
+		print("=== {} IS NOT FOUND ===".format(log_dir_colab))
+		os.makedirs(log_dir_colab)
+		print("=== FINISHED CREATING THE DIRECTORY ===")
+
+	if os.path.isdir(model_dir_colab):
+		print("=== {} IS FOUND ===".format(model_dir_colab))
+		copy_dir(model_dir_colab, model_dir, verbose=True)
+	else:
+		print("=== {} IS NOT FOUND ===".format(model_dir_colab))
+		os.makedirs(model_dir_colab)
+		print("=== FINISHED CREATING THE DIRECTORY ===")
+	return log_dir, model_dir, log_dir_colab, model_dir_colab
 
 
 class AnnealingSchedule:
@@ -150,6 +229,38 @@ def test(sess, agent, env, params):
 	return
 
 
+class logger:
+	def __init__(self, params):
+		self.params = params
+		self.prev_update_step = 0
+
+	def logging(self, time_step, current_episode, exec_time, reward_buffer, loss, epsilon, cnt_action):
+		"""
+		Logging function
+
+		:param time_step:
+		:param max_steps:
+		:param current_episode:
+		:param exec_time:
+		:param reward:
+		:param loss:
+		:param cnt_action:
+		:return:
+		"""
+		cnt_actions = dict((x, cnt_action.count(x)) for x in set(cnt_action))
+		episode_steps = time_step - self.prev_update_step
+		# remaing_time_step/exec_time_for_one_step
+		remaining_time = str(datetime.timedelta(
+			seconds=(self.params.num_frames - time_step) * exec_time / (episode_steps)))
+		print(
+			"{0}/{1}: Ep: {2}({3:.1f} fps), Remaining: {4}, (R) GOAL: {5}, {6} Ep => [MEAN: {7}, MAX: {8}], (last ep) Loss: {9:.6f}, Eps: {10:.6f}, Act: {11}".format(
+				time_step, self.params.num_frames, current_episode, episode_steps/exec_time, remaining_time, self.params.goal,
+				self.params.reward_buffer_ep, np.mean(reward_buffer), np.max(reward_buffer), loss, epsilon, cnt_actions
+			))
+		self.prev_update_step = time_step
+
+
+
 """
 
 # Copyright 2018 The Dopamine Authors.
@@ -200,40 +311,9 @@ class Tracker(object):
 			self.data_lists[key].append(value)
 
 
-class logger:
-	def __init__(self, params):
-		self.params = params
-		self.prev_update_step = 0
-
-	def logging(self, time_step, current_episode, exec_time, reward_buffer, loss, epsilon, cnt_action):
-		"""
-		Logging function
-
-		:param time_step:
-		:param max_steps:
-		:param current_episode:
-		:param exec_time:
-		:param reward:
-		:param loss:
-		:param cnt_action:
-		:return:
-		"""
-		cnt_actions = dict((x, cnt_action.count(x)) for x in set(cnt_action))
-		episode_steps = time_step - self.prev_update_step
-		# remaing_time_step/exec_time_for_one_step
-		remaining_time = str(datetime.timedelta(
-			seconds=(self.params.num_frames - time_step) * exec_time / (episode_steps)))
-		print(
-			"{0}/{1}: Ep: {2}({3:.1f} fps), Remaining: {4}, (R) GOAL: {5}, {6} Ep => [MEAN: {7}, MAX: {8}], (last ep) Loss: {9:.6f}, Eps: {10:.6f}, Act: {11}".format(
-				time_step, self.params.num_frames, current_episode, episode_steps/exec_time, remaining_time, self.params.goal,
-				self.params.reward_buffer_ep, np.mean(reward_buffer), np.max(reward_buffer), loss, epsilon, cnt_actions
-			))
-		self.prev_update_step = time_step
-
-
 """
 
-Update methods of a target model based on a source model 
+Update methods 
 
 """
 
@@ -303,21 +383,36 @@ def soft_target_model_update_eager(target, source, tau=1e-2):
 
 """
 
-Loss functions 
+Gradient Clipping
 
 """
 
+def gradient_clip_fn(flag=None):
+	"""
+	given a flag, create the clipping function and returns it as a function
+	currently it supports:
+		- by_value
+		- norm
+		- None
 
-def huber_loss(x, delta=1.0):
+	:param flag:
+	:return:
 	"""
-	Reference: https://en.wikipedia.org/wiki/Huber_loss
-	TODO: think if we need this, use Tensorflow implmentation of Huber loss
-	"""
-	return tf.where(
-		tf.abs(x) < delta,
-		tf.square(x) * 0.5,
-		delta * (tf.abs(x) - 0.5 * delta)
-	)
+	if flag == "":
+		def _func(grads):
+			return grads
+	elif flag == "by_value":
+		def _func(grads):
+			grads = [ClipIfNotNone(grad, -1., 1.) for grad in grads]
+			return grads
+	elif flag == "norm":
+		def _func(grads):
+			grads, _ = tf.clip_by_global_norm(grads, 5.0)
+			return grads
+	else:
+		assert False, "Choose the gradient clipping function from by_value, norm, or nothing!"
+	return _func
+
 
 
 def ClipIfNotNone(grad, _min, _max):
@@ -329,6 +424,7 @@ def ClipIfNotNone(grad, _min, _max):
 	if grad is None:
 		return grad
 	return tf.clip_by_value(grad, _min, _max)
+
 
 
 """

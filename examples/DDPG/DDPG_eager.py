@@ -3,16 +3,12 @@ import argparse
 import tensorflow as tf
 from collections import deque
 from tf_rl.common.memory import ReplayBuffer
+from tf_rl.common.utils import eager_setup
 from tf_rl.agents.DDPG import DDPG
 from tf_rl.common.train import train_DDPG
 from tf_rl.common.params import DDPG_ENV_LIST
 
-config = tf.ConfigProto(allow_soft_placement=True,
-						intra_op_parallelism_threads=1,
-						inter_op_parallelism_threads=1)
-config.gpu_options.allow_growth = True
-tf.enable_eager_execution(config=config)
-tf.enable_resource_variables()
+eager_setup()
 
 regulariser = tf.keras.regularizers.l2(1e-2)
 kernel_init = tf.random_uniform_initializer(minval=-3e-3, maxval=3e-3)

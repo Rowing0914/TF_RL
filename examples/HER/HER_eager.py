@@ -13,7 +13,6 @@ config = tf.ConfigProto(allow_soft_placement=True,
 						inter_op_parallelism_threads=1)
 config.gpu_options.allow_growth = True
 tf.enable_eager_execution(config=config)
-tf.random.set_random_seed(123)
 
 class Env:
 	def __init__(self, size):
