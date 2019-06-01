@@ -1,3 +1,0 @@
-Fri May 31 22:05:02 2019
-ERROR: Invalid activation key
-
