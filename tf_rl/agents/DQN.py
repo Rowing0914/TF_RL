@@ -9,9 +9,9 @@ class DQN(Agent_atari):
 	and don't use this for debugging purpose.
 	"""
 
-	def __init__(self, model, optimizer, loss_fn, grad_clip_fn, num_action, gamma, model_dir):
+	def __init__(self, model, optimizer, loss_fn, grad_clip_fn, num_action, params):
+		self.params = params
 		self.num_action = num_action
-		self.gamma = gamma
 		self.grad_clip_fn = grad_clip_fn
 		self.loss_fn = loss_fn
 		self.eval_flg = False
@@ -21,7 +21,7 @@ class DQN(Agent_atari):
 		self.optimizer = optimizer
 		self.manager = create_checkpoint(model=self.main_model,
 										 optimizer=self.optimizer,
-										 model_dir=model_dir)
+										 model_dir=params.model_dir)
 
 	@tf.contrib.eager.defun(autograph=False)
 	def _select_action(self, state):
@@ -65,9 +65,9 @@ class DQN_cartpole(Agent_cartpole):
 	A complete DQN model for training of cartpole not for debugging purpose
 	"""
 
-	def __init__(self, model, optimizer, loss_fn, grad_clip_fn, num_action, gamma, model_dir):
+	def __init__(self, model, optimizer, loss_fn, grad_clip_fn, num_action, params):
+		self.params = params
 		self.num_action = num_action
-		self.gamma = gamma
 		self.grad_clip_fn = grad_clip_fn
 		self.loss_fn = loss_fn
 		self.eval_flg = False
@@ -77,7 +77,7 @@ class DQN_cartpole(Agent_cartpole):
 		self.optimizer = optimizer
 		self.manager = create_checkpoint(model=self.main_model,
 										 optimizer=self.optimizer,
-										 model_dir=model_dir)
+										 model_dir=params.model_dir)
 
 	@tf.contrib.eager.defun(autograph=False)
 	def _select_action(self, state):
@@ -93,7 +93,7 @@ class DQN_cartpole(Agent_cartpole):
 		with tf.GradientTape() as tape:
 			next_Q = self.target_model(next_states)
 			q_values = self.main_model(states)
-			Y = rewards + self.gamma * tf.math.reduce_max(next_Q, axis=-1) * (1. - dones)
+			Y = rewards + self.params.gamma * tf.math.reduce_max(next_Q, axis=-1) * (1. - dones)
 			Y = tf.stop_gradient(Y)
 
 			# get the q-values which is associated with actually taken actions in a game

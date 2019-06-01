@@ -72,15 +72,15 @@ if params.mode == "CartPole":
 	env = MyWrapper(gym.make("CartPole-v0"))
 	params.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "-DDDP/"
 	params.model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "-DDDP/"
-	agent = Double_DQN_cartpole(Model, optimizer, loss_fn, grad_clip_fn, env.action_space.n, params.gamma, params.model_dir)
+	agent = Double_DQN_cartpole(Model, optimizer, loss_fn, grad_clip_fn, env.action_space.n, params)
 elif params.mode == "CartPole-p":
 	env = CartPole_Pixel(gym.make("CartPole-v0"))
 	params.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "-DDDP-p/"
 	params.model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "-DDDP-p/"
-	agent = Double_DQN(Model_p, optimizer, loss_fn, grad_clip_fn, env.action_space.n, params.gamma, params.model_dir)
+	agent = Double_DQN(Model_p, optimizer, loss_fn, grad_clip_fn, env.action_space.n, params)
 
 # set seed
 env.seed(params.seed)
 tf.random.set_random_seed(params.seed)
 
-train_DQN_PER(agent, env, policy, replay_buffer, reward_buffer, params, Beta, summary_writer)
+train_DQN_PER(agent, env, policy, replay_buffer, reward_buffer, Beta, summary_writer)

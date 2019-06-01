@@ -85,7 +85,7 @@ grad_clip_fn = gradient_clip_fn(flag=params.grad_clip_flg)
 summary_writer = tf.contrib.summary.create_file_writer(params.log_dir)
 
 if params.debug_flg:
-	agent = DQN(Model, optimizer, loss_fn, grad_clip_fn, env.action_space.n, params.gamma, params.model_dir)
+	agent = DQN(Model, optimizer, loss_fn, grad_clip_fn, env.action_space.n, params)
 else:
 	agent = DQN_debug(Model, Model, env.action_space.n, params)
-train_DQN_PER(agent, env, policy, replay_buffer, reward_buffer, params, Beta, summary_writer)
+train_DQN_PER(agent, env, policy, replay_buffer, reward_buffer, Beta, summary_writer)

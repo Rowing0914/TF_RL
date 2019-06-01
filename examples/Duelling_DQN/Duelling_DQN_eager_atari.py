@@ -52,7 +52,7 @@ now = datetime.now()
 
 if params.google_colab:
 	# mount the MyDrive on google drive and create the log directory for saving model and logging using tensorboard
-	params.log_dir, params.model_dir, params.log_dir_colab, params.model_dir_colab = setup_on_colab(params.env_name)
+	params.log_dir, params.model_dir, params.log_dir_colab, params.model_dir_colab = setup_on_colab("Duelling_DQN", params.env_name)
 else:
 	if params.debug_flg:
 		params.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "-Duelling_DQN_debug/"
@@ -81,6 +81,6 @@ summary_writer = tf.contrib.summary.create_file_writer(params.log_dir)
 if params.debug_flg:
 	agent = DQN_debug(Model, Model, env.action_space.n, params)
 else:
-	agent = DQN(Model, optimizer, loss_fn, grad_clip_fn, env.action_space.n, params.gamma, params.model_dir)
+	agent = DQN(Model, optimizer, loss_fn, grad_clip_fn, env.action_space.n, params)
 
-train_DQN(agent, env, policy, replay_buffer, reward_buffer, params, summary_writer)
+train_DQN(agent, env, policy, replay_buffer, reward_buffer, summary_writer)

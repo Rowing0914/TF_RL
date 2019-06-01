@@ -56,7 +56,7 @@ now = datetime.now()
 
 if params.google_colab:
 	# mount the MyDrive on google drive and create the log directory for saving model and logging using tensorboard
-	params.log_dir, params.model_dir, params.log_dir_colab, params.model_dir_colab = setup_on_colab(params.env_name)
+	params.log_dir, params.model_dir, params.log_dir_colab, params.model_dir_colab = setup_on_colab("DDDP", params.env_name)
 else:
 	if params.debug_flg:
 		params.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "-DDDP_debug/"
@@ -85,8 +85,8 @@ Beta = AnnealingSchedule(start=params.prioritized_replay_beta_start, end=params.
 						 decay_steps=params.decay_steps)
 
 if params.debug_flg:
-	agent = Double_DQN(Model, optimizer, loss_fn, grad_clip_fn, env.action_space.n, params.gamma, params.model_dir)
+	agent = Double_DQN(Model, optimizer, loss_fn, grad_clip_fn, env.action_space.n, params)
 else:
 	agent = Double_DQN_debug(Model, Model, env.action_space.n, params)
 
-train_DQN_PER(agent, env, policy, replay_buffer, reward_buffer, params, Beta, summary_writer)
+train_DQN_PER(agent, env, policy, replay_buffer, reward_buffer, Beta, summary_writer)

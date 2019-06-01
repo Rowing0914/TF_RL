@@ -45,7 +45,6 @@ parser.add_argument("--debug_flg", default=False, type=bool, help="debug mode or
 parser.add_argument("--google_colab", default=False, type=bool, help="if you are executing this on GoogleColab")
 params = parser.parse_args()
 params.goal = ENV_LIST_NATURE["{}NoFrameskip-v4".format(params.env_name)]
-params.test_episodes = 10
 
 env = wrap_deepmind(make_atari("{}NoFrameskip-v4".format(params.env_name)))
 
@@ -66,13 +65,6 @@ else:
 		params.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "-Double_DQN/"
 		params.model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "-Double_DQN/"
 
-Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end, decay_steps=params.decay_steps)
-policy = EpsilonGreedyPolicy_eager(Epsilon_fn=Epsilon)
-replay_buffer = ReplayBuffer(params.memory_size)
-reward_buffer = deque(maxlen=params.reward_buffer_ep)
-anneal_lr = AnnealingSchedule(start=0.0025, end=0.00025, decay_steps=params.decay_steps, decay_type="linear")
-optimizer = tf.train.RMSPropOptimizer(anneal_lr.get_value(), 0.99, 0.0, 1e-6)
-
 if params.loss_fn == "huber":
 	loss_fn = tf.losses.huber_loss
 elif params.loss_fn == "mse":
@@ -80,12 +72,18 @@ elif params.loss_fn == "mse":
 else:
 	assert False, "Choose the loss_fn from either huber or mse"
 
+Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end, decay_steps=params.decay_steps)
+policy = EpsilonGreedyPolicy_eager(Epsilon_fn=Epsilon)
+replay_buffer = ReplayBuffer(params.memory_size)
+reward_buffer = deque(maxlen=params.reward_buffer_ep)
+anneal_lr = AnnealingSchedule(start=0.0025, end=0.00025, decay_steps=params.decay_steps, decay_type="linear")
+optimizer = tf.train.RMSPropOptimizer(anneal_lr.get_value(), 0.99, 0.0, 1e-6)
 grad_clip_fn = gradient_clip_fn(flag=params.grad_clip_flg)
 summary_writer = tf.contrib.summary.create_file_writer(params.log_dir)
 
 if params.debug_flg:
 	agent = Double_DQN_debug(Model, Model, env.action_space.n, params)
 else:
-	agent = Double_DQN(Model, optimizer, loss_fn, grad_clip_fn, env.action_space.n, params.gamma, params.model_dir)
+	agent = Double_DQN(Model, optimizer, loss_fn, grad_clip_fn, env.action_space.n, params)
 
-train_DQN(agent, env, policy, replay_buffer, reward_buffer, params, summary_writer)
+train_DQN(agent, env, policy, replay_buffer, reward_buffer, summary_writer)

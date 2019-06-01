@@ -11,7 +11,7 @@ TODO: think about incorporating PER's memory updating procedure into the model
 so that, we can unify train_DQN and train_DQN_PER 
 """
 
-def train_DQN(agent, env, policy, replay_buffer, reward_buffer, params, summary_writer):
+def train_DQN(agent, env, policy, replay_buffer, reward_buffer, summary_writer):
 	"""
 	Training script for DQN and other advanced models without PER
 
@@ -24,10 +24,10 @@ def train_DQN(agent, env, policy, replay_buffer, reward_buffer, params, summary_
 	:param summary_writer:
 	:return:
 	"""
-	get_ready(params)
+	get_ready(agent.params)
 	global_timestep = tf.train.get_or_create_global_step()
 	time_buffer = list()
-	log = logger(params)
+	log = logger(agent.params)
 	with summary_writer.as_default():
 		# for summary purpose, we put all codes in this context
 		with tf.contrib.summary.always_record_summaries():
@@ -49,16 +49,16 @@ def train_DQN(agent, env, policy, replay_buffer, reward_buffer, params, summary_
 					cnt_action.append(action)
 
 					# for evaluation purpose
-					if global_timestep.numpy() % params.eval_interval == 0:
+					if global_timestep.numpy() % agent.params.eval_interval == 0:
 						agent.eval_flg = True
 
-					if (global_timestep.numpy() > params.learning_start) and (global_timestep.numpy() % params.train_interval == 0):
-						states, actions, rewards, next_states, dones = replay_buffer.sample(params.batch_size)
+					if (global_timestep.numpy() > agent.params.learning_start) and (global_timestep.numpy() % agent.params.train_interval == 0):
+						states, actions, rewards, next_states, dones = replay_buffer.sample(agent.params.batch_size)
 
 						loss, batch_loss = agent.update(states, actions, rewards, next_states, dones)
 
 					# synchronise the target and main models by hard or soft update
-					if (global_timestep.numpy() > params.learning_start) and (global_timestep.numpy() % params.sync_freq == 0):
+					if (global_timestep.numpy() > agent.params.learning_start) and (global_timestep.numpy() % agent.params.sync_freq == 0):
 						agent.manager.save()
 						agent.target_model.set_weights(agent.main_model.get_weights())
 
@@ -68,7 +68,7 @@ def train_DQN(agent, env, policy, replay_buffer, reward_buffer, params, summary_
 
 				tf.contrib.summary.scalar("reward", total_reward, step=i)
 				tf.contrib.summary.scalar("exec time", time.time() - start, step=i)
-				if i >= params.reward_buffer_ep:
+				if i >= agent.params.reward_buffer_ep:
 					tf.contrib.summary.scalar("Moving Ave Reward", np.mean(reward_buffer), step=i)
 				tf.contrib.summary.histogram("taken actions", cnt_action, step=i)
 
@@ -76,7 +76,7 @@ def train_DQN(agent, env, policy, replay_buffer, reward_buffer, params, summary_
 				reward_buffer.append(total_reward)
 				time_buffer.append(time.time() - start)
 
-				if global_timestep.numpy() > params.learning_start and i % params.reward_buffer_ep == 0:
+				if global_timestep.numpy() > agent.params.learning_start and i % agent.params.reward_buffer_ep == 0:
 					log.logging(global_timestep.numpy(), i, np.sum(time_buffer), reward_buffer, np.mean(loss), policy.current_epsilon(), cnt_action)
 					time_buffer = list()
 
@@ -85,14 +85,14 @@ def train_DQN(agent, env, policy, replay_buffer, reward_buffer, params, summary_
 					agent.eval_flg = False
 
 				# check the stopping condition
-				if global_timestep.numpy() > params.num_frames:
+				if global_timestep.numpy() > agent.params.num_frames:
 					print("=== Training is Done ===")
-					test_Agent(agent, env, n_trial=params.test_episodes)
+					test_Agent(agent, env, n_trial=agent.params.test_episodes)
 					env.close()
 					break
 
 
-def train_DQN_PER(agent, env, policy, replay_buffer, reward_buffer, params, Beta, summary_writer):
+def train_DQN_PER(agent, env, policy, replay_buffer, reward_buffer, Beta, summary_writer):
 	"""
 	Training script for DQN with PER
 
@@ -105,10 +105,10 @@ def train_DQN_PER(agent, env, policy, replay_buffer, reward_buffer, params, Beta
 	:param summary_writer:
 	:return:
 	"""
-	get_ready(params)
+	get_ready(agent.params)
 	global_timestep = tf.train.get_or_create_global_step()
 	time_buffer = list()
-	log = logger(params)
+	log = logger(agent.params)
 	with summary_writer.as_default():
 		# for summary purpose, we put all codes in this context
 		with tf.contrib.summary.always_record_summaries():
@@ -130,29 +130,29 @@ def train_DQN_PER(agent, env, policy, replay_buffer, reward_buffer, params, Beta
 					cnt_action.append(action)
 
 					# for evaluation purpose
-					if global_timestep.numpy() % params.eval_interval == 0:
+					if global_timestep.numpy() % agent.params.eval_interval == 0:
 						agent.eval_flg = True
 
-					if (global_timestep.numpy() > params.learning_start) and (global_timestep.numpy() % params.train_interval == 0):
+					if (global_timestep.numpy() > agent.params.learning_start) and (global_timestep.numpy() % agent.params.train_interval == 0):
 						# PER returns: state, action, reward, next_state, done, weights(a weight for an episode), indices(indices for a batch of episode)
 						states, actions, rewards, next_states, dones, weights, indices = replay_buffer.sample(
-							params.batch_size, Beta.get_value())
+							agent.params.batch_size, Beta.get_value())
 
 						loss, batch_loss = agent.update(states, actions, rewards, next_states, dones)
 
 						# add noise to the priorities
-						batch_loss = np.abs(batch_loss) + params.prioritized_replay_noise
+						batch_loss = np.abs(batch_loss) + agent.params.prioritized_replay_noise
 
 						# Update a prioritised replay buffer using a batch of losses associated with each timestep
 						replay_buffer.update_priorities(indices, batch_loss)
 
 					# synchronise the target and main models by hard or soft update
-					if (global_timestep.numpy() > params.learning_start) and (global_timestep.numpy() % params.sync_freq == 0):
+					if (global_timestep.numpy() > agent.params.learning_start) and (global_timestep.numpy() % agent.params.sync_freq == 0):
 						agent.manager.save()
-						if params.update_hard_or_soft == "hard":
+						if agent.params.update_hard_or_soft == "hard":
 							agent.target_model.set_weights(agent.main_model.get_weights())
-						elif params.update_hard_or_soft == "soft":
-							soft_target_model_update_eager(agent.target_model, agent.main_model, tau=params.soft_update_tau)
+						elif agent.params.update_hard_or_soft == "soft":
+							soft_target_model_update_eager(agent.target_model, agent.main_model, tau=agent.params.soft_update_tau)
 
 				"""
 				===== After 1 Episode is Done =====
@@ -160,7 +160,7 @@ def train_DQN_PER(agent, env, policy, replay_buffer, reward_buffer, params, Beta
 
 				tf.contrib.summary.scalar("reward", total_reward, step=i)
 				tf.contrib.summary.scalar("exec time", time.time() - start, step=i)
-				if i >= params.reward_buffer_ep:
+				if i >= agent.params.reward_buffer_ep:
 					tf.contrib.summary.scalar("Moving Ave Reward", np.mean(reward_buffer), step=i)
 				tf.contrib.summary.histogram("taken actions", cnt_action, step=i)
 
@@ -168,7 +168,7 @@ def train_DQN_PER(agent, env, policy, replay_buffer, reward_buffer, params, Beta
 				reward_buffer.append(total_reward)
 				time_buffer.append(time.time() - start)
 
-				if global_timestep.numpy() > params.learning_start and i % params.reward_buffer_ep == 0:
+				if global_timestep.numpy() > agent.params.learning_start and i % agent.params.reward_buffer_ep == 0:
 					log.logging(global_timestep.numpy(), i, np.sum(time_buffer), reward_buffer, np.mean(loss), policy.current_epsilon(), cnt_action)
 					time_buffer = list()
 
@@ -177,9 +177,9 @@ def train_DQN_PER(agent, env, policy, replay_buffer, reward_buffer, params, Beta
 					agent.eval_flg = False
 
 				# check the stopping condition
-				if global_timestep.numpy() > params.num_frames:
+				if global_timestep.numpy() > agent.params.num_frames:
 					print("=== Training is Done ===")
-					test_Agent(agent, env, n_trial=params.test_episodes)
+					test_Agent(agent, env, n_trial=agent.params.test_episodes)
 					env.close()
 					break
 
@@ -366,12 +366,12 @@ def train_DRQN(agent, env, policy, replay_buffer, reward_buffer, params, summary
 
 # I have referred to https://github.com/laket/DDPG_Eager in terms of design of algorithm
 # I know this is not precisely accurate to the original algo, but this works better than that... lol
-def train_DDPG(agent, env, replay_buffer, reward_buffer, params, summary_writer):
-	get_ready(params)
+def train_DDPG(agent, env, replay_buffer, reward_buffer, summary_writer):
+	get_ready(agent.params)
 
 	global_timestep = tf.train.get_or_create_global_step()
-	time_buffer = deque(maxlen=params.reward_buffer_ep)
-	log = logger(params)
+	time_buffer = deque(maxlen=agent.params.reward_buffer_ep)
+	log = logger(agent.params)
 
 	with summary_writer.as_default():
 		# for summary purpose, we put all codes in this context
@@ -386,7 +386,7 @@ def train_DDPG(agent, env, replay_buffer, reward_buffer, params, summary_writer)
 				episode_len = 0
 				while not done:
 					# env.render()
-					if global_timestep.numpy() < params.learning_start:
+					if global_timestep.numpy() < agent.params.learning_start:
 						action = env.action_space.sample()
 					else:
 						action = agent.predict(state)
@@ -400,7 +400,7 @@ def train_DDPG(agent, env, replay_buffer, reward_buffer, params, summary_writer)
 					state = next_state
 
 					# for evaluation purpose
-					if global_timestep.numpy() % params.eval_interval == 0:
+					if global_timestep.numpy() % agent.params.eval_interval == 0:
 						agent.eval_flg = True
 
 				"""
@@ -409,21 +409,21 @@ def train_DDPG(agent, env, replay_buffer, reward_buffer, params, summary_writer)
 
 				# train the model at this point
 				for t_train in range(episode_len): # in mujoco, this will be 1,000 iterations!
-					states, actions, rewards, next_states, dones = replay_buffer.sample(params.batch_size)
+					states, actions, rewards, next_states, dones = replay_buffer.sample(agent.params.batch_size)
 					loss = agent.update(states, actions, rewards, next_states, dones)
-					soft_target_model_update_eager(agent.target_actor, agent.actor, tau=params.soft_update_tau)
-					soft_target_model_update_eager(agent.target_critic, agent.critic, tau=params.soft_update_tau)
+					soft_target_model_update_eager(agent.target_actor, agent.actor, tau=agent.params.soft_update_tau)
+					soft_target_model_update_eager(agent.target_critic, agent.critic, tau=agent.params.soft_update_tau)
 
 				tf.contrib.summary.scalar("reward", total_reward, step=i)
 				tf.contrib.summary.scalar("exec time", time.time() - start, step=i)
-				if i >= params.reward_buffer_ep:
+				if i >= agent.params.reward_buffer_ep:
 					tf.contrib.summary.scalar("Moving Ave Reward", np.mean(reward_buffer), step=i)
 
 				# store the episode reward
 				reward_buffer.append(total_reward)
 				time_buffer.append(time.time() - start)
 
-				if global_timestep.numpy() > params.learning_start and i % params.reward_buffer_ep == 0:
+				if global_timestep.numpy() > agent.params.learning_start and i % agent.params.reward_buffer_ep == 0:
 					log.logging(global_timestep.numpy(), i, np.sum(time_buffer), reward_buffer, np.mean(loss), 0, [0])
 
 				if agent.eval_flg:
@@ -431,19 +431,19 @@ def train_DDPG(agent, env, replay_buffer, reward_buffer, params, summary_writer)
 					agent.eval_flg = False
 
 				# check the stopping condition
-				if global_timestep.numpy() > params.num_frames:
+				if global_timestep.numpy() > agent.params.num_frames:
 					print("=== Training is Done ===")
-					test_Agent_policy_gradient(agent, env, n_trial=params.test_episodes)
+					test_Agent_policy_gradient(agent, env, n_trial=agent.params.test_episodes)
 					env.close()
 					break
 
 
-def train_SAC(agent, env, replay_buffer, reward_buffer, params, summary_writer):
-	get_ready(params)
+def train_SAC(agent, env, replay_buffer, reward_buffer, summary_writer):
+	get_ready(agent.params)
 
 	global_timestep = tf.train.get_or_create_global_step()
-	log = logger(params)
-	time_buffer = deque(maxlen=params.reward_buffer_ep)
+	log = logger(agent.params)
+	time_buffer = deque(maxlen=agent.params.reward_buffer_ep)
 
 	with summary_writer.as_default():
 		# for summary purpose, we put all codes in this context
@@ -458,7 +458,7 @@ def train_SAC(agent, env, replay_buffer, reward_buffer, params, summary_writer):
 				episode_len = 0
 				while not done:
 					# env.render()
-					if global_timestep.numpy() < params.learning_start:
+					if global_timestep.numpy() < agent.params.learning_start:
 						action = env.action_space.sample()
 					else:
 						action = agent.predict(state)
@@ -472,7 +472,7 @@ def train_SAC(agent, env, replay_buffer, reward_buffer, params, summary_writer):
 					state = next_state
 
 					# for evaluation purpose
-					if global_timestep.numpy() % params.eval_interval == 0:
+					if global_timestep.numpy() % agent.params.eval_interval == 0:
 						agent.eval_flg = True
 
 				"""
@@ -481,20 +481,20 @@ def train_SAC(agent, env, replay_buffer, reward_buffer, params, summary_writer):
 
 				# train the model at this point
 				for t_train in range(episode_len): # in mujoco, this will be 1,000 iterations!
-					states, actions, rewards, next_states, dones = replay_buffer.sample(params.batch_size)
+					states, actions, rewards, next_states, dones = replay_buffer.sample(agent.params.batch_size)
 					loss = agent.update(states, actions, rewards, next_states, dones)
-					soft_target_model_update_eager(agent.target_actor, agent.actor, tau=params.soft_update_tau)
-					soft_target_model_update_eager(agent.target_critic, agent.critic, tau=params.soft_update_tau)
+					soft_target_model_update_eager(agent.target_actor, agent.actor, tau=agent.params.soft_update_tau)
+					soft_target_model_update_eager(agent.target_critic, agent.critic, tau=agent.params.soft_update_tau)
 
 				tf.contrib.summary.scalar("reward", total_reward, step=i)
 				tf.contrib.summary.scalar("exec time", time.time() - start, step=i)
-				if i >= params.reward_buffer_ep:
+				if i >= agent.params.reward_buffer_ep:
 					tf.contrib.summary.scalar("Moving Ave Reward", np.mean(reward_buffer), step=i)
 
 				# store the episode reward
 				reward_buffer.append(total_reward)
 
-				if global_timestep.numpy() > params.learning_start and i % params.reward_buffer_ep == 0:
+				if global_timestep.numpy() > agent.params.learning_start and i % agent.params.reward_buffer_ep == 0:
 					log.logging(global_timestep.numpy(), i, time.time() - start, reward_buffer, np.mean(loss), 0, [0])
 
 				if agent.eval_flg:
@@ -502,18 +502,18 @@ def train_SAC(agent, env, replay_buffer, reward_buffer, params, summary_writer):
 					agent.eval_flg = False
 
 				# check the stopping condition
-				if global_timestep.numpy() > params.num_frames:
+				if global_timestep.numpy() > agent.params.num_frames:
 					print("=== Training is Done ===")
-					test_Agent_policy_gradient(agent, env, n_trial=params.test_episodes)
+					test_Agent_policy_gradient(agent, env, n_trial=agent.params.test_episodes)
 					env.close()
 					break
 
 
-def train_HER_bit(agent, env, policy, replay_buffer, params, summary_writer):
-	get_ready(params)
+def train_HER_bit(agent, env, policy, replay_buffer, summary_writer):
+	get_ready(agent.params)
 
 	global_timestep = tf.train.get_or_create_global_step()
-	log = logger(params)
+	log = logger(agent.params)
 
 	with summary_writer.as_default():
 		# for summary purpose, we put all codes in this context
@@ -545,9 +545,9 @@ def train_HER_bit(agent, env, policy, replay_buffer, params, summary_writer):
 				for t in range(len(episodes)):
 					s_and_g, a, r, ns_and_g, d = episodes[t] # unpack the trajectory
 					for k in her_strategy(n=len(episodes), k=4): # "future" strategy
-						new_goal = episodes[k][-2][:params.bit_len] # find the new goal, which is the next_state of randomly selected state
-						new_reward = env.compute_reward(s_and_g[:params.bit_len], new_goal)[1] # find the new reward accordingly
-						episodes.append((np.concatenate([s_and_g[:params.bit_len], new_goal]), a, new_reward, np.concatenate([ns_and_g[:params.bit_len], new_goal]), d))
+						new_goal = episodes[k][-2][:agent.params.bit_len] # find the new goal, which is the next_state of randomly selected state
+						new_reward = env.compute_reward(s_and_g[:agent.params.bit_len], new_goal)[1] # find the new reward accordingly
+						episodes.append((np.concatenate([s_and_g[:agent.params.bit_len], new_goal]), a, new_reward, np.concatenate([ns_and_g[:agent.params.bit_len], new_goal]), d))
 
 				# put the constructed episode into Replay Memory
 				# if you want, you can use Prioritised Experience Replay at this point!
@@ -556,26 +556,26 @@ def train_HER_bit(agent, env, policy, replay_buffer, params, summary_writer):
 
 				# Update Loop
 				for _ in range(10):
-					states, actions, rewards, next_states, dones = replay_buffer.sample(params.batch_size)
+					states, actions, rewards, next_states, dones = replay_buffer.sample(agent.params.batch_size)
 
 					loss, batch_loss = agent.update(states, actions, rewards, next_states, dones)
 
 					if np.random.rand() > 0.5:
 						agent.manager.save()
-						if params.update_hard_or_soft == "hard":
+						if agent.params.update_hard_or_soft == "hard":
 							agent.target_model.set_weights(agent.main_model.get_weights())
-						elif params.update_hard_or_soft == "soft":
-							soft_target_model_update_eager(agent.target_model, agent.main_model, tau=params.soft_update_tau)
+						elif agent.params.update_hard_or_soft == "soft":
+							soft_target_model_update_eager(agent.target_model, agent.main_model, tau=agent.params.soft_update_tau)
 
-				log.logging(global_timestep.numpy(), params.num_frames, time.time() - start, [total_reward], np.mean(loss),
+				log.logging(global_timestep.numpy(), agent.params.num_frames, time.time() - start, [total_reward], np.mean(loss),
 						policy.current_epsilon(), cnt_action)
 
 			test_Agent(agent, env)
 
 
 
-def train_HER(agent, env, replay_buffer, reward_buffer, params, summary_writer):
-	get_ready(params)
+def train_HER(agent, env, replay_buffer, reward_buffer, summary_writer):
+	get_ready(agent.params)
 
 	global_timestep = tf.train.get_or_create_global_step()
 	total_ep = 0
@@ -584,10 +584,10 @@ def train_HER(agent, env, replay_buffer, reward_buffer, params, summary_writer):
 		# for summary purpose, we put all codes in this context
 		with tf.contrib.summary.always_record_summaries():
 
-			for epoch in range(params.num_epochs):
-				for cycle in range(params.num_cycles):
+			for epoch in range(agent.params.num_epochs):
+				for cycle in range(agent.params.num_cycles):
 					episodes = list()
-					for ep in range(params.num_episodes):
+					for ep in range(agent.params.num_episodes):
 						state = env.reset()
 						agent.random_process.reset_states()
 						# obs, achieved_goal, desired_goal in `numpy.ndarray`
@@ -612,7 +612,7 @@ def train_HER(agent, env, replay_buffer, reward_buffer, params, summary_writer):
 							state = next_state
 
 							# for evaluation purpose
-							if global_timestep.numpy() % params.eval_interval == 0:
+							if global_timestep.numpy() % agent.params.eval_interval == 0:
 								agent.eval_flg = True
 
 							# if the game has ended, then break
@@ -641,17 +641,17 @@ def train_HER(agent, env, replay_buffer, reward_buffer, params, summary_writer):
 						replay_buffer.add(*data)
 
 					# Update Loop
-					for _ in range(params.num_updates):
-						states, actions, rewards, next_states, dones = replay_buffer.sample(params.batch_size)
+					for _ in range(agent.params.num_updates):
+						states, actions, rewards, next_states, dones = replay_buffer.sample(agent.params.batch_size)
 						loss = agent.update(states, actions, rewards, next_states, dones)
-						soft_target_model_update_eager(agent.target_actor, agent.actor, tau=params.soft_update_tau)
-						soft_target_model_update_eager(agent.target_critic, agent.critic, tau=params.soft_update_tau)
+						soft_target_model_update_eager(agent.target_actor, agent.actor, tau=agent.params.soft_update_tau)
+						soft_target_model_update_eager(agent.target_critic, agent.critic, tau=agent.params.soft_update_tau)
 
 					# store the episode reward
 					reward_buffer.append(total_reward)
 					total_ep += ep+1
 					print("Epoch: {}/{} | Cycle: {}/{} | Ep: {} | MEAN R: {} | MAX R: {}".format(
-						epoch+1, params.num_epochs, cycle+1, params.num_cycles, total_ep, np.mean(reward_buffer), np.max(reward_buffer)
+						epoch+1, agent.params.num_epochs, cycle+1, agent.params.num_cycles, total_ep, np.mean(reward_buffer), np.max(reward_buffer)
 					))
 
 					if agent.eval_flg:
@@ -659,5 +659,5 @@ def train_HER(agent, env, replay_buffer, reward_buffer, params, summary_writer):
 						agent.eval_flg = False
 
 			print("=== Training is Done ===")
-			test_Agent_HER(agent, env, n_trial=params.test_episodes)
+			test_Agent_HER(agent, env, n_trial=agent.params.test_episodes)
 			env.close()

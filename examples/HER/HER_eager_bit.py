@@ -60,6 +60,6 @@ now = datetime.now()
 
 params.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "-HER_bit/"
 params.model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "-HER_bit/"
-agent = DQN_cartpole(Model, optimizer, loss_fn, grad_clip_fn, params.bit_len, params.gamma, params.model_dir)
+agent = DQN_cartpole(Model, optimizer, loss_fn, grad_clip_fn, params.bit_len, params)
 
-train_HER_bit(agent, env, policy, replay_buffer, params, summary_writer)
+train_HER_bit(agent, env, policy, replay_buffer, summary_writer)

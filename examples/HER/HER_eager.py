@@ -40,7 +40,6 @@ parser.add_argument("--log_dir", default="../../logs/logs/HER/", help="directory
 parser.add_argument("--model_dir", default="../../logs/models/HER/", help="directory for trained model")
 parser.add_argument("--debug_flg", default=False, type=bool, help="debug mode or not")
 params = parser.parse_args()
-params.test_episodes = 10
 params.goal = ROBOTICS_ENV_LIST[params.env_name]
 
 now = datetime.now()
