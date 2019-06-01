@@ -56,7 +56,7 @@ now = datetime.now()
 
 if params.google_colab:
 	# mount the MyDrive on google drive and create the log directory for saving model and logging using tensorboard
-	params.log_dir, params.model_dir, params.log_dir_colab, params.model_dir_colab = setup_on_colab(params.env_name)
+	params.log_dir, params.model_dir, params.log_dir_colab, params.model_dir_colab = setup_on_colab("DQN_PER", params.env_name)
 else:
 	if params.debug_flg:
 		params.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "-DQN_PER_debug/"

@@ -13,23 +13,28 @@ from tf_rl.agents.Double_DQN import Double_DQN, Double_DQN_debug
 
 eager_setup()
 
+"""
+in addition to the params below, I am using inside a training API
+- skipping frame(k=4)
+- epsilon: 0.05 for evaluation phase
+- learning rate decay over the same period as the epsilon
+"""
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--mode", default="Atari", help="game env type => Atari or CartPole")
 parser.add_argument("--env_name", default="Breakout", help="game title")
 parser.add_argument("--seed", default=123, help="seed of randomness")
-parser.add_argument("--loss_fn", default="mse", help="types of loss function => MSE or huber")
-parser.add_argument("--grad_clip_flg", default="norm", help="types of a clipping method of gradients => by value(by_value) or global norm(norm) or nothing")
-parser.add_argument("--num_frames", default=10_000_000, type=int, help="total frame in a training")
+parser.add_argument("--loss_fn", default="mse", help="types of loss function => mse or huber")
+parser.add_argument("--grad_clip_flg", default="", help="types of a clipping method of gradients => by value(by_value) or global norm(norm) or nothing")
+parser.add_argument("--num_frames", default=50_000_000, type=int, help="total frame in a training")
 parser.add_argument("--train_interval", default=4, type=int, help="a frequency of training occurring in training phase")
 parser.add_argument("--eval_interval", default=250_000, type=int, help="a frequency of evaluation occurring in training phase")
-parser.add_argument("--memory_size", default=1_000_000, type=int, help="memory size in a training => this used for Experience Replay Memory or Prioritised Experience Replay Memory")
+parser.add_argument("--memory_size", default=1_000_000, type=int, help="memory size in a training")
 parser.add_argument("--learning_start", default=50_000, type=int, help="frame number which specifies when to start updating the agent")
 parser.add_argument("--sync_freq", default=10_000, type=int, help="frequency of updating a target model")
 parser.add_argument("--batch_size", default=32, type=int, help="batch size of each iteration of update")
 parser.add_argument("--reward_buffer_ep", default=100, type=int, help="reward_buffer size")
 parser.add_argument("--gamma", default=0.99, type=float, help="discount factor => gamma > 1.0 or negative => does not converge!!")
-parser.add_argument("--update_hard_or_soft", default="hard", help="types of synchronisation method of target and main models => soft or hard update")
-parser.add_argument("--soft_update_tau", default=1e-2, type=float, help="in soft-update tau defines the ratio of main model remains and it seems 1e-2 is the optimal!")
 parser.add_argument("--epsilon_start", default=1.0, type=float, help="initial value of epsilon")
 parser.add_argument("--epsilon_end", default=0.1, type=float, help="final value of epsilon")
 parser.add_argument("--decay_steps", default=1_000_000, type=int, help="a period for annealing a value(epsilon or beta)")
@@ -52,7 +57,7 @@ now = datetime.now()
 
 if params.google_colab:
 	# mount the MyDrive on google drive and create the log directory for saving model and logging using tensorboard
-	params.log_dir, params.model_dir, params.log_dir_colab, params.model_dir_colab = setup_on_colab(params.env_name)
+	params.log_dir, params.model_dir, params.log_dir_colab, params.model_dir_colab = setup_on_colab("Double_DQN", params.env_name)
 else:
 	if params.debug_flg:
 		params.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "-Double_DQN_debug/"

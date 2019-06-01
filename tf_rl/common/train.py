@@ -60,10 +60,7 @@ def train_DQN(agent, env, policy, replay_buffer, reward_buffer, params, summary_
 					# synchronise the target and main models by hard or soft update
 					if (global_timestep.numpy() > params.learning_start) and (global_timestep.numpy() % params.sync_freq == 0):
 						agent.manager.save()
-						if params.update_hard_or_soft == "hard":
-							agent.target_model.set_weights(agent.main_model.get_weights())
-						elif params.update_hard_or_soft == "soft":
-							soft_target_model_update_eager(agent.target_model, agent.main_model, tau=params.soft_update_tau)
+						agent.target_model.set_weights(agent.main_model.get_weights())
 
 				"""
 				===== After 1 Episode is Done =====

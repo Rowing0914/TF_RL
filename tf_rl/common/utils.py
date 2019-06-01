@@ -74,7 +74,7 @@ def create_checkpoint(model, optimizer, model_dir):
 	return manager
 
 
-def setup_on_colab(env_name):
+def setup_on_colab(alg_name, env_name):
 	"""
 	Mount MyDrive to current instance through authentication of Google account
 	Then use it as a backup of training related files
@@ -85,10 +85,10 @@ def setup_on_colab(env_name):
 	# mount your drive on google colab
 	from google.colab import drive
 	drive.mount("/content/gdrive")
-	log_dir = "/content/TF_RL/logs/logs/DQN/{}".format(env_name)
-	model_dir = "/content/TF_RL/logs/models/DQN/{}".format(env_name)
-	log_dir_colab = "/content/gdrive/My Drive/logs/logs/DQN/{}".format(env_name)
-	model_dir_colab = "/content/gdrive/My Drive/logs/models/DQN/{}".format(env_name)
+	log_dir = "/content/TF_RL/logs/logs/{}/{}".format(alg_name, env_name)
+	model_dir = "/content/TF_RL/logs/models/{}/{}".format(alg_name, env_name)
+	log_dir_colab = "/content/gdrive/My Drive/logs/logs/{}/{}".format(alg_name, env_name)
+	model_dir_colab = "/content/gdrive/My Drive/logs/models/{}/{}".format(alg_name, env_name)
 
 	# create the logs directory under the root dir
 	if not os.path.isdir(log_dir):
@@ -515,8 +515,8 @@ def test_Agent(agent, env, n_trial=1):
 		done = False
 		episode_reward = 0
 		while not done:
-			# epsilon-greedy for evaluation using a fixed epsilon of 0.01(Nature does this!)
-			if np.random.uniform() < 0.01:
+			# epsilon-greedy for evaluation using a fixed epsilon of 0.05(Nature does this!)
+			if np.random.uniform() < 0.05:
 				action = np.random.randint(agent.num_action)
 			else:
 				action = np.argmax(agent.predict(state))
