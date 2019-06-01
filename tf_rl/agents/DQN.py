@@ -40,7 +40,7 @@ class DQN(Agent_atari):
 		with tf.GradientTape() as tape:
 			next_Q = self.target_model(next_states)
 			q_values = self.main_model(states)
-			Y = rewards + self.gamma * tf.math.reduce_max(next_Q, axis=-1) * (1. - dones)
+			Y = rewards + self.params.gamma * tf.math.reduce_max(next_Q, axis=-1) * (1. - dones)
 			Y = tf.stop_gradient(Y)
 
 			# get the q-values which is associated with actually taken actions in a game
