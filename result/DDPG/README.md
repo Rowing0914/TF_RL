@@ -37,6 +37,7 @@
 <img src="./images/without_target_line/InvertedPendulum-v2.png">
 <img src="./images/without_target_line/Reacher-v2.png">
 <img src="./images/without_target_line/Swimmer-v2.png">
+<img src="./images/without_target_line/Walker2d-v2.png">
 
 #### With Target Line(Targets are derived from baselines website)
 <img src="./images/with_target_line/Ant-v2.png">
@@ -47,3 +48,4 @@
 <img src="./images/with_target_line/InvertedPendulum-v2.png">
 <img src="./images/with_target_line/Reacher-v2.png">
 <img src="./images/with_target_line/Swimmer-v2.png">
+<img src="./images/with_target_line/Walker2d-v2.png">

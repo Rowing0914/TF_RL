@@ -1,5 +1,5 @@
 from collections import deque
-import time, itertools
+import time, itertools, sys
 import tensorflow as tf
 import numpy as np
 from tf_rl.common.utils import soft_target_model_update_eager, logger, test_Agent, test_Agent_policy_gradient, her_strategy, state_unpacker, get_ready, test_Agent_HER
@@ -593,8 +593,7 @@ def train_HER(agent, env, replay_buffer, reward_buffer, summary_writer):
 						# obs, achieved_goal, desired_goal in `numpy.ndarray`
 						obs, ag, dg = state_unpacker(state)
 						total_reward = 0
-						done = False
-						while not done:
+						for t in itertools.count():
 							# env.render()
 							# in the paper, they used this stochastic behavioural policy
 							if np.random.random() > 0.2:
@@ -617,6 +616,8 @@ def train_HER(agent, env, replay_buffer, reward_buffer, summary_writer):
 
 							# if the game has ended, then break
 							if done:
+								print( "Timestep: {} | R: {}".format(t, total_reward) )
+								# sys.stdout.flush()
 								break
 
 					"""
