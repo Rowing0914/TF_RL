@@ -150,11 +150,16 @@ class DDPG_Critic(tf.keras.Model):
 
 
 class HER_Actor(tf.keras.Model):
+	"""
+	In paper, it's saying that all layers consist of 64 neurons...
+	but in OpenAI her implementation, they used 256. so I'll stick with 256
+
+	"""
 	def __init__(self, num_action=1):
 		super(HER_Actor, self).__init__()
-		self.dense1 = tf.keras.layers.Dense(64, activation='relu', kernel_initializer=KERNEL_INIT)
-		self.dense2 = tf.keras.layers.Dense(64, activation='relu', kernel_initializer=KERNEL_INIT)
-		self.dense3 = tf.keras.layers.Dense(64, activation='relu', kernel_initializer=KERNEL_INIT)
+		self.dense1 = tf.keras.layers.Dense(256, activation='relu', kernel_initializer=KERNEL_INIT)
+		self.dense2 = tf.keras.layers.Dense(256, activation='relu', kernel_initializer=KERNEL_INIT)
+		self.dense3 = tf.keras.layers.Dense(256, activation='relu', kernel_initializer=KERNEL_INIT)
 		self.pred = tf.keras.layers.Dense(num_action, activation='tanh', kernel_initializer=KERNEL_INIT)
 
 	@tf.contrib.eager.defun(autograph=False)
@@ -167,12 +172,17 @@ class HER_Actor(tf.keras.Model):
 
 
 class HER_Critic(tf.keras.Model):
+	"""
+	In paper, it's saying that all layers consist of 64 neurons...
+	but in OpenAI her implementation, they used 256. so I'll stick with 256
+
+	"""
 	def __init__(self, output_shape):
 		super(HER_Critic, self).__init__()
-		self.dense1 = tf.keras.layers.Dense(64, activation='relu', kernel_regularizer=L2, bias_regularizer=L2, kernel_initializer=KERNEL_INIT)
-		self.dense2 = tf.keras.layers.Dense(64, activation='relu', kernel_regularizer=L2, bias_regularizer=L2, kernel_initializer=KERNEL_INIT)
-		self.dense3 = tf.keras.layers.Dense(64, activation='relu', kernel_regularizer=L2, bias_regularizer=L2, kernel_initializer=KERNEL_INIT)
-		self.pred = tf.keras.layers.Dense(output_shape, activation='linear', kernel_regularizer=L2, bias_regularizer=L2, kernel_initializer=KERNEL_INIT)
+		self.dense1 = tf.keras.layers.Dense(256, activation='relu', kernel_initializer=KERNEL_INIT)
+		self.dense2 = tf.keras.layers.Dense(256, activation='relu', kernel_initializer=KERNEL_INIT)
+		self.dense3 = tf.keras.layers.Dense(256, activation='relu', kernel_initializer=KERNEL_INIT)
+		self.pred = tf.keras.layers.Dense(output_shape, activation='linear', kernel_initializer=KERNEL_INIT)
 
 	@tf.contrib.eager.defun(autograph=False)
 	def call(self, obs, act):

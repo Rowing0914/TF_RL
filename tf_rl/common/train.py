@@ -1,8 +1,6 @@
 from collections import deque
-import time, itertools, sys
-import tensorflow as tf
-import numpy as np
-from tf_rl.common.utils import soft_target_model_update_eager, logger, test_Agent, test_Agent_policy_gradient, her_strategy, state_unpacker, get_ready, test_Agent_HER
+import time
+from tf_rl.common.utils import *
 
 """
 ===== Value Based Algorithm =====
@@ -576,7 +574,6 @@ def train_HER_bit(agent, env, policy, replay_buffer, summary_writer):
 
 def train_HER(agent, env, replay_buffer, reward_buffer, summary_writer):
 	get_ready(agent.params)
-
 	global_timestep = tf.train.get_or_create_global_step()
 	total_ep = 0
 
@@ -586,78 +583,71 @@ def train_HER(agent, env, replay_buffer, reward_buffer, summary_writer):
 
 			for epoch in range(agent.params.num_epochs):
 				for cycle in range(agent.params.num_cycles):
-					episodes = list()
+					episode_batch = list()
+					successes = list()
 					for ep in range(agent.params.num_episodes):
 						state = env.reset()
-						agent.random_process.reset_states()
 						# obs, achieved_goal, desired_goal in `numpy.ndarray`
-						obs, ag, dg = state_unpacker(state)
+						obs, ag, dg, rg = state_unpacker(state)
 						total_reward = 0
-						for t in itertools.count():
-							# env.render()
-							# in the paper, they used this stochastic behavioural policy
-							if np.random.random() > 0.2:
-								action = env.action_space.sample()
-							else:
-								action = agent.predict(np.concatenate([obs, ag], axis=-1))
+						success = list()
+						for ts in itertools.count():
+							# rg: remaining goal( computed by g - ag)
+							# we can indicate how much far from the goal by `rg`
+							# so that it is expected to move towards that direction
+							action = agent.predict(np.concatenate([obs, rg], axis=-1))
+							action = action_postprocessing(action, agent.params)
 
 							next_state, reward, done, info = env.step(action)
+
 							# obs, achieved_goal, desired_goal in `numpy.ndarray`
-							next_obs, next_ag, next_dg = state_unpacker(state)
-							episodes.append((obs, ag, action, reward, next_obs, next_ag, done))
+							next_obs, next_ag, next_dg, next_rg = state_unpacker(next_state)
+							episode_batch.append((obs, ag, action, reward, next_obs, next_ag, done, info, dg))
 
 							global_timestep.assign_add(1)
+							success.append(info.get('is_success', 0.0))
 							total_reward += reward
-							state = next_state
-
-							# for evaluation purpose
-							if global_timestep.numpy() % agent.params.eval_interval == 0:
-								agent.eval_flg = True
+							obs = next_obs
+							rg = next_rg
 
 							# if the game has ended, then break
 							if done:
-								print( "Timestep: {} | R: {}".format(t, total_reward) )
-								# sys.stdout.flush()
+								successes.append(np.max(np.array(success)))
+								reward_buffer.append(total_reward)
+
+								# process the episode transitions for adding to replay memory
+								for t in range(len(episode_batch)):
+									# in baselines,, they only feed the processed transitions so that I go like below!!
+									# with the prob of 0.8(if k=4), we substitute a goal with the future one by k times and add to replay buffer
+									if np.random.rand() < 1 - (1. / (1 + agent.params.replay_k)):
+										s, ag, a, r, ns, nag, d, info, g = episode_batch[t]  # unpack the trajectory
+										_sg = np.concatenate([s, simple_goal_subtract(g, ag)], axis=-1)
+										_nsg = np.concatenate([ns, simple_goal_subtract(g, nag)], axis=-1)
+										replay_buffer.add(_sg, a, r, _nsg, d)
+										for k in her_strategy(n=len(episode_batch) - t, k=4):  # "future" strategy
+											_, _ag, _, _, _, _nag, _, _info, _g = episode_batch[k]  # check : k > t
+											new_reward = env.compute_reward(g, _ag, _info) # find the new reward given currently achieved goal
+											_sg = np.concatenate([s, simple_goal_subtract(_g, _ag)], axis=-1)
+											_nsg = np.concatenate([ns, simple_goal_subtract(_g, _nag)], axis=-1)
+											replay_buffer.add(_sg, a, new_reward, _nsg, d)
 								break
-
-					"""
-					===== Outside Episodes =====
-					"""
-
-					# Replay ONE episode step-by-step while choosing "k" time-steps at random to get another goal(next_state of selected time-step)
-					short_memory = list()
-					for t in range(len(episodes)):
-						s, ag, a, r, ns, nag, d = episodes[t] # unpack the trajectory
-						for k in her_strategy(n=len(episodes), k=4): # "future" strategy
-							_s, _ag, _a, _r, _ns, _nag, _d = episodes[k] # unpack the trajectory
-							new_goal = _nag
-							new_reward = env.compute_reward(ag, _ag, "") # find the new reward given currently achieved goal
-							_sg  = np.concatenate([s, new_goal], axis=-1)
-							_nsg = np.concatenate([ns, new_goal], axis=-1)
-							short_memory.append(( _sg, a, new_reward, _nsg, d))
-
-					# put the constructed episode into Replay Memory
-					# if you want, you can use Prioritised Experience Replay at this point!
-					for data in short_memory:
-						replay_buffer.add(*data)
 
 					# Update Loop
 					for _ in range(agent.params.num_updates):
 						states, actions, rewards, next_states, dones = replay_buffer.sample(agent.params.batch_size)
 						loss = agent.update(states, actions, rewards, next_states, dones)
-						soft_target_model_update_eager(agent.target_actor, agent.actor, tau=agent.params.soft_update_tau)
-						soft_target_model_update_eager(agent.target_critic, agent.critic, tau=agent.params.soft_update_tau)
 
-					# store the episode reward
-					reward_buffer.append(total_reward)
+					# sync networks
+					soft_target_model_update_eager(agent.target_actor, agent.actor, tau=agent.params.soft_update_tau)
+					soft_target_model_update_eager(agent.target_critic, agent.critic, tau=agent.params.soft_update_tau)
+
 					total_ep += ep+1
-					print("Epoch: {}/{} | Cycle: {}/{} | Ep: {} | MEAN R: {} | MAX R: {}".format(
-						epoch+1, agent.params.num_epochs, cycle+1, agent.params.num_cycles, total_ep, np.mean(reward_buffer), np.max(reward_buffer)
+					print("Epoch: {}/{} | Cycle: {}/{} | Success Rate: {:.2f} | MEAN R: {} | MAX R: {} | loss: {}".format(
+						epoch+1, agent.params.num_epochs, cycle+1, agent.params.num_cycles, np.mean(successes), np.mean(reward_buffer), np.max(reward_buffer), loss
 					))
 
-					if agent.eval_flg:
-						test_Agent_HER(agent, env)
-						agent.eval_flg = False
+				# each epoch, we test the agent
+				test_Agent_HER(agent, env, n_trial=agent.params.test_episodes)
 
 			print("=== Training is Done ===")
 			test_Agent_HER(agent, env, n_trial=agent.params.test_episodes)

@@ -3,12 +3,12 @@ import numpy as np
 import os, datetime, itertools, shutil
 from tf_rl.common.visualise import plot_Q_values
 
-
 """
 
 TF basic Utility functions
 
 """
+
 
 def eager_setup():
 	"""
@@ -25,12 +25,12 @@ def eager_setup():
 	tf.enable_resource_variables()
 
 
-
 """
 
 Common Utility functions 
 
 """
+
 
 def get_ready(params):
 	"""
@@ -54,8 +54,8 @@ def create_checkpoint(model, optimizer, model_dir):
 	"""
 	checkpoint_dir = model_dir
 	check_point = tf.train.Checkpoint(optimizer=optimizer,
-										   model=model,
-										   optimizer_step=tf.train.get_or_create_global_step())
+									  model=model,
+									  optimizer_step=tf.train.get_or_create_global_step())
 	manager = tf.train.CheckpointManager(check_point, checkpoint_dir, max_to_keep=3)
 
 	# try re-loading the previous training progress!
@@ -280,17 +280,18 @@ class logger:
 			seconds=(self.params.num_frames - time_step) * exec_time / (episode_steps)))
 		print(
 			"{0}/{1}: Ep: {2}({3:.1f} fps), Remaining: {4}, (R) GOAL: {5}, {6} Ep => [MEAN: {7}, MAX: {8}], (last ep) Loss: {9:.6f}, Eps: {10:.6f}, Act: {11}".format(
-				time_step, self.params.num_frames, current_episode, episode_steps/exec_time, remaining_time, self.params.goal,
+				time_step, self.params.num_frames, current_episode, episode_steps / exec_time, remaining_time,
+				self.params.goal,
 				self.params.reward_buffer_ep, np.mean(reward_buffer), np.max(reward_buffer), loss, epsilon, cnt_actions
 			))
 		self.prev_update_step = time_step
-
 
 
 """
 Algorithm Specific Utility functions
 
 """
+
 
 def her_strategy(n, k):
 	"""
@@ -307,9 +308,21 @@ def her_strategy(n, k):
 		return np.random.choice(n, k, replace=False)
 
 
+def action_postprocessing(action, params):
+	action += params.noise_eps * params.max_action * np.random.randn(*action.shape)
+	action = np.clip(action, -params.max_action, params.max_action)
+	# random actions...
+	random_actions = np.random.uniform(low=-params.max_action,
+									   high=params.max_action,
+									   size=params.num_action)
+	# choose if use the random actions
+	action += np.random.binomial(1, params.random_eps, 1)[0] * (random_actions - action)
+	return action
+
+
 def state_unpacker(state):
 	"""
-	Given the dictionary of state, it unpacks and returns items insisde as numpy.ndarray
+	Given the dictionary of state, it unpacks and returns processed items as numpy.ndarray
 
 	Sample input:
 		{'observation': array([ 1.34193265e+00,  7.49100375e-01,  5.34722720e-01,  1.30179339e+00, 8.86399624e-01,
@@ -326,7 +339,20 @@ def state_unpacker(state):
 	obs = np.array(state["observation"])
 	achieved_goal = np.array(state["achieved_goal"])
 	desired_goal = np.array(state["desired_goal"])
-	return obs, achieved_goal, desired_goal
+	remaining_goal = simple_goal_subtract(desired_goal, achieved_goal)
+	return obs, achieved_goal, desired_goal, remaining_goal
+
+
+def simple_goal_subtract(goal, achieved_goal):
+	"""
+	We subtract the achieved goal from the desired one to see how much we are still far from the desired position
+
+	:param a:
+	:param b:
+	:return:
+	"""
+	assert goal.shape == achieved_goal.shape
+	return goal - achieved_goal
 
 
 """
@@ -455,6 +481,7 @@ Gradient Clipping
 
 """
 
+
 def gradient_clip_fn(flag=None):
 	"""
 	given a flag, create the clipping function and returns it as a function
@@ -482,7 +509,6 @@ def gradient_clip_fn(flag=None):
 	return _func
 
 
-
 def ClipIfNotNone(grad, _min, _max):
 	"""
 	Reference: https://stackoverflow.com/a/39295309
@@ -492,7 +518,6 @@ def ClipIfNotNone(grad, _min, _max):
 	if grad is None:
 		return grad
 	return tf.clip_by_value(grad, _min, _max)
-
 
 
 """
@@ -579,20 +604,28 @@ def test_Agent_HER(agent, env, n_trial=1):
 	:return:
 	"""
 	all_rewards = list()
+	successes = list()
 	print("=== Evaluation Mode ===")
 	for ep in range(n_trial):
 		state = env.reset()
 		# obs, achieved_goal, desired_goal in `numpy.ndarray`
-		obs, ag, dg = state_unpacker(state)
 		done = False
 		episode_reward = 0
+		success = list()
+		obs, ag, dg, rg = state_unpacker(state)
 		while not done:
-			action = agent.predict(np.concatenate([obs, ag], axis=-1))
-			next_state, reward, done, _ = env.step(action)
+			env.render()
+			action = agent.predict(np.concatenate([obs, rg], axis=-1))
+			# action = action_postprocessing(action, agent.params)
+			next_state, reward, done, info = env.step(action)
+			success.append(info.get('is_success', 0.0))
 			# obs, achieved_goal, desired_goal in `numpy.ndarray`
-			state = next_state
+			next_obs, next_ag, next_dg, next_rg = state_unpacker(next_state)
+			obs = next_obs
+			rg = next_rg
 			episode_reward += reward
 
+		successes.append(np.max(np.array(success)))
 		all_rewards.append(episode_reward)
 		tf.contrib.summary.scalar("Eval_Score over 250,000 time-step", episode_reward, step=agent.index_timestep)
 		print("| Ep: {}/{} | Score: {} |".format(ep + 1, n_trial, episode_reward))
@@ -600,5 +633,6 @@ def test_Agent_HER(agent, env, n_trial=1):
 	if n_trial > 2:
 		print("=== Evaluation Result ===")
 		all_rewards = np.array([all_rewards])
-		print("| Max: {} | Min: {} | STD: {} | MEAN: {} |".format(np.max(all_rewards), np.min(all_rewards),
-																  np.std(all_rewards), np.mean(all_rewards)))
+		print("Success Rate: {}".format(np.mean(successes)))
+		print("| Max R: {} | Min R: {} | STD R: {} | MEAN R: {} |".format(np.max(all_rewards), np.min(all_rewards),
+																		  np.std(all_rewards), np.mean(all_rewards)))
