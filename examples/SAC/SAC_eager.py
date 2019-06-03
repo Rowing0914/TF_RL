@@ -7,7 +7,7 @@ from tf_rl.common.utils import eager_setup
 from tf_rl.agents.SAC import SAC
 from tf_rl.common.train import train_SAC
 from tf_rl.common.params import DDPG_ENV_LIST
-from tf_rl.common.networks import DDPG_Actor as Actor, DDPG_Critic as Critic
+from tf_rl.common.networks import SAC_Actor as Actor, SAC_Critic as Critic
 
 eager_setup()
 
