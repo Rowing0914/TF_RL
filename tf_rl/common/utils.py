@@ -438,7 +438,7 @@ def sync_main_target(sess, target, source):
 def soft_target_model_update(sess, target, source, tau=1e-2):
 	"""
 	Soft update model parameters.
-	θ_target = τ*θ_local + (1 - τ)*θ_target
+	target = tau * source + (1 - tau) * target
 
 	:param main:
 	:param target:
@@ -452,7 +452,7 @@ def soft_target_model_update(sess, target, source, tau=1e-2):
 
 	update_ops = []
 	for target_w, source_w in zip(target_params, source_params):
-		# θ_target = τ*θ_local + (1 - τ)*θ_target
+		# target = tau * source + (1 - tau) * target
 		op = target_w.assign(tau * source_w + (1 - tau) * target_w)
 		update_ops.append(op)
 
@@ -463,7 +463,7 @@ def soft_target_model_update(sess, target, source, tau=1e-2):
 def soft_target_model_update_eager(target, source, tau=1e-2):
 	"""
 	Soft update model parameters.
-	θ_target = τ*θ_local + (1 - τ)*θ_target
+	target = tau * source + (1 - tau) * target
 
 	:param main:
 	:param target:

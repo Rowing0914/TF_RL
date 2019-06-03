@@ -28,7 +28,7 @@ class Double_DQN(Agent_atari):
 		return self.main_model(state)
 
 	@tf.contrib.eager.defun(autograph=False)
-	def inner_update(self, states, actions, rewards, next_states, dones):
+	def _inner_update(self, states, actions, rewards, next_states, dones):
 		# get the current global-timestep
 		self.index_timestep = tf.train.get_global_step()
 
@@ -92,7 +92,7 @@ class Double_DQN_cartpole(Agent_cartpole):
 		return self.main_model(state)
 
 	@tf.contrib.eager.defun(autograph=False)
-	def inner_update(self, states, actions, rewards, next_states, dones):
+	def _inner_update(self, states, actions, rewards, next_states, dones):
 		# get the current global-timestep
 		self.index_timestep = tf.train.get_global_step()
 

@@ -204,7 +204,7 @@ env.close()
 ## PC Envs
 
 - OS: Linux Ubuntu LTS 16.04
-- Python: 3.6
+- Python: 2.7/3.6 (For MuJoCo Env, 2.7 might not work)
 - GPU: Gefoce GTX1060
 - Tensorflow: 1.13.1
 - CUDA: 10.0
