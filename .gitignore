@@ -6,3 +6,4 @@ logs/
 build/
 dist/
 TF_RL.egg-info
+*.pyc
