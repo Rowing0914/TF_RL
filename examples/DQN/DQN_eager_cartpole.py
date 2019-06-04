@@ -72,13 +72,9 @@ else:
 
 if params.mode == "CartPole":
 	env = MyWrapper(gym.make("CartPole-v0"))
-	# params.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "-DQN/"
-	# params.model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "-DQN/"
 	agent = DQN_cartpole(Model, optimizer, loss_fn, grad_clip_fn, env.action_space.n, params)
 elif params.mode == "CartPole-p":
 	env = CartPole_Pixel(gym.make("CartPole-v0"))
-	# params.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "-DQN-p/"
-	# params.model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "-DQN-p/"
 	agent = DQN(Model_p, optimizer, loss_fn, grad_clip_fn, env.action_space.n, params)
 
 # set seed
