@@ -59,17 +59,6 @@ grad_clip_fn = gradient_clip_fn(flag=params.grad_clip_flg)
 summary_writer = tf.contrib.summary.create_file_writer(params.log_dir)
 now = datetime.now()
 
-if params.mode == "CartPole":
-	env = MyWrapper(gym.make("CartPole-v0"))
-	params.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "-DQN/"
-	params.model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "-DQN/"
-	agent = DQN_cartpole(Model, optimizer, loss_fn, grad_clip_fn, env.action_space.n, params)
-elif params.mode == "CartPole-p":
-	env = CartPole_Pixel(gym.make("CartPole-v0"))
-	params.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "-DQN-p/"
-	params.model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "-DQN-p/"
-	agent = DQN(Model_p, optimizer, loss_fn, grad_clip_fn, env.action_space.n, params)
-
 if params.google_colab:
 	# mount the MyDrive on google drive and create the log directory for saving model and logging using tensorboard
 	params.log_dir, params.model_dir, params.log_dir_colab, params.model_dir_colab = setup_on_colab("DQN", params.mode)
@@ -80,6 +69,17 @@ else:
 	else:
 		params.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "-DQN/"
 		params.model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "-DQN/"
+
+if params.mode == "CartPole":
+	env = MyWrapper(gym.make("CartPole-v0"))
+	params.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "-DQN/"
+	params.model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "-DQN/"
+	agent = DQN_cartpole(Model, optimizer, loss_fn, grad_clip_fn, env.action_space.n, params)
+elif params.mode == "CartPole-p":
+	env = CartPole_Pixel(gym.make("CartPole-v0"))
+	params.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "-DQN-p/"
+	params.model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "-DQN-p/"
+	agent = DQN(Model_p, optimizer, loss_fn, grad_clip_fn, env.action_space.n, params)
 
 # set seed
 env.seed(params.seed)
