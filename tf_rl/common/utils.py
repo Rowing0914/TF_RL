@@ -85,8 +85,8 @@ def setup_on_colab(alg_name, env_name):
 	# mount your drive on google colab
 	from google.colab import drive
 	drive.mount("/content/gdrive")
-	log_dir = "/content/TF_RL/logs/logs/{}/{}".format(alg_name, env_name)
-	model_dir = "/content/TF_RL/logs/models/{}/{}".format(alg_name, env_name)
+	log_dir = "/content/gdrive/My Drive/logs/logs/{}/{}".format(alg_name, env_name)
+	model_dir = "/content/gdrive/My Drive/logs/models/{}/{}".format(alg_name, env_name)
 	log_dir_colab = "/content/gdrive/My Drive/logs/logs/{}/{}".format(alg_name, env_name)
 	model_dir_colab = "/content/gdrive/My Drive/logs/models/{}/{}".format(alg_name, env_name)
 

@@ -28,6 +28,7 @@ THE SOFTWARE.
 
 import numpy as np
 import random
+import json
 
 from tf_rl.common.segment_tree import SumSegmentTree, MinSegmentTree
 
@@ -69,11 +70,6 @@ class ReplayBuffer(object):
             dones.append(done)
         return np.array(obses_t), np.array(actions), np.array(rewards), np.array(obses_tp1), np.array(dones)
 
-        # try:
-        #     return np.array(obses_t), np.array(actions), np.array(rewards), np.array(obses_tp1), np.array(dones)
-        # except:
-        #     return np.array(obses_t[0]), np.array(actions), np.array(rewards), np.array(obses_tp1[0]), np.array(dones)
-
     def sample(self, batch_size):
         """Sample a batch of experiences.
         Parameters
@@ -96,6 +92,21 @@ class ReplayBuffer(object):
         """
         idxes = [random.randint(0, len(self._storage) - 1) for _ in range(batch_size)]
         return self._encode_sample(idxes)
+
+    def save(self, dir, save_amount=10000):
+        obses_t, actions, rewards, obses_tp1, dones = self.sample(batch_size=save_amount)
+        obses_t, actions, rewards, obses_tp1, dones = obses_t.tolist(), actions.tolist(), rewards.tolist(), obses_tp1.tolist(), dones.tolist()
+        data = {
+            "index": save_amount,
+            "o": obses_t,
+            "a": actions,
+            "r": rewards,
+            "next_o": obses_tp1,
+            "done": dones
+        }
+        data = json.dumps(data)
+        json.dump(data, dir)
+
 
 
 class PrioritizedReplayBuffer(ReplayBuffer):
