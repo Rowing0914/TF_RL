@@ -215,6 +215,11 @@ class SAC_Actor(tf.keras.Model):
 
 	@tf.contrib.eager.defun(autograph=False)
 	def call(self, inputs):
+		"""
+		As mentioned in the topic of `policy evaluation` at sec5.2(`ablation study`) in the paper,
+		for evaluation phase, using a deterministic action(choosing the mean of the policy dist) works better than
+		stochastic one(Gaussian Policy). So that we outputs three different values. I know it's kind of weird design..
+		"""
 		x = self.dense1(inputs)
 		x = self.dense2(x)
 		x = self.dense3(x)
@@ -224,6 +229,7 @@ class SAC_Actor(tf.keras.Model):
 		dist = tfd.Normal(loc=mean, scale=std)
 		x = dist.sample()
 		action = tf.nn.tanh(x)
+		# TODO: this causes the problem: 4/6 12:17
 		log_prob = dist.log_prob(x)
 		log_prob -= tf.math.log(1 - tf.math.square(action) + 1e-6)
 		log_prob = tf.math.reduce_sum(log_prob)
