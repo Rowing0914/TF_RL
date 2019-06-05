@@ -1,5 +1,7 @@
 ## TF-RL(Reinforcement Learning with Tensorflow: EAGER!!)
 
+<p align="center"><img src="./assets/logo1.png"></p>
+
   This is the repo for implementing and experimenting the variety of RL algorithms using **Tensorflow Eager Execution**. And, since our Lord Google gracefully allows us to use their precious GPU resources without almost restriction, I have decided to enable most of codes run on **Google Colab**. So, if you don't have GPUs, please feel free to try it out on **Google Colab**
 
 Note: As it is known that **Eager mode** takes time than **Graph Execution** in general so that in this repo, I use **Eager** for debugging and **Graph** mode for training!!! The beauty of eager mode come here!! we can flexibly switch eager mode and graph mode with minimal modification(`@tf.contrib.eager.defun`), pls check [**the link**](<https://medium.com/tensorflow/code-with-eager-execution-run-with-graphs-optimizing-your-code-with-revnet-as-an-example-6162333f9b08>)
@@ -126,7 +128,7 @@ time.sleep(0.5)
 
 
 
-### Textbook implementations: R.Sutton's Great Book!
+### Textbook implementations: R.Sutton's Great Book!(will fold this list soon..)
 
 - Ch2: Simple Bandit: [[code]](<https://github.com/Rowing0914/TF_RL/blob/master/agents/Sutton_RL_Intro/ch2_Bandit/simple_bandit_algo.py>)
 - Ch3: MDP sample using OpenAI Gym: [[code]](<https://github.com/Rowing0914/TF_RL/blob/master/agents/Sutton_RL_Intro/ch3_MDP/pole_balancing.py>)
@@ -260,6 +262,7 @@ sudo apt-get update && \
 
 ## References
 
+- [Logomaker](<https://www.logaster.co.uk/?_ga=2.128584591.2087808828.1559775482-1265517291.1559775482>)
 - if you get stuck at DQN, you may want to refer to this great guy's entry: <https://adgefficiency.com/dqn-debugging/>
 - [@dennybritz's great repo](<https://github.com/dennybritz/reinforcement-learning>)
 - [my research repo](<https://github.com/Rowing0914/Reinforcement_Learning>)
