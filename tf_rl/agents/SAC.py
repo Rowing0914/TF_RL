@@ -10,10 +10,9 @@ class SAC:
 		self.index_timestep = 0
 		self.actor = actor(num_action)
 		self.critic = critic(1)
-		self.target_actor  = deepcopy(self.actor)
 		self.target_critic = deepcopy(self.critic)
-		self.actor_optimizer = tf.train.AdamOptimizer(learning_rate=1e-4)
-		self.critic_optimizer = tf.train.AdamOptimizer(learning_rate=1e-3)
+		self.actor_optimizer = tf.train.AdamOptimizer(learning_rate=3e-4) # used as in paper
+		self.critic_optimizer = tf.train.AdamOptimizer(learning_rate=3e-4) # used as in paper
 
 		#  TODO: implement the checkpoints for model
 
@@ -49,7 +48,7 @@ class SAC:
 		# Update Critic
 		with tf.GradientTape() as tape:
 			# critic takes as input states, actions so that we combine them before passing them
-			next_action, next_state_log_pi, _= self.target_actor(next_states)
+			next_action, next_state_log_pi, _= self.actor(next_states)
 			next_Q1, next_Q2 = self.target_critic(next_states, next_action)
 			min_next_Q_target = tf.math.minimum(next_Q1, next_Q2) - self.params.alpha * next_state_log_pi
 			q1, q2 = self.critic(states, actions)
@@ -87,10 +86,9 @@ class SAC_debug:
 		self.index_timestep = 0
 		self.actor = actor(num_action)
 		self.critic = critic(1)
-		self.target_actor  = deepcopy(self.actor)
 		self.target_critic = deepcopy(self.critic)
-		self.actor_optimizer = tf.train.AdamOptimizer(learning_rate=1e-4)
-		self.critic_optimizer = tf.train.AdamOptimizer(learning_rate=1e-3)
+		self.actor_optimizer = tf.train.AdamOptimizer(learning_rate=3e-4) # used as in paper
+		self.critic_optimizer = tf.train.AdamOptimizer(learning_rate=3e-4) # used as in paper
 
 		#  TODO: implement the checkpoints for model
 
@@ -107,7 +105,7 @@ class SAC_debug:
 			action, _, _ = self._select_action(tf.constant(state))
 		return action.numpy()[0]
 
-	@tf.contrib.eager.defun(autograph=False)
+	# @tf.contrib.eager.defun(autograph=False)
 	def _select_action(self, state):
 		return self.actor(state)
 
@@ -126,7 +124,7 @@ class SAC_debug:
 		# Update Critic
 		with tf.GradientTape() as tape:
 			# critic takes as input states, actions so that we combine them before passing them
-			next_action, next_state_log_pi, _= self.target_actor(next_states)
+			next_action, next_state_log_pi, _= self.actor(next_states)
 			next_Q1, next_Q2 = self.target_critic(next_states, next_action)
 			next_Q = tf.math.minimum(next_Q1, next_Q2) - self.params.alpha * next_state_log_pi
 			q1, q2 = self.critic(states, actions)
@@ -165,5 +163,5 @@ class SAC_debug:
 		tf.contrib.summary.scalar("max_q1", tf.math.reduce_max(q1), step=self.index_timestep)
 		tf.contrib.summary.scalar("max_q2", tf.math.reduce_max(q2), step=self.index_timestep)
 
-		print(critic_loss_q1, critic_loss_q2, actor_loss)
+		# print(q1.numpy(), q2.numpy(), critic_loss_q1.numpy(), critic_loss_q2.numpy(), actor_loss.numpy())
 		return tf.math.reduce_sum(critic_loss_q1 + critic_loss_q2 + actor_loss)

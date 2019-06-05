@@ -483,8 +483,6 @@ def train_SAC(agent, env, replay_buffer, reward_buffer, summary_writer):
 					if global_timestep.numpy() > agent.params.learning_start:
 						states, actions, rewards, next_states, dones = replay_buffer.sample(agent.params.batch_size)
 						loss = agent.update(states, actions, rewards, next_states, dones)
-						soft_target_model_update_eager(agent.target_actor, agent.actor,
-													   tau=agent.params.soft_update_tau)
 						soft_target_model_update_eager(agent.target_critic, agent.critic,
 													   tau=agent.params.soft_update_tau)
 
