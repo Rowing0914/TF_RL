@@ -33,7 +33,7 @@ parser.add_argument('--max-eps', default=1000, type=int,
                     help='Global maximum number of episodes to run.')
 parser.add_argument('--gamma', default=0.99,
                     help='Discount factor of rewards.')
-parser.add_argument('--save-dir', default='/tmp/', type=str,
+parser.add_argument('--save-dir', default='../../logs/models/', type=str,
                     help='Directory in which you desire to save the model.')
 args = parser.parse_args()
 

@@ -1,17 +1,56 @@
-import gym
+import gym, ray, time
 import argparse
 from datetime import datetime
 import tensorflow as tf
 from collections import deque
 from tf_rl.common.wrappers import MyWrapper, CartPole_Pixel
 from tf_rl.common.memory import ReplayBuffer
-from tf_rl.common.utils import AnnealingSchedule, gradient_clip_fn, eager_setup, setup_on_colab
+from tf_rl.common.utils import *
 from tf_rl.common.policy import EpsilonGreedyPolicy_eager
-from tf_rl.common.train import train_DQN
 from tf_rl.common.networks import CartPole as Model, Nature_DQN as Model_p
 from tf_rl.agents.DQN import DQN_cartpole, DQN
 
+NUM_WORKERS = 8
+ray.init(num_cpus=NUM_WORKERS)
 eager_setup()
+
+
+@ray.remote
+class PongEnv(object):
+	def __init__(self):
+		# Tell numpy to only use one core. If we don't do this, each actor may try
+		# to use all of the cores and the resulting contention may result in no
+		# speedup over the serial version. Note that if numpy is using OpenBLAS,
+		# then you need to set OPENBLAS_NUM_THREADS=1, and you probably need to do
+		# it from the command line (so it happens before numpy is imported).
+		os.environ["MKL_NUM_THREADS"] = "1"
+		self.env = gym.make("CartPole-v0")
+		self.env.reset()
+
+	def step(self, action):
+		return self.env.step(action)
+
+
+class _Env:
+	def __init__(self, env):
+		self.env = env
+
+	def step(self, action):
+		return self.env.step.remote(action)
+
+
+@ray.remote
+def one_episode(agent, env):
+	current_state = env.reset()
+	done = False
+	duration = 0
+	while not done:
+		# env.render()
+		duration += 1
+		action = agent.choose_action(current_state, 0.5)
+		new_state, reward, done, _ = env.step(action)
+		current_state = new_state
+	return duration
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--mode", default="CartPole", help="game env type => Atari or CartPole")
@@ -20,7 +59,7 @@ parser.add_argument("--loss_fn", default="huber", help="types of loss function =
 parser.add_argument("--grad_clip_flg", default="", help="types of a clipping method of gradients => by value(by_value) or global norm(norm) or nothing")
 parser.add_argument("--num_frames", default=10000, type=int, help="total frame in a training")
 parser.add_argument("--train_interval", default=1, type=int, help="a frequency of training occurring in training phase")
-parser.add_argument("--eval_interval", default=2500, type=int, help="a frequency of evaluation occurring in training phase") # temp
+parser.add_argument("--eval_interval", default=250000, type=int, help="a frequency of evaluation occurring in training phase") # temp
 parser.add_argument("--memory_size", default=5000, type=int, help="memory size in a training => this used for Experience Replay Memory or Prioritised Experience Replay Memory")
 parser.add_argument("--learning_start", default=100, type=int, help="frame number which specifies when to start updating the agent")
 parser.add_argument("--sync_freq", default=1000, type=int, help="frequency of updating a target model")
@@ -81,4 +120,88 @@ elif params.mode == "CartPole-p":
 env.seed(params.seed)
 tf.random.set_random_seed(params.seed)
 
-train_DQN(agent, env, policy, replay_buffer, reward_buffer, summary_writer)
+# global_timestep = tf.train.get_or_create_global_step()
+#
+# for episode in range(n_episodes):
+# 	agent_id = ray.put(agent)
+# 	env_id = ray.put(env)
+#
+# 	result = list()
+# 	for _ in range(NUM_WORKERS):
+# 		duration = one_episode.remote(agent_id, env_id)
+# 		result.append(duration)
+#
+# 	result = ray.get(result)
+# 	print(result)
+# 	sadf
+
+
+get_ready(agent.params)
+global_timestep = tf.train.get_or_create_global_step()
+time_buffer = list()
+log = logger(agent.params)
+with summary_writer.as_default():
+	# for summary purpose, we put all codes in this context
+	with tf.contrib.summary.always_record_summaries():
+
+		for i in itertools.count():
+			state = env.reset()
+			total_reward = 0
+			start = time.time()
+			cnt_action = list()
+			done = False
+			while not done:
+				action = policy.select_action(agent, state)
+				next_state, reward, done, info = env.step(action)
+				replay_buffer.add(state, action, reward, next_state, done)
+
+				global_timestep.assign_add(1)
+				total_reward += reward
+				state = next_state
+				cnt_action.append(action)
+
+				# for evaluation purpose
+				if global_timestep.numpy() % agent.params.eval_interval == 0:
+					agent.eval_flg = True
+
+				if (global_timestep.numpy() > agent.params.learning_start) and (
+						global_timestep.numpy() % agent.params.train_interval == 0):
+					states, actions, rewards, next_states, dones = replay_buffer.sample(agent.params.batch_size)
+
+					loss, batch_loss = agent.update(states, actions, rewards, next_states, dones)
+
+				# synchronise the target and main models by hard or soft update
+				if (global_timestep.numpy() > agent.params.learning_start) and (
+						global_timestep.numpy() % agent.params.sync_freq == 0):
+					agent.manager.save()
+					agent.target_model.set_weights(agent.main_model.get_weights())
+
+			"""
+			===== After 1 Episode is Done =====
+			"""
+
+			tf.contrib.summary.scalar("reward", total_reward, step=i)
+			tf.contrib.summary.scalar("exec time", time.time() - start, step=i)
+			if i >= agent.params.reward_buffer_ep:
+				tf.contrib.summary.scalar("Moving Ave Reward", np.mean(reward_buffer), step=i)
+			tf.contrib.summary.histogram("taken actions", cnt_action, step=i)
+
+			# store the episode reward
+			reward_buffer.append(total_reward)
+			time_buffer.append(time.time() - start)
+
+			if global_timestep.numpy() > agent.params.learning_start and i % agent.params.reward_buffer_ep == 0:
+				log.logging(global_timestep.numpy(), i, np.sum(time_buffer), reward_buffer, np.mean(loss),
+							policy.current_epsilon(), cnt_action)
+				time_buffer = list()
+
+			if agent.eval_flg:
+				test_Agent(agent, env)
+				agent.eval_flg = False
+
+			# check the stopping condition
+			if global_timestep.numpy() > agent.params.num_frames:
+				print("=== Training is Done ===")
+				test_Agent(agent, env, n_trial=agent.params.test_episodes)
+				env.close()
+				break

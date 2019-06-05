@@ -16,6 +16,9 @@ class SAC:
 
 		#  TODO: implement the checkpoints for model
 
+		# TODO: make this available to construct graph when this class is being initialised
+		# tf.convert_to_tensor(np.random.random((1, self.state_size)), dtype=tf.float32)
+
 	def predict(self, state):
 		"""
 		As mentioned in the topic of `policy evaluation` at sec5.2(`ablation study`) in the paper,

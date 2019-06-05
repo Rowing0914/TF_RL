@@ -1,12 +1,12 @@
-# TODO: Bug fix to compatible with Tensorflow.....
 import gym
 import numpy as np
 import collections
 import tensorflow as tf
-from tf_rl.common.utils import AnnealingSchedule
-from tf_rl.common.params import Parameters
+from tf_rl.common.utils import AnnealingSchedule, eager_setup
 from tf_rl.common.wrappers import DiscretisedEnv
 from tf_rl.common.visualise import plot_Q_values
+
+eager_setup()
 
 class Q_Agent:
 	def __init__(self, env):
@@ -55,9 +55,8 @@ if __name__ == '__main__':
 	goal_duration = 198
 	all_rewards = list()
 	durations = collections.deque(maxlen=100)
-	params = Parameters(algo="DQN", mode="CartPole")
-	Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end, decay_steps=params.decay_steps)
-	Alpha = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end, decay_steps=params.decay_steps)
+	Epsilon = AnnealingSchedule(start=1.0, end=0.01, decay_steps=int(n_episodes/2))
+	Alpha = AnnealingSchedule(start=1.0, end=0.01, decay_steps=int(n_episodes/2))
 	agent = Q_Agent(env)
 
 	global_timestep = tf.train.get_or_create_global_step()
@@ -70,15 +69,16 @@ if __name__ == '__main__':
 		# one episode of q learning
 		while not done:
 			# env.render()
+			duration += 1
+			global_timestep.assign_add(1)
 			action = agent.choose_action(current_state, Epsilon.get_value())
 			new_state, reward, done, _ = env.step(action)
 			agent.update(current_state, action, reward, new_state, Alpha.get_value())
 			current_state = new_state
-			tf.assign(global_timestep, global_timestep.numpy() + 1, name='update_global_step')
 
 		# mean duration of last 100 episodes
-		durations.append(global_timestep)
-		all_rewards.append(global_timestep)
+		durations.append(duration)
+		all_rewards.append(duration)
 		mean_duration = np.mean(durations)
 
 		# check if our policy is good
@@ -90,5 +90,3 @@ if __name__ == '__main__':
 
 		elif episode % 100 == 0:
 			print('[Episode {}] - Mean time over last 100 episodes was {} frames.'.format(episode, mean_duration))
-
-	np.save("../logs/value/rewards_Q_learning.npy", all_rewards)

@@ -20,6 +20,9 @@ class DDPG(Agent):
 
 		#  TODO: implement the checkpoints for model
 
+		# TODO: make this available to construct graph when this class is being initialised
+		# tf.convert_to_tensor(np.random.random((1, self.state_size)), dtype=tf.float32)
+
 	def predict(self, state):
 		state = np.expand_dims(state, axis=0).astype(np.float32)
 		action = self._select_action(tf.constant(state))

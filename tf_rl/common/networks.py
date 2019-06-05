@@ -46,13 +46,13 @@ class Duelling_atari(tf.keras.Model):
 	def __init__(self, num_action, duelling_type="avg"):
 		super(Duelling_atari, self).__init__()
 		self.duelling_type = duelling_type
-		self.conv1 = tf.keras.layers.Conv2D(32, kernel_size=8, strides=8, activation='relu')
-		self.conv2 = tf.keras.layers.Conv2D(64, kernel_size=4, strides=2, activation='relu')
-		self.conv3 = tf.keras.layers.Conv2D(64, kernel_size=3, strides=1, activation='relu')
+		self.conv1 = tf.keras.layers.Conv2D(32, kernel_size=8, strides=8, activation='relu', kernel_regularizer=L2, bias_regularizer=L2)
+		self.conv2 = tf.keras.layers.Conv2D(64, kernel_size=4, strides=2, activation='relu', kernel_regularizer=L2, bias_regularizer=L2)
+		self.conv3 = tf.keras.layers.Conv2D(64, kernel_size=3, strides=1, activation='relu', kernel_regularizer=L2, bias_regularizer=L2)
 		self.flat = tf.keras.layers.Flatten()
-		self.fc1 = tf.keras.layers.Dense(512, activation='relu')
-		self.q_value = tf.keras.layers.Dense(num_action, activation='linear')
-		self.v_value = tf.keras.layers.Dense(1, activation='linear')
+		self.fc1 = tf.keras.layers.Dense(512, activation='relu', kernel_regularizer=L2, bias_regularizer=L2)
+		self.q_value = tf.keras.layers.Dense(num_action, activation='linear', kernel_regularizer=L2, bias_regularizer=L2)
+		self.v_value = tf.keras.layers.Dense(1, activation='linear', kernel_regularizer=L2, bias_regularizer=L2)
 
 	@tf.contrib.eager.defun(autograph=False)
 	def call(self, inputs):
@@ -83,11 +83,11 @@ class Duelling_cartpole(tf.keras.Model):
 	def __init__(self, num_action, duelling_type="avg"):
 		super(Duelling_cartpole, self).__init__()
 		self.duelling_type = duelling_type
-		self.dense1 = tf.keras.layers.Dense(16, activation='relu')
-		self.dense2 = tf.keras.layers.Dense(16, activation='relu')
-		self.dense3 = tf.keras.layers.Dense(16, activation='relu')
-		self.q_value = tf.keras.layers.Dense(num_action, activation='linear')
-		self.v_value = tf.keras.layers.Dense(1, activation='linear')
+		self.dense1 = tf.keras.layers.Dense(16, activation='relu', kernel_regularizer=L2, bias_regularizer=L2,)
+		self.dense2 = tf.keras.layers.Dense(16, activation='relu', kernel_regularizer=L2, bias_regularizer=L2,)
+		self.dense3 = tf.keras.layers.Dense(16, activation='relu', kernel_regularizer=L2, bias_regularizer=L2,)
+		self.q_value = tf.keras.layers.Dense(num_action, activation='linear', kernel_regularizer=L2, bias_regularizer=L2,)
+		self.v_value = tf.keras.layers.Dense(1, activation='linear', kernel_regularizer=L2, bias_regularizer=L2,)
 
 	@tf.contrib.eager.defun(autograph=False)
 	def call(self, inputs):

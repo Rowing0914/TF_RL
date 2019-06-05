@@ -23,6 +23,9 @@ class Double_DQN(Agent_atari):
 										 optimizer=self.optimizer,
 										 model_dir=params.model_dir)
 
+		# TODO: make this available to construct graph when this class is being initialised
+		# tf.convert_to_tensor(np.random.random((1, self.state_size)), dtype=tf.float32)
+
 	@tf.contrib.eager.defun(autograph=False)
 	def _select_action(self, state):
 		return self.main_model(state)
