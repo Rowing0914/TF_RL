@@ -64,9 +64,9 @@ class Parameters:
 
 	def _load_DQN(self, mode, env_name=None):
 		if mode == "Atari":
-			self.num_frames = 200_000_000
-			self.memory_size = 400_000
-			self.learning_start = 20_000
+			self.num_frames = 200000000
+			self.memory_size = 400000
+			self.learning_start = 20000
 			self.state_reshape = (1, 84, 84, 1)
 			self.loss_fn = "MSE"
 			self.grad_clip_flg = "norm"
@@ -76,7 +76,7 @@ class Parameters:
 			self.update_hard_or_soft = "hard"
 			self.soft_update_tau = 1e-2
 			self.decay_type = "curved"
-			self.decay_steps = 1_000_000
+			self.decay_steps = 1000000
 			self.reward_buffer_ep = 10
 			self.epsilon_start = 1.0
 			self.epsilon_end = 0.1
