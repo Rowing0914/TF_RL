@@ -24,8 +24,8 @@ def train_DQN(agent, env, policy, replay_buffer, reward_buffer, summary_writer):
 	:return:
 	"""
 	get_ready(agent.params)
-	global_timestep = tf.train.get_or_create_global_step()
 	time_buffer = list()
+	global_timestep = tf.train.get_or_create_global_step()
 	log = logger(agent.params)
 	with summary_writer.as_default():
 		# for summary purpose, we put all codes in this context
@@ -139,7 +139,7 @@ def train_DQN_PER(agent, env, policy, replay_buffer, reward_buffer, Beta, summar
 							global_timestep.numpy() % agent.params.train_interval == 0):
 						# PER returns: state, action, reward, next_state, done, weights(a weight for an episode), indices(indices for a batch of episode)
 						states, actions, rewards, next_states, dones, weights, indices = replay_buffer.sample(
-							agent.params.batch_size, Beta.get_value())
+							agent.params.batch_size, Beta().numpy())
 
 						loss, batch_loss = agent.update(states, actions, rewards, next_states, dones)
 
@@ -153,11 +153,7 @@ def train_DQN_PER(agent, env, policy, replay_buffer, reward_buffer, Beta, summar
 					if (global_timestep.numpy() > agent.params.learning_start) and (
 							global_timestep.numpy() % agent.params.sync_freq == 0):
 						agent.manager.save()
-						if agent.params.update_hard_or_soft == "hard":
-							agent.target_model.set_weights(agent.main_model.get_weights())
-						elif agent.params.update_hard_or_soft == "soft":
-							soft_target_model_update_eager(agent.target_model, agent.main_model,
-														   tau=agent.params.soft_update_tau)
+						agent.target_model.set_weights(agent.main_model.get_weights())
 
 				"""
 				===== After 1 Episode is Done =====

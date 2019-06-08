@@ -1,4 +1,7 @@
 """
+===== Ofcourse I modified decently... but mainly I borrowed the source code from baselines! =====
+
+
 Replay Buffer and Prioritised Experience Replay Buffer implementation of OpenAI Baselines
 https://github.com/openai/baselines/blob/master/baselines/deepq/replay_buffer.py
 
@@ -59,6 +62,18 @@ class ReplayBuffer(object):
 		else:
 			self._storage[self._next_idx] = data
 		self._next_idx = (self._next_idx + 1) % self._maxsize
+
+	def add_zero_transition(self, obs_t, action, reward, obs_tp1, done):
+		"""
+		Takes as input all items involve in one time-step and
+		adds a padding transition filled with zeros (Used in episode beginnings).
+		"""
+		obs_t = np.zeros(obs_t.shape)
+		action = np.zeros(action.shape)
+		reward = np.zeros(reward.shape)
+		obs_tp1 = np.zeros(obs_tp1.shape)
+		done = np.zeros(done)
+		self.add(obs_t, action, reward, obs_tp1, done)
 
 	def _encode_sample(self, idxes):
 		"""

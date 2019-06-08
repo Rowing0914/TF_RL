@@ -40,7 +40,7 @@ class EpsilonGreedyPolicy_eager:
 		self.Epsilon = Epsilon_fn
 
 	def select_action(self, agent, state):
-		if np.random.uniform() < self.Epsilon.get_value():
+		if np.random.uniform() < self.current_epsilon():
 			action = np.random.randint(agent.num_action)
 		else:
 			q_values = agent.predict(state)
@@ -48,7 +48,7 @@ class EpsilonGreedyPolicy_eager:
 		return action
 
 	def current_epsilon(self):
-		return self.Epsilon.get_value()
+		return self.Epsilon().numpy()
 
 
 class BoltzmannQPolicy(Policy):

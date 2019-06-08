@@ -51,7 +51,7 @@ class SAC:
 		# Update Critic
 		with tf.GradientTape() as tape:
 			# critic takes as input states, actions so that we combine them before passing them
-			next_action, next_state_log_pi, _= self.actor(next_states)
+			next_action, next_state_log_pi, _ = self.actor(next_states)
 			next_Q1, next_Q2 = self.target_critic(next_states, next_action)
 			min_next_Q_target = tf.math.minimum(next_Q1, next_Q2) - self.params.alpha * next_state_log_pi
 			q1, q2 = self.critic(states, actions)

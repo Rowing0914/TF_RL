@@ -1,39 +1,41 @@
 import argparse
 import tensorflow as tf
 from collections import deque
+from tf_rl.common.params import ENV_LIST_NATURE
 from tf_rl.common.memory import PrioritizedReplayBuffer
 from tf_rl.common.utils import gradient_clip_fn, eager_setup, create_loss_func, create_log_model_directory, invoke_agent_env, get_alg_name
 from tf_rl.common.policy import EpsilonGreedyPolicy_eager
 from tf_rl.common.train import train_DQN_PER
-from tf_rl.common.networks import CartPole as Model
-from tf_rl.agents.DQN import DQN as DQN_PER, DQN_cartpole as DQN_PER_cartpole
+from tf_rl.common.networks import Duelling_atari as Model
+from tf_rl.agents.Double_DQN import Double_DQN as Duelling_Double_DQN_PER, Double_DQN_debug as Duelling_Double_DQN_PER_debug
 
 eager_setup()
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--mode", default="CartPole", help="game env type: Atari or CartPole")
+parser.add_argument("--mode", default="Atari", help="game env type => Atari or CartPole")
+parser.add_argument("--env_name", default="Breakout", help="game title")
 parser.add_argument("--seed", default=123, help="seed of randomness")
-parser.add_argument("--loss_fn", default="huber", help="types of loss function: MSE or huber")
-parser.add_argument("--grad_clip_flg", default="", help="gradient clippings: by value(by_value) or global norm(norm) or nothing")
-parser.add_argument("--num_frames", default=10000, type=int, help="total frame in a training")
-parser.add_argument("--train_interval", default=1, type=int, help="a frequency of training occurring in training phase")
-parser.add_argument("--eval_interval", default=2500, type=int, help="a frequency of evaluation occurring in training phase") # temp
-parser.add_argument("--memory_size", default=5000, type=int, help="memory size in a training")
-parser.add_argument("--learning_start", default=100, type=int, help="frame number which specifies when to start updating the agent")
-parser.add_argument("--sync_freq", default=1000, type=int, help="frequency of updating a target model")
+parser.add_argument("--loss_fn", default="huber", help="huber or mse")
+parser.add_argument("--grad_clip_flg", default="", help="types of a clipping method of gradients => by value(by_value) or global norm(norm) or nothing")
+parser.add_argument("--num_frames", default=50_000_000, type=int, help="total frame in a training")
+parser.add_argument("--skip_frame_k", default=4, type=int, help="skip frame")
+parser.add_argument("--train_interval", default=4, type=int, help="a frequency of training occurring in training phase")
+parser.add_argument("--eval_interval", default=250_000, type=int, help="a frequency of evaluation occurring in training phase")
+parser.add_argument("--memory_size", default=500_000, type=int, help="memory size in a training")
+parser.add_argument("--learning_start", default=80_000, type=int, help="frame number which specifies when to start updating the agent")
+parser.add_argument("--sync_freq", default=10_000, type=int, help="frequency of updating a target model")
 parser.add_argument("--batch_size", default=32, type=int, help="batch size of each iteration of update")
-parser.add_argument("--reward_buffer_ep", default=10, type=int, help="reward_buffer size")
-parser.add_argument("--gamma", default=0.99, type=float, help="discount factor: gamma > 1.0 or negative => does not converge!!")
-parser.add_argument("--tau", default=1e-2, type=float, help="soft update tau")
+parser.add_argument("--reward_buffer_ep", default=100, type=int, help="reward_buffer size")
+parser.add_argument("--gamma", default=0.99, type=float, help="discount factor => gamma > 1.0 or negative => does not converge!!")
 parser.add_argument("--ep_start", default=1.0, type=float, help="initial value of epsilon")
-parser.add_argument("--ep_end", default=0.02, type=float, help="final value of epsilon")
+parser.add_argument("--ep_end", default=0.1, type=float, help="final value of epsilon")
 parser.add_argument("--lr_start", default=0.0025, type=float, help="initial value of lr")
 parser.add_argument("--lr_end", default=0.00025, type=float, help="final value of lr")
-parser.add_argument("--decay_steps", default=3000, type=int, help="a period for annealing a value(epsilon or beta)")
+parser.add_argument("--decay_steps", default=1_000_000, type=int, help="a period for annealing a value(epsilon or beta)")
 parser.add_argument("--debug_flg", default=False, type=bool, help="debug mode or not")
 parser.add_argument("--google_colab", default=False, type=bool, help="if you are executing this on GoogleColab")
 params = parser.parse_args()
-params.goal = 195
+params.goal = ENV_LIST_NATURE["{}NoFrameskip-v4".format(params.env_name)]
 params.test_episodes = 10
 params.alpha = 0.6
 params.beta_start = 0.4

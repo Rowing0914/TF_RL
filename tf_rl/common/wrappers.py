@@ -457,11 +457,11 @@ class LazyFrames(object):
 		return self._force()[i]
 
 
-def make_atari(env_id, max_episode_steps=None):
+def make_atari(env_id, skip_frame_k=4, max_episode_steps=None):
 	env = gym.make(env_id)
 	assert 'NoFrameskip' in env.spec.id
 	env = NoopResetEnv(env, noop_max=30)
-	env = MaxAndSkipEnv(env, skip=4)
+	env = MaxAndSkipEnv(env, skip=skip_frame_k)
 	if max_episode_steps is not None:
 		env = TimeLimit(env, max_episode_steps=max_episode_steps)
 	return env
@@ -471,7 +471,7 @@ def make_atari(env_id, max_episode_steps=None):
 # I will rely on those wrappers.
 # frame_stack and scale consumes a lot of memory so that if you have enough memory, then try it.
 # my local has 16GB RAM though, it was not enough.... 0.5M replay buffer took up about 8.5GB of RAM...
-def wrap_deepmind(env, episode_life=True, clip_rewards=True, frame_stack=False, scale=False):
+def wrap_deepmind(env, episode_life=True, clip_rewards=True, frame_stack=False, skip_frame_k=4, scale=False):
 	"""Configure environment for DeepMind-style Atari.
 	"""
 	if episode_life:
@@ -484,5 +484,5 @@ def wrap_deepmind(env, episode_life=True, clip_rewards=True, frame_stack=False, 
 	if clip_rewards:
 		env = ClipRewardEnv(env)
 	if frame_stack:
-		env = FrameStack(env, 4)
+		env = FrameStack(env, skip_frame_k)
 	return env

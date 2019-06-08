@@ -212,7 +212,7 @@ class SAC_Actor(tf.keras.Model):
 		self.mean   = tf.keras.layers.Dense(num_action, activation='linear', kernel_initializer=XAVIER_INIT)
 		self.std    = tf.keras.layers.Dense(num_action, activation='linear', kernel_initializer=XAVIER_INIT)
 
-	# @tf.contrib.eager.defun(autograph=False)
+	@tf.contrib.eager.defun(autograph=False)
 	def call(self, inputs):
 		"""
 		As mentioned in the topic of `policy evaluation` at sec5.2(`ablation study`) in the paper,

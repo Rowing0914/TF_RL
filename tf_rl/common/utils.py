@@ -1,7 +1,8 @@
 import tensorflow as tf
 import numpy as np
-import os, datetime, itertools, shutil
+import os, datetime, itertools, shutil, gym, sys
 from tf_rl.common.visualise import plot_Q_values
+from tf_rl.common.wrappers import MyWrapper, CartPole_Pixel, wrap_deepmind, make_atari
 
 """
 
@@ -30,6 +31,75 @@ def eager_setup():
 Common Utility functions 
 
 """
+
+
+def get_alg_name():
+	"""Returns the name of the algorithm.
+	We assume that the directory architecutre for that algo looks like below
+		- Atari: `examples/algo_name/algo_name_eager.py`
+		- Cartpole: `examples/algo_name/algo_name_eager_cartpole.py`
+		* where algo_name must be uppercase/capital letters!!
+	"""
+	alg_name = sys.argv[0].rsplit("/")[8].rsplit(".")[0].replace("_eager", "")
+	return alg_name
+
+
+def invoke_agent_env(params, alg):
+	"""Returns the wrapped env and string name of agent, then Use `eval(agent)` to activate it from main script
+	"""
+	if params.mode == "Atari":
+		env = wrap_deepmind(make_atari("{}NoFrameskip-v4".format(params.env_name, skip_frame_k=params.skip_frame_k)), skip_frame_k=params.skip_frame_k)
+		if params.debug_flg:
+			agent = "{}_debug".format(alg)
+		else:
+			agent = "{}".format(alg)
+	else:
+		agent = "{}".format(alg)
+		if params.mode == "CartPole":
+			env = MyWrapper(gym.make("CartPole-v0"))
+		elif params.mode == "CartPole-p":
+			env = CartPole_Pixel(gym.make("CartPole-v0"))
+	return agent, env
+
+
+def create_log_model_directory(params, alg):
+	"""
+	Create a directory for log/model
+	this is compatible with Google colab and can connect to MyDrive through the authorisation step
+
+	:param params:
+	:return:
+	"""
+	if params.mode in ["Atari", "atari"]:
+		second_name = params.env_name
+	else:
+		second_name = params.mode
+	now = datetime.datetime.now()
+
+	if params.google_colab:
+		# mount the MyDrive on google drive and create the log directory for saving model and logging using tensorboard
+		params.log_dir, params.model_dir, params.log_dir_colab, params.model_dir_colab = _setup_on_colab(alg,
+																										 params.mode)
+	else:
+		if params.debug_flg:
+			params.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "-{}_{}_debug/".format(alg,
+																										 second_name)
+			params.model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "-{}_{}_debug/".format(alg,
+																											 second_name)
+		else:
+			params.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "-{}_{}/".format(alg, second_name)
+			params.model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "-{}_{}/".format(alg, second_name)
+	return params
+
+
+def create_loss_func(loss_name="mse"):
+	if loss_name == "huber":
+		loss_fn = tf.losses.huber_loss
+	elif loss_name == "mse":
+		loss_fn = tf.losses.mean_squared_error
+	else:
+		assert False, "Choose the loss_fn from either huber or mse"
+	return loss_fn
 
 
 def get_ready(params):
@@ -74,7 +144,7 @@ def create_checkpoint(model, optimizer, model_dir):
 	return manager
 
 
-def setup_on_colab(alg_name, env_name):
+def _setup_on_colab(alg_name, env_name):
 	"""
 	Mount MyDrive to current instance through authentication of Google account
 	Then use it as a backup of training related files
