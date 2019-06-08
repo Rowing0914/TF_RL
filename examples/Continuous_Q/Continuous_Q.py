@@ -1,19 +1,12 @@
-import gym
+import gym, argparse
 import numpy as np
 import itertools
 import tensorflow as tf
-from tf_rl.common.utils import AnnealingSchedule
-from tf_rl.common.params import Parameters
-from tf_rl.common.utils import logging
+from tf_rl.common.utils import AnnealingSchedule, eager_setup
 from tf_rl.common.filters import Particle_Filter
 from tf_rl.common.wrappers import MyWrapper_revertable
 
-config = tf.ConfigProto(allow_soft_placement=True,
-						intra_op_parallelism_threads=1,
-						inter_op_parallelism_threads=1)
-config.gpu_options.allow_growth = True
-tf.enable_eager_execution(config=config)
-tf.random.set_random_seed(123)
+eager_setup()
 
 class Model(tf.keras.Model):
 	def __init__(self, num_action):
@@ -70,12 +63,42 @@ class Continuous_Q_Agent:
 
 
 if __name__ == '__main__':
+
+	parser = argparse.ArgumentParser()
+	parser.add_argument("--mode", default="CartPole", help="game env type: Atari or CartPole")
+	parser.add_argument("--seed", default=123, help="seed of randomness")
+	parser.add_argument("--loss_fn", default="huber", help="types of loss function: MSE or huber")
+	parser.add_argument("--grad_clip_flg", default="",
+						help="gradient clippings: by value(by_value) or global norm(norm) or nothing")
+	parser.add_argument("--num_episodes", default=500, type=int, help="total episodes in a training")
+	parser.add_argument("--train_interval", default=1, type=int,
+						help="a frequency of training occurring in training phase")
+	parser.add_argument("--eval_interval", default=2500, type=int,
+						help="a frequency of evaluation occurring in training phase")  # temp
+	parser.add_argument("--memory_size", default=5000, type=int, help="memory size in a training")
+	parser.add_argument("--learning_start", default=100, type=int,
+						help="frame number which specifies when to start updating the agent")
+	parser.add_argument("--sync_freq", default=1000, type=int, help="frequency of updating a target model")
+	parser.add_argument("--batch_size", default=32, type=int, help="batch size of each iteration of update")
+	parser.add_argument("--reward_buffer_ep", default=10, type=int, help="reward_buffer size")
+	parser.add_argument("--gamma", default=0.99, type=float,
+						help="discount factor: gamma > 1.0 or negative => does not converge!!")
+	parser.add_argument("--tau", default=1e-2, type=float, help="soft update tau")
+	parser.add_argument("--ep_start", default=1.0, type=float, help="initial value of epsilon")
+	parser.add_argument("--ep_end", default=0.02, type=float, help="final value of epsilon")
+	parser.add_argument("--lr_start", default=0.0025, type=float, help="initial value of lr")
+	parser.add_argument("--lr_end", default=0.00025, type=float, help="final value of lr")
+	parser.add_argument("--decay_steps", default=3000, type=int, help="a period for annealing a value(epsilon or beta)")
+	parser.add_argument("--debug_flg", default=False, type=bool, help="debug mode or not")
+	parser.add_argument("--google_colab", default=False, type=bool, help="if you are executing this on GoogleColab")
+	params = parser.parse_args()
+
 	env = MyWrapper_revertable(gym.make('MountainCarContinuous-v0'))
 
 	# hyperparameters
 	all_rewards = list()
-	params = Parameters(algo="DQN", mode="CartPole")
-	Epsilon = AnnealingSchedule(start=params.epsilon_start, end=params.epsilon_end, decay_steps=100)
+	global_timestep = tf.train.get_or_create_global_step()
+	anneal_ep = tf.train.polynomial_decay(params.ep_start, global_timestep, params.decay_steps, params.ep_end)
 	agent = Continuous_Q_Agent(env, params)
 	pf = Particle_Filter(N=10,type="uniform")
 	global_step = 0
@@ -83,19 +106,21 @@ if __name__ == '__main__':
 	for episode in range(params.num_episodes):
 		state = env.reset()
 		episode_loss = 0
-		episode_reward = 0
+		total_reward = 0
 
 		for t in itertools.count():
 			# estimate
 			mean, var = pf.estimate()
 			action = np.random.normal(mean, var, 1)
 
+			global_timestep.assign_add(1)
+
 			if episode > 100:
 				env.render()
 
 			# predict and update particles
 			pf.predict(env, action)
-			q_values = agent.estimate_Q(state, Epsilon.get_value(0))
+			q_values = agent.estimate_Q(state, anneal_ep().numpy())
 			pf.update(q_values=q_values)
 			pf.simple_resample()
 
@@ -103,10 +128,10 @@ if __name__ == '__main__':
 			loss, batch_loss = agent.update(state, action, reward, next_state, done)
 
 			episode_loss += loss
-			episode_reward += reward
+			total_reward += reward
 			state = next_state
 			global_step += 1
 
 			if t >= 300 or done:
-				logging(global_step, params.num_frames, episode, 0, episode_reward, episode_loss, Epsilon.get_value(episode), [0])
+				print("Reward: {}".format(total_reward))
 				break
