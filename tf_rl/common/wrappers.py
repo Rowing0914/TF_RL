@@ -165,28 +165,6 @@ class MyWrapper_revertable(gym.Wrapper):
 		self.env.state = state
 
 
-
-"""
-Wrapper for MuJoCo env, this normalises the observation using Running/Moving Mean/Std.
-As of 29/05/2019: it was not working well... so let's not use it for now!!
-"""
-
-class MuJoCo_wrapper(gym.Wrapper):
-	def __init__(self, env):
-		gym.Wrapper.__init__(self, env)
-		from tf_rl.common.utils import RunningMeanStd
-		self.env = env
-		self.rms_obs = RunningMeanStd()
-
-	def step(self, act):
-		next_state, reward, done, info = self.env.step(act)
-		self.rms_obs.normalise(next_state) # you can take this out and feed current state! but I don't see so much difference!
-		return next_state, reward, done, info
-
-	def reset(self, **kwargs):
-		return self.rms_obs.normalise(self.env.reset())
-
-
 """
 Borrowed from OpenAI Baselines at 4/4/2019
 

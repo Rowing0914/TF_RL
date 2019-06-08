@@ -48,7 +48,8 @@ def invoke_agent_env(params, alg):
 	"""Returns the wrapped env and string name of agent, then Use `eval(agent)` to activate it from main script
 	"""
 	if params.mode == "Atari":
-		env = wrap_deepmind(make_atari("{}NoFrameskip-v4".format(params.env_name, skip_frame_k=params.skip_frame_k)), skip_frame_k=params.skip_frame_k)
+		env = wrap_deepmind(make_atari("{}NoFrameskip-v4".format(params.env_name, skip_frame_k=params.skip_frame_k)),
+							skip_frame_k=params.skip_frame_k)
 		if params.debug_flg:
 			agent = "{}_debug".format(alg)
 		else:
@@ -273,15 +274,16 @@ class RunningMeanStd:
 
 	"""
 
-	def __init__(self, epsilon=1e-2):
+	def __init__(self, clip_range=5, epsilon=1e-2):
+		self.epsilon = epsilon
+		self.clip_range = clip_range
 		self._sum = 0.0
 		self._sumsq = epsilon
 		self._count = epsilon
-		self.mean = tf.to_float(self._sum / self._count)
-		self.std = tf.math.sqrt(
-			tf.math.maximum(tf.to_float(self._sumsq / self._count) - tf.math.square(self.mean), 1e-2))
+		self.mean = self._sum / self._count
+		self.std = np.sqrt(np.maximum(self._sumsq/self._count - np.square(self.mean), np.square(self.epsilon)))
 
-	def _update(self, x):
+	def update(self, x):
 		"""
 		update the mean and std by given input
 
@@ -299,8 +301,7 @@ class RunningMeanStd:
 		:param x:
 		:return:
 		"""
-		result = (x - self.mean) / (self.std * 1e-8)
-		self._update(x)
+		result = np.clip((x - self.mean) / self.std, -self.clip_range, self.clip_range)
 		return result
 
 
@@ -363,19 +364,38 @@ Algorithm Specific Utility functions
 """
 
 
-def her_strategy(n, k):
-	"""
-	Future Strategy
-	randomly select k time-steps which come from the same episode and observed after it
+class her_sampler:
+	# borrow from: https://github.com/TianhongDai/hindsight-experience-replay/blob/master/her.py
+	def __init__(self, replay_strategy, replay_k, reward_func=None):
+		self.replay_strategy = replay_strategy
+		self.replay_k = replay_k
+		if self.replay_strategy == 'future':
+			self.future_p = 1 - (1. / (1 + replay_k))
+		else:
+			self.future_p = 0
+		self.reward_func = reward_func
 
-	:param n:
-	:param k:
-	:return:
-	"""
-	if k > n:
-		return np.random.choice(n, k, replace=True)
-	else:
-		return np.random.choice(n, k, replace=False)
+	def sample_her_transitions(self, episode_batch, batch_size_in_transitions):
+		T = episode_batch['actions'].shape[1]
+		rollout_batch_size = episode_batch['actions'].shape[0]
+		batch_size = batch_size_in_transitions
+		# select which rollouts and which timesteps to be used
+		episode_idxs = np.random.randint(0, rollout_batch_size, batch_size)
+		t_samples = np.random.randint(T, size=batch_size)
+		transitions = {key: episode_batch[key][episode_idxs, t_samples].copy() for key in episode_batch.keys()}
+		# her idx
+		her_indexes = np.where(np.random.uniform(size=batch_size) < self.future_p)
+		future_offset = np.random.uniform(size=batch_size) * (T - t_samples)
+		future_offset = future_offset.astype(int)
+		future_t = (t_samples + 1 + future_offset)[her_indexes]
+		# replace go with achieved goal
+		future_ag = episode_batch['ag'][episode_idxs[her_indexes], future_t]
+		transitions['g'][her_indexes] = future_ag
+		# to get the params to re-compute reward
+		transitions['r'] = np.expand_dims(self.reward_func(transitions['ag_next'], transitions['g'], None), 1)
+		transitions = {k: transitions[k].reshape(batch_size, *transitions[k].shape[1:]) for k in transitions.keys()}
+
+		return transitions
 
 
 def action_postprocessing(action, params):
@@ -673,36 +693,23 @@ def test_Agent_HER(agent, env, n_trial=1):
 
 	:return:
 	"""
-	all_rewards = list()
-	successes = list()
 	print("=== Evaluation Mode ===")
 	for ep in range(n_trial):
 		state = env.reset()
 		# obs, achieved_goal, desired_goal in `numpy.ndarray`
 		done = False
-		episode_reward = 0
 		success = list()
 		obs, ag, dg, rg = state_unpacker(state)
 		while not done:
-			env.render()
-			action = agent.predict(np.concatenate([obs, rg], axis=-1))
+			# env.render()
+			action = agent.predict(obs, dg)
 			# action = action_postprocessing(action, agent.params)
 			next_state, reward, done, info = env.step(action)
 			success.append(info.get('is_success', 0.0))
 			# obs, achieved_goal, desired_goal in `numpy.ndarray`
 			next_obs, next_ag, next_dg, next_rg = state_unpacker(next_state)
 			obs = next_obs
-			rg = next_rg
-			episode_reward += reward
+			# rg = next_rg
+			dg = next_dg
 
-		successes.append(np.max(np.array(success)))
-		all_rewards.append(episode_reward)
-		tf.contrib.summary.scalar("Eval_Score over 250,000 time-step", episode_reward, step=agent.index_timestep)
-		print("| Ep: {}/{} | Score: {} |".format(ep + 1, n_trial, episode_reward))
-
-	if n_trial > 2:
-		print("=== Evaluation Result ===")
-		all_rewards = np.array([all_rewards])
-		print("Success Rate: {}".format(np.mean(successes)))
-		print("| Max R: {} | Min R: {} | STD R: {} | MEAN R: {} |".format(np.max(all_rewards), np.min(all_rewards),
-																		  np.std(all_rewards), np.mean(all_rewards)))
+		print("Success Rate: {:.3f}".format(np.mean(np.array(success))))

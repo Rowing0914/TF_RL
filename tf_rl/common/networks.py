@@ -186,8 +186,9 @@ class HER_Critic(tf.keras.Model):
 		self.pred = tf.keras.layers.Dense(output_shape, activation='linear', kernel_initializer=KERNEL_INIT)
 
 	@tf.contrib.eager.defun(autograph=False)
-	def call(self, obs, act):
-		x = self.dense1(obs)
+	def call(self, inputs, act):
+		# _input is already concatenated of obs and g
+		x = self.dense1(inputs)
 		x = self.dense2(tf.concat([x, act], axis=-1))
 		x = self.dense3(x)
 		pred = self.pred(x)
