@@ -34,7 +34,7 @@ parser.add_argument("--num_frames", default=1_000_000, type=int, help="total fra
 parser.add_argument("--update_steps", default=100, type=int, help="a frequency of training occurring in training phase")
 parser.add_argument("--eval_interval", default=50_000, type=int, help="a frequency of evaluation occurring in training phase")
 parser.add_argument("--memory_size", default=100_000, type=int, help="memory size in a training")
-parser.add_argument("--learning_start", default=10000, type=int, help="frame number which specifies when to start updating the agent")
+parser.add_argument("--learning_start", default=10_000, type=int, help="frame number which specifies when to start updating the agent")
 parser.add_argument("--batch_size", default=256, type=int, help="batch size of each iteration of update")
 parser.add_argument("--reward_buffer_ep", default=5, type=int, help="reward_buffer size")
 parser.add_argument("--gamma", default=0.99, type=float, help="discount factor => gamma > 1.0 or negative => does not converge!!")
@@ -42,7 +42,7 @@ parser.add_argument("--alpha", default=0.2, type=float, help="Temperature param 
 parser.add_argument("--soft_update_tau", default=0.005, type=float, help="soft-update needs tau to define the ratio of main model remains")
 parser.add_argument("--log_dir", default="../../logs/logs/SAC/", help="directory for log")
 parser.add_argument("--model_dir", default="../../logs/models/SAC/", help="directory for trained model")
-parser.add_argument("--debug_flg", default=True, type=bool, help="debug mode or not")
+parser.add_argument("--debug_flg", default=False, type=bool, help="debug mode or not")
 parser.add_argument("--google_colab", default=False, type=bool, help="if you are executing this on GoogleColab")
 params = parser.parse_args()
 params.test_episodes = 10

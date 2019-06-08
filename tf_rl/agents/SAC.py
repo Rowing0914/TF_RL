@@ -71,7 +71,7 @@ class SAC:
 		with tf.GradientTape() as tape:
 			action, log_pi, _ = self.actor(states)
 			q1, q2 = self.critic(states, action)
-			actor_loss = -tf.math.reduce_mean( ( (self.params. alpha * log_pi) - tf.math.minimum(q1, q2)) )
+			actor_loss = tf.math.reduce_mean( ( (self.params. alpha * log_pi) - tf.math.minimum(q1, q2)) )
 
 		# get gradients
 		actor_grads = tape.gradient(actor_loss, self.actor.trainable_variables)
@@ -147,7 +147,7 @@ class SAC_debug:
 		with tf.GradientTape() as tape:
 			action, log_pi, _ = self.actor(states)
 			q1, q2 = self.critic(states, action)
-			actor_loss = -tf.math.reduce_mean( ( (self.params. alpha * log_pi) - tf.math.minimum(q1, q2)) )
+			actor_loss = tf.math.reduce_mean( ( (self.params. alpha * log_pi) - tf.math.minimum(q1, q2)) )
 
 		# get gradients
 		actor_grads = tape.gradient(actor_loss, self.actor.trainable_variables)
