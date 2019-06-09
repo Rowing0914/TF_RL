@@ -707,7 +707,7 @@ def test_Agent_HER(agent, env, n_trial=1):
 		obs, ag, dg, rg = state_unpacker(state)
 		success = list()
 		for ts in range(agent.params.num_steps):
-			env.render()
+			# env.render()
 			action = agent.predict(obs, dg)
 			# action = action_postprocessing(action, agent.params)
 			next_state, reward, done, info = env.step(action)
