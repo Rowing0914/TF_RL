@@ -1,8 +1,10 @@
 import numpy as np
 import tensorflow as tf
 from copy import deepcopy
+from tf_rl.agents.core import Agent
 
-class SAC:
+
+class SAC(Agent):
 	def __init__(self, actor, critic, num_action, params):
 		self.params = params
 		self.num_action = num_action
@@ -11,13 +13,13 @@ class SAC:
 		self.actor = actor(num_action)
 		self.critic = critic(1)
 		self.target_critic = deepcopy(self.critic)
-		self.actor_optimizer = tf.train.AdamOptimizer(learning_rate=3e-4) # used as in paper
-		self.critic_optimizer = tf.train.AdamOptimizer(learning_rate=3e-4) # used as in paper
+		self.actor_optimizer = tf.train.AdamOptimizer(learning_rate=3e-4)  # used as in paper
+		self.critic_optimizer = tf.train.AdamOptimizer(learning_rate=3e-4)  # used as in paper
 
-		#  TODO: implement the checkpoints for model
+	#  TODO: implement the checkpoints for model
 
-		# TODO: make this available to construct graph when this class is being initialised
-		# tf.convert_to_tensor(np.random.random((1, self.state_size)), dtype=tf.float32)
+	# TODO: make this available to construct graph when this class is being initialised
+	# tf.convert_to_tensor(np.random.random((1, self.state_size)), dtype=tf.float32)
 
 	def predict(self, state):
 		"""
@@ -35,15 +37,6 @@ class SAC:
 	@tf.contrib.eager.defun(autograph=False)
 	def _select_action(self, state):
 		return self.actor(state)
-
-	def update(self, states, actions, rewards, next_states, dones):
-		states = np.array(states, dtype=np.float32)
-		next_states = np.array(next_states, dtype=np.float32)
-		actions = np.array(actions, dtype=np.float32)
-		rewards = np.array(rewards, dtype=np.float32)
-		dones = np.array(dones, dtype=np.float32)
-		return self._inner_update(states, actions, rewards, next_states, dones)
-
 
 	@tf.contrib.eager.defun(autograph=False)
 	def _inner_update(self, states, actions, rewards, next_states, dones):
@@ -71,7 +64,7 @@ class SAC:
 		with tf.GradientTape() as tape:
 			action, log_pi, _ = self.actor(states)
 			q1, q2 = self.critic(states, action)
-			actor_loss = tf.math.reduce_mean( ( (self.params. alpha * log_pi) - tf.math.minimum(q1, q2)) )
+			actor_loss = tf.math.reduce_mean((self.params.alpha * log_pi) - tf.math.minimum(q1, q2))
 
 		# get gradients
 		actor_grads = tape.gradient(actor_loss, self.actor.trainable_variables)
@@ -81,7 +74,7 @@ class SAC:
 		return tf.math.reduce_sum(critic_loss_q1 + critic_loss_q2 + actor_loss)
 
 
-class SAC_debug:
+class SAC_debug(Agent):
 	def __init__(self, actor, critic, num_action, params):
 		self.params = params
 		self.num_action = num_action
@@ -90,10 +83,10 @@ class SAC_debug:
 		self.actor = actor(num_action)
 		self.critic = critic(1)
 		self.target_critic = deepcopy(self.critic)
-		self.actor_optimizer = tf.train.AdamOptimizer(learning_rate=3e-4) # used as in paper
-		self.critic_optimizer = tf.train.AdamOptimizer(learning_rate=3e-4) # used as in paper
+		self.actor_optimizer = tf.train.AdamOptimizer(learning_rate=3e-4)  # used as in paper
+		self.critic_optimizer = tf.train.AdamOptimizer(learning_rate=3e-4)  # used as in paper
 
-		#  TODO: implement the checkpoints for model
+	#  TODO: implement the checkpoints for model
 
 	def predict(self, state):
 		"""
@@ -112,22 +105,13 @@ class SAC_debug:
 	def _select_action(self, state):
 		return self.actor(state)
 
-	def update(self, states, actions, rewards, next_states, dones):
-		states = np.array(states, dtype=np.float32)
-		next_states = np.array(next_states, dtype=np.float32)
-		actions = np.array(actions, dtype=np.float32)
-		rewards = np.array(rewards, dtype=np.float32)
-		dones = np.array(dones, dtype=np.float32)
-		return self._inner_update(states, actions, rewards, next_states, dones)
-
-
 	# @tf.contrib.eager.defun(autograph=False)
 	def _inner_update(self, states, actions, rewards, next_states, dones):
 		self.index_timestep = tf.train.get_global_step()
 		# Update Critic
 		with tf.GradientTape() as tape:
 			# critic takes as input states, actions so that we combine them before passing them
-			next_action, next_state_log_pi, _= self.actor(next_states)
+			next_action, next_state_log_pi, _ = self.actor(next_states)
 			next_Q1, next_Q2 = self.target_critic(next_states, next_action)
 			next_Q = tf.math.minimum(next_Q1, next_Q2) - self.params.alpha * next_state_log_pi
 			q1, q2 = self.critic(states, actions)
@@ -147,7 +131,7 @@ class SAC_debug:
 		with tf.GradientTape() as tape:
 			action, log_pi, _ = self.actor(states)
 			q1, q2 = self.critic(states, action)
-			actor_loss = tf.math.reduce_mean( ( (self.params. alpha * log_pi) - tf.math.minimum(q1, q2)) )
+			actor_loss = tf.math.reduce_mean((self.params.alpha * log_pi) - tf.math.minimum(q1, q2))
 
 		# get gradients
 		actor_grads = tape.gradient(actor_loss, self.actor.trainable_variables)
@@ -156,6 +140,10 @@ class SAC_debug:
 		self.actor_optimizer.apply_gradients(zip(actor_grads, self.actor.trainable_variables))
 
 		tf.contrib.summary.histogram("Y", Y, step=self.index_timestep)
+		tf.contrib.summary.histogram("next_action", next_action, step=self.index_timestep)
+		tf.contrib.summary.histogram("next_state_log_pi", next_state_log_pi, step=self.index_timestep)
+		tf.contrib.summary.histogram("next_Q1", next_Q1, step=self.index_timestep)
+		tf.contrib.summary.histogram("next_Q2", next_Q2, step=self.index_timestep)
 		tf.contrib.summary.scalar("critic_loss_q1", critic_loss_q1, step=self.index_timestep)
 		tf.contrib.summary.scalar("critic_loss_q2", critic_loss_q2, step=self.index_timestep)
 		tf.contrib.summary.scalar("actor_loss", actor_loss, step=self.index_timestep)
