@@ -2,7 +2,7 @@ import gym
 import argparse
 import tensorflow as tf
 from tf_rl.common.memory import HER_replay_buffer
-from tf_rl.common.utils import eager_setup, her_sampler, create_log_model_directory, get_alg_name
+from tf_rl.common.utils import eager_setup, her_sampler, create_log_model_directory, get_alg_name, RunningMeanStd
 from tf_rl.common.params import ROBOTICS_ENV_LIST
 from tf_rl.common.train import train_HER
 from tf_rl.common.networks import HER_Actor as Actor, HER_Critic as Critic
@@ -55,14 +55,10 @@ tf.random.set_random_seed(params.seed)
 # create a directory for log/model
 params = create_log_model_directory(params, get_alg_name())
 
-if params.debug_flg:
-	agent = HER_debug(Actor, Critic, env.action_space.shape[0], params)
-else:
-	agent = HER(Actor, Critic, env.action_space.shape[0], params)
-
-# prep for basic stats
+# get init obs for creating env_params
 obs = env.reset()
 
+# prep for basic stats
 env_params = {
 	'obs': obs['observation'].shape[0],
 	'goal': obs['desired_goal'].shape[0],
@@ -74,4 +70,13 @@ env_params = {
 her_sample_func = her_sampler(params.replay_strategy, params.replay_k, env.compute_reward)
 replay_buffer = HER_replay_buffer(env_params, params.memory_size, her_sample_func.sample_her_transitions)
 summary_writer = tf.contrib.summary.create_file_writer(params.log_dir)
+
+o_norm = RunningMeanStd(env_params['obs'])
+g_norm = RunningMeanStd(env_params['goal'])
+
+if params.debug_flg:
+	agent = HER_debug(Actor, Critic, env.action_space.shape[0], params, o_norm, g_norm)
+else:
+	agent = HER(Actor, Critic, env.action_space.shape[0], params, o_norm, g_norm)
+
 train_HER(agent, env, replay_buffer, summary_writer)

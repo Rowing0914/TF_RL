@@ -1,7 +1,6 @@
 import numpy as np
 import tensorflow as tf
 from copy import deepcopy
-from tf_rl.common.utils import RunningMeanStd
 
 class HER_DDPG:
 	"""
@@ -9,7 +8,7 @@ class HER_DDPG:
 
 	"""
 
-	def __init__(self, actor, critic, num_action, params):
+	def __init__(self, actor, critic, num_action, params, o_norm, g_norm):
 		self.params = params
 		self.num_action = num_action
 		self.clip_target = 1 / (1 - self.params.gamma)
@@ -22,8 +21,8 @@ class HER_DDPG:
 		self.actor_optimizer = tf.train.AdamOptimizer(learning_rate=0.001)  # openai baselines
 		self.critic_optimizer = tf.train.AdamOptimizer(learning_rate=0.001)  # openai baselines
 
-		self.g_norm = RunningMeanStd()
-		self.o_norm = RunningMeanStd()
+		self.o_norm = o_norm
+		self.g_norm = g_norm
 
 	#  TODO: implement the checkpoints for model
 
@@ -68,7 +67,7 @@ class HER_DDPG:
 			Y = tf.clip_by_value(Y, -self.clip_target, 0)
 			Y = tf.stop_gradient(Y)
 
-			# Compute critic loss(MSE or huber_loss) + L2 loss
+			# Compute critic loss(MSE or huber_loss)
 			critic_loss = tf.losses.mean_squared_error(Y, tf.reshape(q_values, [-1]))
 
 		# get gradients
@@ -98,7 +97,7 @@ class HER_DDPG_debug:
 
 	"""
 
-	def __init__(self, actor, critic, num_action, params):
+	def __init__(self, actor, critic, num_action, params, o_norm, g_norm):
 		self.params = params
 		self.num_action = num_action
 		self.eval_flg = False
@@ -111,8 +110,8 @@ class HER_DDPG_debug:
 		self.actor_optimizer = tf.train.AdamOptimizer(learning_rate=0.001)  # openai baselines
 		self.critic_optimizer = tf.train.AdamOptimizer(learning_rate=0.001)  # openai baselines
 
-		self.g_norm = RunningMeanStd()
-		self.o_norm = RunningMeanStd()
+		self.o_norm = o_norm
+		self.g_norm = g_norm
 
 	#  TODO: implement the checkpoints for model
 
@@ -129,13 +128,23 @@ class HER_DDPG_debug:
 		return self.actor(state)
 
 	def update(self, transitions):
-		obs = transitions['obs']
-		g = transitions['g']
+		obs = self.o_norm.normalise(transitions['obs'])
+		g = self.g_norm.normalise(transitions['g'])
 		states = np.concatenate([obs, g], axis=-1)
-		next_obs = transitions['obs_next']
+		next_obs = self.o_norm.normalise(transitions['obs_next'])
 		next_states = np.concatenate([next_obs, g], axis=-1)
 		actions = transitions['actions']
 		rewards = transitions['r'].flatten()
+
+		"""
+		If the learning didn't go well, open this part and compare to the baselines or other repos
+		And make sure that the normaliser works fine!! sometimes, it didn't update internal states
+		so that nothing hasn't been normalised... yep, it occurred to me.		
+		"""
+
+		# print(self.o_norm._sum, self.o_norm._count)
+		# print(self.o_norm.mean, self.o_norm.std, self.g_norm.mean, self.g_norm.std)
+		# print(np.mean(states), np.mean(next_states), np.mean(actions), np.mean(rewards))
 
 		states = np.array(states, dtype=np.float32)
 		next_states = np.array(next_states, dtype=np.float32)
@@ -158,7 +167,7 @@ class HER_DDPG_debug:
 			Y = tf.clip_by_value(Y, -self.clip_target, 0)
 			Y = tf.stop_gradient(Y)
 
-			# Compute critic loss(MSE or huber_loss) + L2 loss
+			# Compute critic loss(MSE or huber_loss)
 			critic_loss = tf.losses.mean_squared_error(Y, tf.reshape(q_values, [-1]))
 
 		# get gradients

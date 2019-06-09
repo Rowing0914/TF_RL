@@ -274,12 +274,13 @@ class RunningMeanStd:
 
 	"""
 
-	def __init__(self, clip_range=5, epsilon=1e-2):
+	def __init__(self, shape, clip_range=5, epsilon=1e-2):
+		self.size = shape
 		self.epsilon = epsilon
 		self.clip_range = clip_range
 		self._sum = 0.0
-		self._sumsq = epsilon
-		self._count = epsilon
+		self._sumsq = np.ones(self.size, np.float32)*epsilon
+		self._count = np.ones(self.size, np.float32)*epsilon
 		self.mean = self._sum / self._count
 		self.std = np.sqrt(np.maximum(self._sumsq/self._count - np.square(self.mean), np.square(self.epsilon)))
 
@@ -290,9 +291,15 @@ class RunningMeanStd:
 		:param x: can be observation, reward, or action!!
 		:return:
 		"""
-		self._sum = x.sum(axis=0).ravel()
-		self._sumsq = np.square(x).sum(axis=0).ravel()
+		x = x.reshape(-1, self.size)
+		# self._sum = x.sum(axis=0).ravel()
+		self._sum = x.sum(axis=0)
+		# self._sumsq = np.square(x).sum(axis=0).ravel()
+		self._sumsq = np.square(x).sum(axis=0)
 		self._count = np.array([len(x)], dtype='float64')
+
+		self.mean = self._sum / self._count
+		self.std = np.sqrt(np.maximum(self._sumsq/self._count - np.square(self.mean), np.square(self.epsilon)))
 
 	def normalise(self, x):
 		"""
@@ -697,19 +704,16 @@ def test_Agent_HER(agent, env, n_trial=1):
 	for ep in range(n_trial):
 		state = env.reset()
 		# obs, achieved_goal, desired_goal in `numpy.ndarray`
-		done = False
-		success = list()
 		obs, ag, dg, rg = state_unpacker(state)
-		while not done:
-			# env.render()
+		success = list()
+		for ts in range(agent.params.num_steps):
+			env.render()
 			action = agent.predict(obs, dg)
 			# action = action_postprocessing(action, agent.params)
 			next_state, reward, done, info = env.step(action)
-			success.append(info.get('is_success', 0.0))
+			success.append(info.get('is_success'))
 			# obs, achieved_goal, desired_goal in `numpy.ndarray`
 			next_obs, next_ag, next_dg, next_rg = state_unpacker(next_state)
 			obs = next_obs
-			# rg = next_rg
-			dg = next_dg
 
-		print("Success Rate: {:.3f}".format(np.mean(np.array(success))))
+		print("Ep: {}/{} | Success Rate: {:.3f}".format(ep, n_trial, np.mean(np.array(success))))

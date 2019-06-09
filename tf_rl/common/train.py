@@ -601,10 +601,11 @@ def train_SAC(agent, env, replay_buffer, reward_buffer, summary_writer):
 					env.close()
 					break
 
-
+# design pattern follows this repo: https://github.com/TianhongDai/hindsight-experience-replay
 def train_HER(agent, env, replay_buffer, summary_writer):
 	get_ready(agent.params)
 	global_timestep = tf.train.get_or_create_global_step()
+	total_ep = 0
 
 	with summary_writer.as_default():
 		# for summary purpose, we put all codes in this context
@@ -621,11 +622,10 @@ def train_HER(agent, env, replay_buffer, summary_writer):
 						ep_obs, ep_ag, ep_g, ep_actions = [], [], [], []
 						success = list()
 						for ts in range(agent.params.num_steps):
-							# env.render()
 							action = agent.predict(obs, dg)
 							action = action_postprocessing(action, agent.params)
 
-							next_state, reward, done, info = env.step(action)
+							next_state, _, _, info = env.step(action)
 
 							# obs, achieved_goal, desired_goal in `numpy.ndarray`
 							next_obs, next_ag, next_dg, next_rg = state_unpacker(next_state)
@@ -635,13 +635,11 @@ def train_HER(agent, env, replay_buffer, summary_writer):
 							ep_g.append(dg.copy())
 							ep_actions.append(action.copy())
 
-							# episode_batch.append((obs, ag, action, dg, next_obs, next_ag))
-
 							global_timestep.assign_add(1)
-							success.append(info.get('is_success', 0.0))
+							success.append(info.get('is_success'))
 							obs = next_obs
-							# rg = next_rg # we can feed the remaining distance!!
-							dg = next_dg
+							# rg = next_rg
+							ag = next_ag
 
 						"""
 						=== After 1 ep ===
@@ -653,6 +651,9 @@ def train_HER(agent, env, replay_buffer, summary_writer):
 						mb_g.append(ep_g)
 						mb_actions.append(ep_actions)
 						successes.append(success)
+
+						total_ep += ep
+						tf.contrib.summary.scalar("Success Rate", np.mean(success), step=total_ep)
 
 					"""
 					=== After num_episodes ===
