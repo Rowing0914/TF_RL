@@ -115,11 +115,15 @@ time.sleep(0.5)
 11. Hindsight Experience Replay, M.Andrychowicz et al., 2017 [[arxiv]](<https://arxiv.org/pdf/1707.01495.pdf>) [[code]](https://github.com/Rowing0914/TF_RL/blob/master/examples/HER/) [[video1]](https://youtu.be/zVV_lF_X4DA) [[video2]](https://youtu.be/OoG0A3hrMD4)
 12. Soft Actor-Critic: Off-Policy Maximum Entropy Deep Reinforcement Learning with a Stochastic Actor, Haarnoja et al., 2018 [[arxiv]](<https://arxiv.org/abs/1801.01290>) [[code]](https://github.com/Rowing0914/TF_RL/tree/master/examples/SAC)
 
+
 #### Results
 - DQN: https://github.com/Rowing0914/TF_RL/tree/master/result/DQN
 - DDPG: https://github.com/Rowing0914/TF_RL/tree/master/result/DDPG
+- HER
+    - [![video2](http://img.youtube.com/vi/OoG0A3hrMD4/0.jpg)](http://www.youtube.com/watch?v=OoG0A3hrMD4 "HER Demo")
 
 #### Future dev
+
 
 1. Noisy Networks for Exploration, M.Fortunato et al., 2017 [[arxiv]](https://arxiv.org/abs/1706.10295)
 3. Distributed DQN
