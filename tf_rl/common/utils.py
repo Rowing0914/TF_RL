@@ -40,7 +40,7 @@ def get_alg_name():
 		- Cartpole: `examples/algo_name/algo_name_eager_cartpole.py`
 		* where algo_name must be uppercase/capital letters!!
 	"""
-	alg_name = sys.argv[0].rsplit("/")[8].rsplit(".")[0].replace("_eager", "")
+	alg_name = sys.argv[0].rsplit("/")[-1].rsplit(".")[0].replace("_eager", "")
 	return alg_name
 
 
