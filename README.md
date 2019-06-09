@@ -49,12 +49,12 @@ $ sh run_tensorboad.sh
 
 ```shell
 $ cd examples
-# Eager Execution mode
-$ python3.6 examples/{model_name}/{model_name}_eager_atari.py
+# Graph Execution mode
+$ python3.6 examples/{model_name}/{model_name}_eager.py
 $ python3.6 examples/{model_name}/{model_name}_eager_cartpole.py
 
-# Graph Execution mode
-$ python3.6 examples/{model_name}/{model_name}_eager_atari.py --debug_flg=True
+# Eager Execution mode
+$ python3.6 examples/{model_name}/{model_name}_eager.py --debug_flg=True
 $ python3.6 examples/{model_name}/{model_name}_eager_cartpole.py --debug_flg=True
 ```
 
