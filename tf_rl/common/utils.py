@@ -272,6 +272,8 @@ class RunningMeanStd:
 	Running Mean and Standard Deviation for normalising the observation!
 	This is mainly used in MuJoCo experiments, e.g. DDPG!
 
+	Formula:
+		- Normalisation: y = (x-mean)/std
 	"""
 
 	def __init__(self, shape, clip_range=5, epsilon=1e-2):

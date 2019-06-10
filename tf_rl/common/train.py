@@ -706,3 +706,73 @@ def train_HER(agent, env, replay_buffer, summary_writer):
 			print("=== Training is Done ===")
 			test_Agent_HER(agent, env, n_trial=agent.params.test_episodes)
 			env.close()
+
+
+def train_TRPO(agent, env, replay_buffer, reward_buffer, summary_writer):
+	get_ready(agent.params)
+
+	global_timestep = tf.train.get_or_create_global_step()
+	time_buffer = deque(maxlen=agent.params.reward_buffer_ep)
+	log = logger(agent.params)
+
+	with summary_writer.as_default():
+		# for summary purpose, we put all codes in this context
+		with tf.contrib.summary.always_record_summaries():
+
+			for i in itertools.count():
+				state = env.reset()
+				total_reward = 0
+				start = time.time()
+				agent.random_process.reset_states()
+				done = False
+				episode_len = 0
+				while not done:
+					# env.render()
+					if global_timestep.numpy() < agent.params.learning_start:
+						action = env.action_space.sample()
+					else:
+						action = agent.predict(state)
+					# scale for execution in env (in DDPG, every action is clipped between [-1, 1] in agent.predict)
+					next_state, reward, done, info = env.step(action * env.action_space.high)
+					replay_buffer.add(state, action, reward, next_state, done)
+
+					global_timestep.assign_add(1)
+					episode_len += 1
+					total_reward += reward
+					state = next_state
+
+					# for evaluation purpose
+					if global_timestep.numpy() % agent.params.eval_interval == 0:
+						agent.eval_flg = True
+
+				"""
+				===== After 1 Episode is Done =====
+				"""
+
+				states, actions, rewards, next_states, dones = replay_buffer.sample(agent.params.batch_size)
+				loss = agent.update(states, actions, rewards, next_states, dones)
+				soft_target_model_update_eager(agent.target_actor, agent.actor, tau=agent.params.soft_update_tau)
+				soft_target_model_update_eager(agent.target_critic, agent.critic, tau=agent.params.soft_update_tau)
+
+				tf.contrib.summary.scalar("reward", total_reward, step=i)
+				tf.contrib.summary.scalar("exec time", time.time() - start, step=i)
+				if i >= agent.params.reward_buffer_ep:
+					tf.contrib.summary.scalar("Moving Ave Reward", np.mean(reward_buffer), step=i)
+
+				# store the episode reward
+				reward_buffer.append(total_reward)
+				time_buffer.append(time.time() - start)
+
+				if global_timestep.numpy() > agent.params.learning_start and i % agent.params.reward_buffer_ep == 0:
+					log.logging(global_timestep.numpy(), i, np.sum(time_buffer), reward_buffer, np.mean(loss), 0, [0])
+
+				if agent.eval_flg:
+					test_Agent_policy_gradient(agent, env)
+					agent.eval_flg = False
+
+				# check the stopping condition
+				if global_timestep.numpy() > agent.params.num_frames:
+					print("=== Training is Done ===")
+					test_Agent_policy_gradient(agent, env, n_trial=agent.params.test_episodes)
+					env.close()
+					break

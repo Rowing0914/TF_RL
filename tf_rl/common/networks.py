@@ -265,3 +265,40 @@ class SAC_Critic(tf.keras.Model):
 		x2 = self.dense2(tf.concat([x2, act], axis=-1))
 		Q2 = self.Q1(x2)
 		return Q1, Q2
+
+
+
+class TRPO_Policy(tf.keras.Model):
+	"""
+	TRPO Policy network
+	"""
+	def __init__(self, output_shape):
+		super(TRPO_Policy, self).__init__()
+		self.dense1 = tf.keras.layers.Dense(128, activation='relu', kernel_initializer=KERNEL_INIT)
+		self.dense2 = tf.keras.layers.Dense(128, activation='relu', kernel_initializer=KERNEL_INIT)
+		self.pred = tf.keras.layers.Dense(output_shape, activation='linear', kernel_initializer=KERNEL_INIT)
+
+	@tf.contrib.eager.defun(autograph=False)
+	def call(self, inputs):
+		x = self.dense1(inputs)
+		x = self.dense2(x)
+		pred = self.pred(x)
+		return pred
+
+
+class TRPO_Value(tf.keras.Model):
+	"""
+	TRPO State Value network
+	"""
+	def __init__(self, output_shape):
+		super(TRPO_Value, self).__init__()
+		self.dense1 = tf.keras.layers.Dense(128, activation='relu', kernel_initializer=KERNEL_INIT)
+		self.dense2 = tf.keras.layers.Dense(128, activation='relu', kernel_initializer=KERNEL_INIT)
+		self.pred = tf.keras.layers.Dense(output_shape, activation='linear', kernel_initializer=KERNEL_INIT)
+
+	@tf.contrib.eager.defun(autograph=False)
+	def call(self, inputs, act):
+		x = self.dense1(inputs)
+		x = self.dense2(x)
+		pred = self.pred(x)
+		return pred
