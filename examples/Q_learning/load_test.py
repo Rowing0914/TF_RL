@@ -1,51 +1,36 @@
+import pickle
 import gym
 import numpy as np
 import collections
 import tensorflow as tf
 from tf_rl.common.utils import AnnealingSchedule, eager_setup
 from tf_rl.common.wrappers import DiscretisedEnv
-from tf_rl.common.visualise import plot_Q_values
 
 eager_setup()
 
 class Q_Agent:
 	def __init__(self, env):
 		self.env = env
-		self.Q = np.zeros(self.env.buckets + (env.action_space.n,))
-		# self.Q = collections.defaultdict(lambda: np.zeros(env.action_space.n))
+		self.Q_learn = np.zeros(self.env.buckets + (env.action_space.n,))
 		self.gamma = 0.95
 
 	def choose_action(self, state, epsilon):
-		return self.env.action_space.sample() if (np.random.random() <= epsilon) else np.argmax(self.Q[state])
+		return self.env.action_space.sample() if (np.random.random() <= epsilon) else np.argmax(self.Q_learn[state])
 
 	def update(self, state, action, reward, next_state, alpha):
-		# === I don't know why tho, self.gamma = 0.99 does not converge in Q-learning ===
-		# self.Q[state][action] += alpha * (reward + self.gamma * np.max(self.Q[next_state]) - self.Q[state][action])
-		self.Q[state][action] += alpha * (reward + 1. * np.max(self.Q[next_state]) - self.Q[state][action])
+		# original update
+		# self.Q_learn[state][action] += alpha * (reward + 1. * np.max(self.Q_learn[next_state]) - self.Q_learn[state][action])
 
-	def test(self):
-		"""
-		Test the agent with a visual aid!
+		# hard update: rely on the expert
+		# self.Q_learn[state][action] += alpha * (reward + 1. * np.max(self.Q_expert[next_state]) - self.Q_learn[state][action])
 
-		:return:
-		"""
-		current_state = self.env.reset()
-		done = False
+		# soft update: rely on the expert to some extent
+		self.Q_learn[state][action] += alpha * (reward + 1. * np.max((1-0.2)*self.Q_learn[next_state] + 0.2*self.Q_expert[next_state]) - self.Q_learn[state][action])
 
-		xmax = 2
-		xmin = -1
-		ymax = np.amax(self.Q) + 30
-		ymin = 0
-
-		while not done:
-			self.env.render()
-			action = self.choose_action(current_state, 0)
-			plot_Q_values(self.Q[current_state], xmin, xmax, ymin, ymax)
-			print(self.Q[current_state])
-			obs, reward, done, _ = self.env.step(action)
-			current_state = obs
-		return
-
+	def load_Q(self):
+		with open('q_vals.pickle', 'rb') as handle:
+			self.Q_expert = pickle.load(handle)
+		print(self.Q_expert)
 
 if __name__ == '__main__':
 	# DiscretisedEnv
@@ -60,6 +45,7 @@ if __name__ == '__main__':
 	Epsilon = AnnealingSchedule(start=1.0, end=0.01, decay_steps=decay_steps)
 	Alpha = AnnealingSchedule(start=1.0, end=0.01, decay_steps=decay_steps)
 	agent = Q_Agent(env)
+	agent.load_Q()
 
 	global_timestep = tf.train.get_or_create_global_step()
 	for episode in range(n_episodes):
@@ -92,8 +78,3 @@ if __name__ == '__main__':
 
 		elif episode % 100 == 0:
 			print('[Episode {}] - Mean time over last 100 episodes was {} frames.'.format(episode, mean_duration))
-
-	import pickle
-	data = agent.Q
-	with open('q_vals.pickle', 'wb') as handle:
-		pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)

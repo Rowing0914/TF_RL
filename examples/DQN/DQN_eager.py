@@ -28,7 +28,7 @@ parser.add_argument("--num_frames", default=50_000_000, type=int, help="total fr
 parser.add_argument("--skip_frame_k", default=4, type=int, help="skip frame")
 parser.add_argument("--train_interval", default=4, type=int, help="a frequency of training occurring in training phase")
 parser.add_argument("--eval_interval", default=250_000, type=int, help="a frequency of evaluation occurring in training phase")
-parser.add_argument("--memory_size", default=500_000, type=int, help="memory size in a training")
+parser.add_argument("--memory_size", default=1_000_000, type=int, help="memory size in a training")
 parser.add_argument("--learning_start", default=80_000, type=int, help="frame number which specifies when to start updating the agent")
 parser.add_argument("--sync_freq", default=10_000, type=int, help="frequency of updating a target model")
 parser.add_argument("--batch_size", default=32, type=int, help="batch size of each iteration of update")

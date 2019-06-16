@@ -1,5 +1,5 @@
 import numpy as np
-import os, math
+import os, math, pandas
 
 os.environ.setdefault('PATH', '')
 from collections import deque
@@ -106,13 +106,23 @@ class DiscretisedEnv(gym.Wrapper):
 
 	"""
 
-	def __init__(self, env):
+	def __init__(self, env, n_bins=10):
 		gym.Wrapper.__init__(self, env)
 		self.env = env
-		self.high1 = env.observation_space.high[0]
-		self.high2 = env.observation_space.high[2]
-		self.low1 = env.observation_space.low[0]
-		self.low2 = env.observation_space.low[2]
+		self.cart_position_high = env.observation_space.high[0]
+		self.cart_velocity_high = env.observation_space.high[1]
+		self.pole_angle_high    = env.observation_space.high[2]
+		self.pole_velocity_high = env.observation_space.high[3]
+		self.cart_position_low  = env.observation_space.low[0]
+		self.cart_velocity_low  = env.observation_space.low[1]
+		self.pole_angle_low     = env.observation_space.low[2]
+		self.pole_velocity_low  = env.observation_space.low[3]
+
+		self.cart_position_bins = pandas.cut([self.cart_position_high, self.cart_position_low], bins=n_bins, retbins=True)[1][1:-1]
+		self.cart_velocity_bins = pandas.cut([self.cart_velocity_high, self.cart_velocity_low], bins=n_bins, retbins=True)[1][1:-1]
+		self.pole_angle_bins    = pandas.cut([self.pole_angle_high, self.pole_angle_low], bins=n_bins, retbins=True)[1][1:-1]
+		self.pole_velocity_bins = pandas.cut([self.pole_velocity_low, self.pole_velocity_low], bins=n_bins, retbins=True)[1][1:-1]
+
 		self.buckets = (1, 1, 6, 12,)
 
 	# self.env.seed(123)  # fix the randomness for reproducibility purpose
@@ -121,14 +131,32 @@ class DiscretisedEnv(gym.Wrapper):
 		observation, reward, done, info = self.env.step(ac)
 		if done:
 			reward = -1.0  # reward at a terminal state
-		return self._discretise(observation), reward, done, info
+		# return self._discretise(observation), reward, done, info
+		return self._discretise_feature_engineered(observation), reward, done, info
 
 	def reset(self, **kwargs):
-		return self._discretise(self.env.reset())
+		# return self._discretise(self.env.reset())
+		return self._discretise_feature_engineered(self.env.reset())
 
 	def _discretise(self, obs):
-		upper_bounds = [self.high1, 0.5, self.high2, math.radians(50)]
-		lower_bounds = [self.low1, -0.5, self.low2, -math.radians(50)]
+		"""Equally discretise the observation"""
+		obs[0] = np.digitize(obs[0], self.cart_position_bins)
+		obs[1] = np.digitize(obs[1], self.cart_velocity_bins)
+		obs[2] = np.digitize(obs[2], self.pole_angle_bins)
+		obs[3] = np.digitize(obs[3], self.pole_velocity_bins)
+		obs = obs.astype(int)
+		return tuple(obs.reshape(1, -1)[0])
+
+	def _discretise_feature_engineered(self, obs):
+		"""
+		Based on some experiments, empirically we can see that angle acceleration is the most important feature.
+		So that using self.buckets, we discretise some features and remove other features
+
+		:param obs:
+		:return:
+		"""
+		upper_bounds = [self.cart_position_high, 0.5, self.pole_angle_high, math.radians(50)]
+		lower_bounds = [self.cart_position_low, -0.5, self.pole_angle_low, -math.radians(50)]
 		ratios = [(obs[i] + abs(lower_bounds[i])) / (upper_bounds[i] - lower_bounds[i]) for i in
 				  range(len(obs))]
 		new_obs = [int(round((self.buckets[i] - 1) * ratios[i])) for i in range(len(obs))]

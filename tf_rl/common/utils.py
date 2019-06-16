@@ -71,7 +71,7 @@ def create_log_model_directory(params, alg):
 	:param params:
 	:return:
 	"""
-	if params.mode in ["Atari", "atari"]:
+	if params.mode in ["Atari", "atari", "MuJoCo", "mujoco"]:
 		second_name = params.env_name
 	else:
 		second_name = params.mode
@@ -294,9 +294,7 @@ class RunningMeanStd:
 		:return:
 		"""
 		x = x.reshape(-1, self.size)
-		# self._sum = x.sum(axis=0).ravel()
 		self._sum = x.sum(axis=0)
-		# self._sumsq = np.square(x).sum(axis=0).ravel()
 		self._sumsq = np.square(x).sum(axis=0)
 		self._count = np.array([len(x)], dtype='float64')
 
@@ -649,7 +647,7 @@ def test_Agent(agent, env, n_trial=1):
 			episode_reward += reward
 
 		all_rewards.append(episode_reward)
-		tf.contrib.summary.scalar("Eval_Score over 250,000 time-step", episode_reward, step=agent.index_timestep)
+		tf.contrib.summary.scalar("Evaluation Score", episode_reward, step=agent.index_timestep)
 		print("| Ep: {}/{} | Score: {} |".format(ep + 1, n_trial, episode_reward))
 
 	# if this is running on Google Colab, we would store the log/models to mounted MyDrive
@@ -665,8 +663,7 @@ def test_Agent(agent, env, n_trial=1):
 		print("| Max: {} | Min: {} | STD: {} | MEAN: {} |".format(np.max(all_rewards), np.min(all_rewards),
 																  np.std(all_rewards), np.mean(all_rewards)))
 
-
-def test_Agent_policy_gradient(agent, env, n_trial=1):
+def test_Agent_DDPG(agent, env, n_trial=1):
 	"""
 	Evaluate the trained agent!
 
@@ -686,7 +683,37 @@ def test_Agent_policy_gradient(agent, env, n_trial=1):
 			episode_reward += reward
 
 		all_rewards.append(episode_reward)
-		tf.contrib.summary.scalar("Eval_Score over 250,000 time-step", episode_reward, step=agent.index_timestep)
+		tf.contrib.summary.scalar("Evaluation Score", episode_reward, step=agent.index_timestep)
+		print("| Ep: {}/{} | Score: {} |".format(ep + 1, n_trial, episode_reward))
+
+	if n_trial > 2:
+		print("=== Evaluation Result ===")
+		all_rewards = np.array([all_rewards])
+		print("| Max: {} | Min: {} | STD: {} | MEAN: {} |".format(np.max(all_rewards), np.min(all_rewards),
+																  np.std(all_rewards), np.mean(all_rewards)))
+
+
+def test_Agent_TRPO(agent, env, n_trial=1):
+	"""
+	Evaluate the trained agent!
+
+	:return:
+	"""
+	all_rewards = list()
+	print("=== Evaluation Mode ===")
+	for ep in range(n_trial):
+		state = env.reset()
+		done = False
+		episode_reward = 0
+		while not done:
+			action = agent.predict(state)
+			# scale for execution in env (in DDPG, every action is clipped between [-1, 1] in agent.predict)
+			next_state, reward, done, _ = env.step(action)
+			state = next_state
+			episode_reward += reward
+
+		all_rewards.append(episode_reward)
+		tf.contrib.summary.scalar("Evaluation Score", episode_reward, step=agent.index_timestep)
 		print("| Ep: {}/{} | Score: {} |".format(ep + 1, n_trial, episode_reward))
 
 	if n_trial > 2:
@@ -702,7 +729,7 @@ def test_Agent_HER(agent, env, n_trial=1):
 
 	:return:
 	"""
-	print("=== Evaluation Mode ===")
+	successes = list()
 	for ep in range(n_trial):
 		state = env.reset()
 		# obs, achieved_goal, desired_goal in `numpy.ndarray`
@@ -717,5 +744,6 @@ def test_Agent_HER(agent, env, n_trial=1):
 			# obs, achieved_goal, desired_goal in `numpy.ndarray`
 			next_obs, next_ag, next_dg, next_rg = state_unpacker(next_state)
 			obs = next_obs
-
-		print("Ep: {}/{} | Success Rate: {:.3f}".format(ep, n_trial, np.mean(np.array(success))))
+			dg = next_dg
+		successes.append(success)
+	return np.mean(np.array(successes))

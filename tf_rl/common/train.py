@@ -1,5 +1,6 @@
 from collections import deque
 import time
+from scipy import signal
 from tf_rl.common.utils import *
 
 """
@@ -27,6 +28,7 @@ def train_DQN(agent, env, policy, replay_buffer, reward_buffer, summary_writer):
 	time_buffer = list()
 	global_timestep = tf.train.get_or_create_global_step()
 	log = logger(agent.params)
+	# normaliser = RunningMeanStd(env.reset().shape[0])
 	with summary_writer.as_default():
 		# for summary purpose, we put all codes in this context
 		with tf.contrib.summary.always_record_summaries():
@@ -38,6 +40,8 @@ def train_DQN(agent, env, policy, replay_buffer, reward_buffer, summary_writer):
 				cnt_action = list()
 				done = False
 				while not done:
+					# normaliser.update(state)
+					# normaliser.normalise(state)
 					action = policy.select_action(agent, state)
 					next_state, reward, done, info = env.step(action)
 					replay_buffer.add(state, action, reward, next_state, done)
@@ -57,7 +61,7 @@ def train_DQN(agent, env, policy, replay_buffer, reward_buffer, summary_writer):
 
 						loss, batch_loss = agent.update(states, actions, rewards, next_states, dones)
 
-					# synchronise the target and main models by hard or soft update
+					# synchronise the target and main models by hard
 					if (global_timestep.numpy() > agent.params.learning_start) and (
 							global_timestep.numpy() % agent.params.sync_freq == 0):
 						agent.manager.save()
@@ -521,13 +525,13 @@ def train_DDPG(agent, env, replay_buffer, reward_buffer, summary_writer):
 					log.logging(global_timestep.numpy(), i, np.sum(time_buffer), reward_buffer, np.mean(loss), 0, [0])
 
 				if agent.eval_flg:
-					test_Agent_policy_gradient(agent, env)
+					test_Agent_DDPG(agent, env)
 					agent.eval_flg = False
 
 				# check the stopping condition
 				if global_timestep.numpy() > agent.params.num_frames:
 					print("=== Training is Done ===")
-					test_Agent_policy_gradient(agent, env, n_trial=agent.params.test_episodes)
+					test_Agent_DDPG(agent, env, n_trial=agent.params.test_episodes)
 					env.close()
 					break
 
@@ -591,15 +595,16 @@ def train_SAC(agent, env, replay_buffer, reward_buffer, summary_writer):
 					log.logging(global_timestep.numpy(), i, time.time() - start, reward_buffer, np.mean(loss), 0, [0])
 
 				if agent.eval_flg:
-					test_Agent_policy_gradient(agent, env)
+					test_Agent_TRPO(agent, env)
 					agent.eval_flg = False
 
 				# check the stopping condition
 				if global_timestep.numpy() > agent.params.num_frames:
 					print("=== Training is Done ===")
-					test_Agent_policy_gradient(agent, env, n_trial=agent.params.test_episodes)
+					test_Agent_TRPO(agent, env, n_trial=agent.params.test_episodes)
 					env.close()
 					break
+
 
 # design pattern follows this repo: https://github.com/TianhongDai/hindsight-experience-replay
 def train_HER(agent, env, replay_buffer, summary_writer):
@@ -612,9 +617,9 @@ def train_HER(agent, env, replay_buffer, summary_writer):
 		with tf.contrib.summary.always_record_summaries():
 
 			for epoch in range(agent.params.num_epochs):
+				successes = list()
 				for cycle in range(agent.params.num_cycles):
 					mb_obs, mb_ag, mb_g, mb_actions = [], [], [], []
-					successes = list()
 					for ep in range(agent.params.num_episodes):
 						state = env.reset()
 						# obs, achieved_goal, desired_goal in `numpy.ndarray`
@@ -622,6 +627,7 @@ def train_HER(agent, env, replay_buffer, summary_writer):
 						ep_obs, ep_ag, ep_g, ep_actions = [], [], [], []
 						success = list()
 						for ts in range(agent.params.num_steps):
+							# env.render()
 							action = agent.predict(obs, dg)
 							action = action_postprocessing(action, agent.params)
 
@@ -653,23 +659,17 @@ def train_HER(agent, env, replay_buffer, summary_writer):
 						successes.append(success)
 
 						total_ep += ep
-						tf.contrib.summary.scalar("Success Rate", np.mean(success), step=total_ep)
+						tf.contrib.summary.scalar("Train Success Rate", np.mean(success), step=total_ep)
 
 					"""
 					=== After num_episodes ===
 					"""
-					print(
-						"Epoch: {:03d}/{} | Cycle: {:02d}/{} | Success Rate: {:.3f}".format(
-							epoch + 1, agent.params.num_epochs, cycle + 1, agent.params.num_cycles, np.mean(np.array(success))
-						))
-
 					# convert them into arrays
 					mb_obs = np.array(mb_obs)
 					mb_ag = np.array(mb_ag)
 					mb_g = np.array(mb_g)
 					mb_actions = np.array(mb_actions)
 					replay_buffer.store_episode([mb_obs, mb_ag, mb_g, mb_actions])
-
 
 					# ==== update normaliser ====
 					mb_obs_next = mb_obs[:, 1:, :]
@@ -690,6 +690,175 @@ def train_HER(agent, env, replay_buffer, summary_writer):
 					agent.g_norm.update(transitions['g'])
 					# ==== finish update normaliser ====
 
+					# Update Loop
+					for _ in range(agent.params.num_updates):
+						transitions = replay_buffer.sample(agent.params.batch_size)
+						agent.update(transitions)
+
+					# sync networks
+					soft_target_model_update_eager(agent.target_actor, agent.actor, tau=agent.params.tau)
+					soft_target_model_update_eager(agent.target_critic, agent.critic, tau=agent.params.tau)
+
+				"""
+				=== After 1 epoch ===
+				"""
+				# each epoch, we test the agent
+				success_rate = test_Agent_HER(agent, env, n_trial=agent.params.test_episodes)
+				tf.contrib.summary.scalar("Test Success Rate", success_rate, step=epoch)
+
+				print("Epoch: {:03d}/{} | Train Success Rate: {:.3f} | Test Success Rate: {:.3f}".format(
+					epoch, agent.params.num_epochs, np.mean(np.array(successes)), success_rate
+				))
+
+			print("=== Training is Done ===")
+			test_Agent_HER(agent, env, n_trial=agent.params.test_episodes)
+			env.close()
+
+
+# in this algo, since the order of occurrence is important so that
+# we don't use Experience Replay to randomly sample trajectory
+def train_TRPO(agent, env, reward_buffer, summary_writer):
+	get_ready(agent.params)
+
+	global_timestep = tf.train.get_or_create_global_step()
+	time_buffer = deque(maxlen=agent.params.reward_buffer_ep)
+	log = logger(agent.params)
+	init_state = env.reset()
+	normaliser = RunningMeanStd(init_state.shape[0])
+	total_ep = 0
+
+	# init_normaliser(env, normaliser) # init normaliser's moments by going through some episodes before training
+
+	with summary_writer.as_default():
+		# for summary purpose, we put all codes in this context
+		with tf.contrib.summary.always_record_summaries():
+
+			while global_timestep < agent.params.num_frames:
+				states, actions, rewards, = [], [], []
+				for _ in range(agent.params.num_rollout):
+					state = env.reset()
+					normaliser.normalise(state)
+					total_reward = 0
+					start = time.time()
+					done = False
+					while not done:
+						# env.render()
+						action = agent.predict(state)
+						next_state, reward, done, info = env.step(action)
+						next_state = normaliser.normalise(next_state)
+
+						states.append(state)
+						actions.append(action)
+						rewards.append(reward)
+
+						global_timestep.assign_add(1)
+						total_reward += reward
+						state = next_state
+
+					"""
+					===== After 1 Episode =====
+					"""
+
+					total_ep += 1
+					reward_buffer.append(total_reward)
+					time_buffer.append(time.time() - start)
+
+					normaliser.update(np.array(states))
+					tf.contrib.summary.scalar("reward", total_reward, step=total_ep)
+					tf.contrib.summary.scalar("exec time", time.time() - start, step=total_ep)
+					tf.contrib.summary.scalar("Moving Ave Reward", np.mean(reward_buffer), step=total_ep)
+
+
+				"""
+				===== After a number of Episodes is Done =====
+				"""
+				# update procedure
+				states = np.array(states).astype(np.float32)
+				state_values = agent.critic(states).numpy()[0]
+				discounted_reward = signal.lfilter([1.0], [1.0, -agent.params.gamma], rewards[::-1])[::-1]
+				td_error = np.array(rewards) - state_values + np.append(state_values[1:] * agent.params.gamma, 0)
+				advantages = signal.lfilter([1.0], [1.0, -agent.params.gae_discount * agent.params.gamma], td_error[::-1])[::-1]
+				advantages = (advantages - np.mean(advantages)) / np.std(advantages) # normalise advantages
+
+				# construct the old policy
+				old_mu, old_std = agent.actor(states)
+				old_policy = tf.contrib.distributions.Normal(old_mu, old_std)
+
+				# update the params: inside it's got a for-loop and a stopping condition
+				# so that if the value of KL-divergence exceeds some threshold, then we stop updating.
+				loss = agent.update(states, actions, discounted_reward, advantages, old_policy)
+				log.logging(global_timestep.numpy(), total_ep, np.sum(time_buffer), reward_buffer, np.mean(loss), 0, [0])
+
+				test_Agent_TRPO(agent, env)
+
+				# check the stopping condition
+				if global_timestep.numpy() > agent.params.num_frames:
+					print("=== Training is Done ===")
+					test_Agent_TRPO(agent, env, n_trial=agent.params.test_episodes)
+					env.close()
+					break
+
+
+"""
+
+Distributed Version of Training APIs
+
+"""
+
+import ray
+
+
+def train_HER_ray(agent, env, replay_buffer, summary_writer):
+	ray.init()
+	get_ready(agent.params)
+	global_timestep = tf.train.get_or_create_global_step()
+	total_ep = 0
+
+	with summary_writer.as_default():
+		# for summary purpose, we put all codes in this context
+		with tf.contrib.summary.always_record_summaries():
+
+			for epoch in range(agent.params.num_epochs):
+				successes = list()
+				for cycle in range(agent.params.num_cycles):
+					mb_obs, mb_ag, mb_g, mb_actions = [], [], [], []
+					# for ep in range(agent.params.num_episodes):
+					agent_id = ray.put(agent)
+					env_id = ray.put(env)
+					tasks = [_inner_train_HER.remote(agent_id, env_id) for _ in range(agent.params.num_episodes)]
+
+					res = ray.get(tasks)
+					print(res)
+					# asdf
+
+					"""
+					=== After num_episodes ===
+					"""
+					# convert them into arrays
+					mb_obs = np.array(mb_obs)
+					mb_ag = np.array(mb_ag)
+					mb_g = np.array(mb_g)
+					mb_actions = np.array(mb_actions)
+					replay_buffer.store_episode([mb_obs, mb_ag, mb_g, mb_actions])
+
+					# ==== update normaliser ====
+					mb_obs_next = mb_obs[:, 1:, :]
+					mb_ag_next = mb_ag[:, 1:, :]
+					# get the number of normalization transitions
+					num_transitions = mb_actions.shape[1]
+					# create the new buffer to store them
+					buffer_temp = {'obs': mb_obs,
+								   'ag': mb_ag,
+								   'g': mb_g,
+								   'actions': mb_actions,
+								   'obs_next': mb_obs_next,
+								   'ag_next': mb_ag_next,
+								   }
+					transitions = replay_buffer.sample_func(buffer_temp, num_transitions)
+					# update
+					agent.o_norm.update(transitions['obs'])
+					agent.g_norm.update(transitions['g'])
+					# ==== finish update normaliser ====
 
 					# Update Loop
 					for _ in range(agent.params.num_updates):
@@ -700,79 +869,58 @@ def train_HER(agent, env, replay_buffer, summary_writer):
 					soft_target_model_update_eager(agent.target_actor, agent.actor, tau=agent.params.tau)
 					soft_target_model_update_eager(agent.target_critic, agent.critic, tau=agent.params.tau)
 
+				"""
+				=== After 1 epoch ===
+				"""
 				# each epoch, we test the agent
-				test_Agent_HER(agent, env, n_trial=agent.params.test_episodes)
+				success_rate = test_Agent_HER(agent, env, n_trial=agent.params.test_episodes)
+				tf.contrib.summary.scalar("Test Success Rate", success_rate, step=epoch)
+
+				print("Epoch: {:03d}/{} | Train Success Rate: {:.3f} | Test Success Rate: {:.3f}".format(
+					epoch, agent.params.num_epochs, np.mean(np.array(successes)), success_rate
+				))
 
 			print("=== Training is Done ===")
 			test_Agent_HER(agent, env, n_trial=agent.params.test_episodes)
 			env.close()
 
 
-def train_TRPO(agent, env, replay_buffer, reward_buffer, summary_writer):
-	get_ready(agent.params)
+@ray.remote
+def _inner_train_HER(agent, env):
+	successes, mb_obs, mb_ag, mb_g, mb_actions = [], [], [], [], []
+	state = env.reset()
+	# obs, achieved_goal, desired_goal in `numpy.ndarray`
+	obs, ag, dg, rg = state_unpacker(state)
+	ep_obs, ep_ag, ep_g, ep_actions = [], [], [], []
+	success = list()
+	for ts in range(agent.params.num_steps):
+		# env.render()
+		action = agent.predict(obs, dg)
+		action = action_postprocessing(action, agent.params)
 
-	global_timestep = tf.train.get_or_create_global_step()
-	time_buffer = deque(maxlen=agent.params.reward_buffer_ep)
-	log = logger(agent.params)
+		next_state, _, _, info = env.step(action)
 
-	with summary_writer.as_default():
-		# for summary purpose, we put all codes in this context
-		with tf.contrib.summary.always_record_summaries():
+		# obs, achieved_goal, desired_goal in `numpy.ndarray`
+		next_obs, next_ag, next_dg, next_rg = state_unpacker(next_state)
 
-			for i in itertools.count():
-				state = env.reset()
-				total_reward = 0
-				start = time.time()
-				agent.random_process.reset_states()
-				done = False
-				episode_len = 0
-				while not done:
-					# env.render()
-					if global_timestep.numpy() < agent.params.learning_start:
-						action = env.action_space.sample()
-					else:
-						action = agent.predict(state)
-					# scale for execution in env (in DDPG, every action is clipped between [-1, 1] in agent.predict)
-					next_state, reward, done, info = env.step(action * env.action_space.high)
-					replay_buffer.add(state, action, reward, next_state, done)
+		ep_obs.append(obs.copy())
+		ep_ag.append(ag.copy())
+		ep_g.append(dg.copy())
+		ep_actions.append(action.copy())
 
-					global_timestep.assign_add(1)
-					episode_len += 1
-					total_reward += reward
-					state = next_state
+		success.append(info.get('is_success'))
+		obs = next_obs
+		# rg = next_rg
+		ag = next_ag
 
-					# for evaluation purpose
-					if global_timestep.numpy() % agent.params.eval_interval == 0:
-						agent.eval_flg = True
-
-				"""
-				===== After 1 Episode is Done =====
-				"""
-
-				states, actions, rewards, next_states, dones = replay_buffer.sample(agent.params.batch_size)
-				loss = agent.update(states, actions, rewards, next_states, dones)
-				soft_target_model_update_eager(agent.target_actor, agent.actor, tau=agent.params.soft_update_tau)
-				soft_target_model_update_eager(agent.target_critic, agent.critic, tau=agent.params.soft_update_tau)
-
-				tf.contrib.summary.scalar("reward", total_reward, step=i)
-				tf.contrib.summary.scalar("exec time", time.time() - start, step=i)
-				if i >= agent.params.reward_buffer_ep:
-					tf.contrib.summary.scalar("Moving Ave Reward", np.mean(reward_buffer), step=i)
-
-				# store the episode reward
-				reward_buffer.append(total_reward)
-				time_buffer.append(time.time() - start)
-
-				if global_timestep.numpy() > agent.params.learning_start and i % agent.params.reward_buffer_ep == 0:
-					log.logging(global_timestep.numpy(), i, np.sum(time_buffer), reward_buffer, np.mean(loss), 0, [0])
-
-				if agent.eval_flg:
-					test_Agent_policy_gradient(agent, env)
-					agent.eval_flg = False
-
-				# check the stopping condition
-				if global_timestep.numpy() > agent.params.num_frames:
-					print("=== Training is Done ===")
-					test_Agent_policy_gradient(agent, env, n_trial=agent.params.test_episodes)
-					env.close()
-					break
+	"""
+	=== After 1 ep ===
+	"""
+	ep_obs.append(obs.copy())
+	ep_ag.append(ag.copy())
+	mb_obs.append(ep_obs)
+	mb_ag.append(ep_ag)
+	mb_g.append(ep_g)
+	mb_actions.append(ep_actions)
+	successes.append(success)
+	return successes, mb_obs, mb_ag, mb_g, mb_actions

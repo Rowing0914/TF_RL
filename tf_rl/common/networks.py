@@ -274,16 +274,17 @@ class TRPO_Policy(tf.keras.Model):
 	"""
 	def __init__(self, output_shape):
 		super(TRPO_Policy, self).__init__()
-		self.dense1 = tf.keras.layers.Dense(128, activation='relu', kernel_initializer=KERNEL_INIT)
-		self.dense2 = tf.keras.layers.Dense(128, activation='relu', kernel_initializer=KERNEL_INIT)
-		self.pred = tf.keras.layers.Dense(output_shape, activation='linear', kernel_initializer=KERNEL_INIT)
+		self.dense1 = tf.keras.layers.Dense(64, activation='tanh', kernel_initializer=KERNEL_INIT)
+		self.dense2 = tf.keras.layers.Dense(64, activation='tanh', kernel_initializer=KERNEL_INIT)
+		self.mean = tf.keras.layers.Dense(output_shape, activation='linear', kernel_initializer=KERNEL_INIT)
+		self.std = tf.get_variable('sigma', (1, output_shape), tf.float32, tf.constant_initializer(0.6))
 
 	@tf.contrib.eager.defun(autograph=False)
 	def call(self, inputs):
 		x = self.dense1(inputs)
 		x = self.dense2(x)
-		pred = self.pred(x)
-		return pred
+		mean = self.mean(x)
+		return mean, self.std
 
 
 class TRPO_Value(tf.keras.Model):
@@ -292,12 +293,12 @@ class TRPO_Value(tf.keras.Model):
 	"""
 	def __init__(self, output_shape):
 		super(TRPO_Value, self).__init__()
-		self.dense1 = tf.keras.layers.Dense(128, activation='relu', kernel_initializer=KERNEL_INIT)
-		self.dense2 = tf.keras.layers.Dense(128, activation='relu', kernel_initializer=KERNEL_INIT)
-		self.pred = tf.keras.layers.Dense(output_shape, activation='linear', kernel_initializer=KERNEL_INIT)
+		self.dense1 = tf.keras.layers.Dense(64, activation='tanh', kernel_regularizer=L2, bias_regularizer=L2, kernel_initializer=KERNEL_INIT)
+		self.dense2 = tf.keras.layers.Dense(64, activation='tanh', kernel_regularizer=L2, bias_regularizer=L2, kernel_initializer=KERNEL_INIT)
+		self.pred = tf.keras.layers.Dense(output_shape, activation='linear', kernel_regularizer=L2, bias_regularizer=L2, kernel_initializer=KERNEL_INIT)
 
 	@tf.contrib.eager.defun(autograph=False)
-	def call(self, inputs, act):
+	def call(self, inputs):
 		x = self.dense1(inputs)
 		x = self.dense2(x)
 		pred = self.pred(x)

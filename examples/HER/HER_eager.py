@@ -4,7 +4,7 @@ import tensorflow as tf
 from tf_rl.common.memory import HER_replay_buffer
 from tf_rl.common.utils import eager_setup, her_sampler, create_log_model_directory, get_alg_name, RunningMeanStd
 from tf_rl.common.params import ROBOTICS_ENV_LIST
-from tf_rl.common.train import train_HER
+from tf_rl.common.train import train_HER, train_HER_ray
 from tf_rl.common.networks import HER_Actor as Actor, HER_Critic as Critic
 from tf_rl.agents.HER import HER_DDPG as HER, HER_DDPG_debug as HER_debug
 
@@ -22,7 +22,7 @@ ROBOTICS_ENV_LIST = {
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--mode", default="MuJoCo", help="Task mode")
-parser.add_argument("--env_name", default="FetchReach-v1", help="Env title")
+parser.add_argument("--env_name", default="FetchPush-v1", help="Env title")
 parser.add_argument("--seed", default=123, type=int, help="seed for randomness")
 parser.add_argument("--num_epochs", default=200, type=int, help="number of epochs in a training")
 parser.add_argument("--num_cycles", default=50, type=int, help="number of cycles in epoch")
@@ -79,4 +79,6 @@ if params.debug_flg:
 else:
 	agent = HER(Actor, Critic, env.action_space.shape[0], params, o_norm, g_norm)
 
+
 train_HER(agent, env, replay_buffer, summary_writer)
+# train_HER_ray(agent, env, replay_buffer, summary_writer)
