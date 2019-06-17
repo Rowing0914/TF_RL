@@ -1,6 +1,5 @@
-from collections import deque
 import time
-from scipy import signal
+from collections import deque
 from tf_rl.common.utils import *
 
 """
@@ -749,7 +748,8 @@ def train_TRPO(agent, env, reward_buffer, summary_writer):
 
 						states.append(state)
 						actions.append(action)
-						rewards.append(reward)
+						# rewards.append(reward*0.0025) # reward scaling
+						rewards.append(reward) # reward scaling
 
 						global_timestep.assign_add(1)
 						total_reward += reward
@@ -770,23 +770,11 @@ def train_TRPO(agent, env, reward_buffer, summary_writer):
 
 
 				"""
-				===== After a number of Episodes is Done =====
+				===== After Rolling out of episodes is Done =====
 				"""
-				# update procedure
-				states = np.array(states).astype(np.float32)
-				state_values = agent.critic(states).numpy()[0]
-				discounted_reward = signal.lfilter([1.0], [1.0, -agent.params.gamma], rewards[::-1])[::-1]
-				td_error = np.array(rewards) - state_values + np.append(state_values[1:] * agent.params.gamma, 0)
-				advantages = signal.lfilter([1.0], [1.0, -agent.params.gae_discount * agent.params.gamma], td_error[::-1])[::-1]
-				advantages = (advantages - np.mean(advantages)) / np.std(advantages) # normalise advantages
-
-				# construct the old policy
-				old_mu, old_std = agent.actor(states)
-				old_policy = tf.contrib.distributions.Normal(old_mu, old_std)
-
-				# update the params: inside it's got a for-loop and a stopping condition
+				# update the weights: inside it's got a for-loop and a stopping condition
 				# so that if the value of KL-divergence exceeds some threshold, then we stop updating.
-				loss = agent.update(states, actions, discounted_reward, advantages, old_policy)
+				loss = agent.update(states, actions, rewards)
 				log.logging(global_timestep.numpy(), total_ep, np.sum(time_buffer), reward_buffer, np.mean(loss), 0, [0])
 
 				test_Agent_TRPO(agent, env)

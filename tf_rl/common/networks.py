@@ -274,8 +274,8 @@ class TRPO_Policy(tf.keras.Model):
 	"""
 	def __init__(self, output_shape):
 		super(TRPO_Policy, self).__init__()
-		self.dense1 = tf.keras.layers.Dense(64, activation='tanh', kernel_initializer=KERNEL_INIT)
-		self.dense2 = tf.keras.layers.Dense(64, activation='tanh', kernel_initializer=KERNEL_INIT)
+		self.dense1 = tf.keras.layers.Dense(128, activation='tanh', kernel_initializer=KERNEL_INIT)
+		self.dense2 = tf.keras.layers.Dense(128, activation='tanh', kernel_initializer=KERNEL_INIT)
 		self.mean = tf.keras.layers.Dense(output_shape, activation='linear', kernel_initializer=KERNEL_INIT)
 		self.std = tf.get_variable('sigma', (1, output_shape), tf.float32, tf.constant_initializer(0.6))
 
@@ -293,8 +293,8 @@ class TRPO_Value(tf.keras.Model):
 	"""
 	def __init__(self, output_shape):
 		super(TRPO_Value, self).__init__()
-		self.dense1 = tf.keras.layers.Dense(64, activation='tanh', kernel_regularizer=L2, bias_regularizer=L2, kernel_initializer=KERNEL_INIT)
-		self.dense2 = tf.keras.layers.Dense(64, activation='tanh', kernel_regularizer=L2, bias_regularizer=L2, kernel_initializer=KERNEL_INIT)
+		self.dense1 = tf.keras.layers.Dense(128, activation='tanh', kernel_regularizer=L2, bias_regularizer=L2, kernel_initializer=KERNEL_INIT)
+		self.dense2 = tf.keras.layers.Dense(128, activation='tanh', kernel_regularizer=L2, bias_regularizer=L2, kernel_initializer=KERNEL_INIT)
 		self.pred = tf.keras.layers.Dense(output_shape, activation='linear', kernel_regularizer=L2, bias_regularizer=L2, kernel_initializer=KERNEL_INIT)
 
 	@tf.contrib.eager.defun(autograph=False)
