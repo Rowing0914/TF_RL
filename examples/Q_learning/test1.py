@@ -12,39 +12,41 @@ class Q_Agent:
 	def __init__(self, env):
 		self.env = env
 		self.Q = np.zeros(self.env.buckets + (env.action_space.n,))
-		# self.Q = collections.defaultdict(lambda: np.zeros(env.action_space.n))
-		self.gamma = 0.95
+		self.gamma = 0.995
 
 	def choose_action(self, state, epsilon):
 		return self.env.action_space.sample() if (np.random.random() <= epsilon) else np.argmax(self.Q[state])
 
 	def update(self, state, action, reward, next_state, alpha):
-		# === I don't know why tho, self.gamma = 0.99 does not converge in Q-learning ===
-		# self.Q[state][action] += alpha * (reward + self.gamma * np.max(self.Q[next_state]) - self.Q[state][action])
 		self.Q[state][action] += alpha * (reward + 1. * np.max(self.Q[next_state]) - self.Q[state][action])
 
 	def test(self):
 		"""
 		Test the agent with a visual aid!
-
-		:return:
 		"""
-		current_state = self.env.reset()
-		done = False
 
-		xmax = 2
-		xmin = -1
-		ymax = np.amax(self.Q) + 30
-		ymin = 0
+		# xmax = 2
+		# xmin = -1
+		# ymax = np.amax(self.Q) + 30
+		# ymin = 0
 
-		while not done:
-			self.env.render()
-			action = self.choose_action(current_state, 0)
-			plot_Q_values(self.Q[current_state], xmin, xmax, ymin, ymax)
-			print(self.Q[current_state])
-			obs, reward, done, _ = self.env.step(action)
-			current_state = obs
-		return
+		scores = list()
+		for ep in range(10):
+			current_state = self.env.reset()
+			done = False
+			score = 0
+			while not done:
+				# self.env.render()
+				action = self.choose_action(current_state, 0)
+				# plot_Q_values(self.Q[current_state], xmin, xmax, ymin, ymax)
+				# print(self.Q[current_state])
+				obs, reward, done, _ = self.env.step(action)
+				current_state = obs
+				score += reward
+			scores.append(score)
+			print("Ep: {}, Score: {}".format(ep, score))
+		scores = np.array(scores)
+		print("Eval => Std: {}, Mean: {}".format(np.std(scores), np.mean(scores)))
 
 
 if __name__ == '__main__':
@@ -53,10 +55,10 @@ if __name__ == '__main__':
 
 	# hyperparameters
 	n_episodes = 1000
-	goal_duration = 180
+	goal_duration = 190
 	decay_steps = 5000
 	all_rewards = list()
-	durations = collections.deque(maxlen=100)
+	durations = collections.deque(maxlen=10)
 	Epsilon = AnnealingSchedule(start=1.0, end=0.01, decay_steps=decay_steps)
 	Alpha = AnnealingSchedule(start=1.0, end=0.01, decay_steps=decay_steps)
 	agent = Q_Agent(env)
@@ -68,6 +70,8 @@ if __name__ == '__main__':
 		done = False
 		duration = 0
 
+		stds, means = [], []
+
 		# one episode of q learning
 		while not done:
 			# env.render()
@@ -77,6 +81,10 @@ if __name__ == '__main__':
 			new_state, reward, done, _ = env.step(action)
 			agent.update(current_state, action, reward, new_state, Alpha.get_value())
 			current_state = new_state
+			stds.append(np.std(agent.Q[current_state]))
+			means.append(np.mean(agent.Q[current_state]))
+
+		print("Ep: {}, Std: {}, Mean: {}".format(episode, np.mean(stds), np.mean(means)))
 
 		# mean duration of last 100 episodes
 		durations.append(duration)
@@ -86,14 +94,14 @@ if __name__ == '__main__':
 		# check if our policy is good
 		if mean_duration >= goal_duration and episode >= 100:
 			print('Ran {} episodes. Solved after {} trials'.format(episode, episode - 100))
-			# agent.test()
+			agent.test()
 			env.close()
 			break
 
 		elif episode % 100 == 0:
 			print('[Episode {}] - Mean time over last 100 episodes was {} frames.'.format(episode, mean_duration))
 
-	import pickle
-	data = agent.Q
-	with open('q_vals.pickle', 'wb') as handle:
-		pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+	# import pickle
+	# data = agent.Q
+	# with open('q_vals.pickle', 'wb') as handle:
+	# 	pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)

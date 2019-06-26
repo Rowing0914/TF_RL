@@ -113,6 +113,10 @@ class DQN_cartpole(Agent_cartpole):
 		# apply processed gradients to the network
 		self.optimizer.apply_gradients(zip(grads, self.main_model.trainable_weights))
 
+		tf.contrib.summary.scalar("mean Q", tf.math.reduce_mean(q_values), step=self.index_timestep)
+		tf.contrib.summary.scalar("var Q", tf.math.reduce_variance(q_values), step=self.index_timestep)
+		tf.contrib.summary.scalar("max Q", tf.math.reduce_max(q_values), step=self.index_timestep)
+
 		return loss, batch_loss
 
 
