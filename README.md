@@ -205,7 +205,7 @@ for env_name, goal_score in DDPG_ENV_LIST.items():
 - OS: Linux Ubuntu LTS 16.04
 - Python: 2.7/3.6 (For MuJoCo Env, 2.7 might not work)
 - GPU: Gefoce GTX1060 Ti Max Q Design
-- Tensorflow: 1.13.1
+- Tensorflow: 1.14.0(I have tested codes with 1.13.1 as well)
 - CUDA: 10.0
 - libcudnn: 7.4.1
 

@@ -103,7 +103,7 @@ class MyWrapper(gym.Wrapper):
 class DiscretisedEnv(gym.Wrapper):
 	"""
 	Wrapper for getting discredited observation from cartpole
-
+	Inspired by https://medium.com/@tuzzer/cart-pole-balancing-with-q-learning-b54c6068d947
 	"""
 
 	def __init__(self, env, n_bins=10):
