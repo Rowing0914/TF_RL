@@ -11,20 +11,20 @@ state = env.reset()
 memory = list()
 
 for t in range(10):
-	action = env.action_space.sample()
-	next_state, reward, done, info = env.step(action)
-	memory.append((next_state, reward, done, info))
-	# print(reward, next_state)
-	state = next_state
-	if done:
-		break
+    action = env.action_space.sample()
+    next_state, reward, done, info = env.step(action)
+    memory.append((next_state, reward, done, info))
+    # print(reward, next_state)
+    state = next_state
+    if done:
+        break
 env.close()
 
 recvbuf = comm.gather(memory, root=0)
 
 if rank == 0:
-	print(len(recvbuf))
-	print(recvbuf)
+    print(len(recvbuf))
+    print(recvbuf)
 
 # from mpi4py import MPI
 # import numpy as np

@@ -48,8 +48,6 @@ elif args.mode == "Atari":
 else:
     print("Select 'mode' either 'Atari' or 'CartPole' !!")
 
-
 all_rewards, losses = train_Double_DQN(main_model, target_model, env, replay_buffer, policy, params)
 
 np.save("../logs/value/rewards_Double_DQN.npy", np.array(all_rewards))
-

@@ -170,7 +170,7 @@ for i_episode in range(n_rounds):
             img.save(os.path.join('images', 'observation_{}_{}.png'.format(i_episode, t)))
 
         if done:
-            print("Episode finished after {} timesteps".format(t+1))
+            print("Episode finished after {} timesteps".format(t + 1))
             env.render(render_mode)
             break
 
@@ -180,15 +180,15 @@ for i_episode in range(n_rounds):
 
         with imageio.get_writer(os.path.join('images', 'round_{}.gif'.format(i_episode)), mode='I', fps=1) as writer:
 
-                for t in range(n_steps):
-                    try:
+            for t in range(n_steps):
+                try:
 
-                        filename = os.path.join('images', 'observation_{}_{}.png'.format(i_episode, t))
-                        image = imageio.imread(filename)
-                        writer.append_data(image)
+                    filename = os.path.join('images', 'observation_{}_{}.png'.format(i_episode, t))
+                    image = imageio.imread(filename)
+                    writer.append_data(image)
 
-                    except:
-                        pass
+                except:
+                    pass
 
 env.close()
 time.sleep(10)

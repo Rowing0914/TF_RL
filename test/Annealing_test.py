@@ -8,6 +8,6 @@ policy = EpsilonGreedyPolicy(Epsilon_fn=Epsilon)
 num_episodes = 80
 
 for ep in range(num_episodes):
-	print(Epsilon.get_value(ep))
-	policy.index_episode = ep
-	print(policy.current_epsilon())
+    print(Epsilon.get_value(ep))
+    policy.index_episode = ep
+    print(policy.current_epsilon())

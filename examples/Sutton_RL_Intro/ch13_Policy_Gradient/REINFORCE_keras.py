@@ -13,7 +13,7 @@ from keras.layers import Dense, Input
 import collections
 
 if "../" not in sys.path:
-  sys.path.append("../")
+    sys.path.append("../")
 
 from libs.envs.cliff_walking import CliffWalkingEnv
 
@@ -21,20 +21,21 @@ env = CliffWalkingEnv()
 
 _action = 3
 
+
 class PolicyEstimator():
     """
     Policy Function approximator. 
     """
-    
+
     def __init__(self):
         # This is just table lookup estimator
-        _in        = Input(shape=(env.observation_space.n,))
-        out        = Dense(env.action_space.n, activation='softmax')(_in)
+        _in = Input(shape=(env.observation_space.n,))
+        out = Dense(env.action_space.n, activation='softmax')(_in)
         self.model = Model(inputs=_in, outputs=out)
 
         def loss(y_true, y_pred):
             # using global action to access the picked action
-            return - K.log(K.flatten(y_pred)[_action])*y_true
+            return - K.log(K.flatten(y_pred)[_action]) * y_true
 
         self.model.compile(loss=loss, optimizer="Adam")
         self.model.summary()
@@ -45,18 +46,19 @@ class PolicyEstimator():
     def update(self, state, target):
         return self.model.fit(keras.utils.to_categorical(state, int(env.observation_space.n)), target, verbose=0)
 
+
 class ValueEstimator():
     """
     Value Function approximator. 
     """
-    
+
     def __init__(self):
         _in = Input(shape=(env.observation_space.n,))
         out = Dense(1, activation='sigmoid')(_in)
         self.model = Model(inputs=_in, outputs=out)
         self.model.compile(loss='mse', optimizer='Adam', metrics=['accuracy'])
         self.model.summary()
-    
+
     def predict(self, state):
         return self.model.predict(keras.utils.to_categorical(state, int(env.observation_space.n)))[0]
 
@@ -85,25 +87,25 @@ def reinforce(env, estimator_policy, estimator_value, num_episodes, discount_fac
     for i_episode in range(num_episodes):
         # Reset the environment and pick the fisrst action
         state = env.reset()
-        
+
         episode = []
         rewards = 0
-        
+
         # One step in the environment
         for t in itertools.count():
-            
+
             # Take a step
             action_probs = estimator_policy.predict(np.array([state]))
             action = np.random.choice(np.arange(len(action_probs)), p=action_probs)
             next_state, reward, done, _ = env.step(action)
-            
+
             # Keep track of the transition
             episode.append(Transition(
-              state=state, action=action, reward=reward, next_state=next_state, done=done))
-            
+                state=state, action=action, reward=reward, next_state=next_state, done=done))
+
             # Update statistics
             rewards += reward
-            
+
             # Print out which step we're on, useful for debugging.
             print("\rStep {} @ Episode {}/{} ({})".format(t, i_episode + 1, num_episodes, rewards), end="")
             # sys.stdout.flush()
@@ -111,13 +113,13 @@ def reinforce(env, estimator_policy, estimator_value, num_episodes, discount_fac
             if done:
                 rewards_log.append(rewards)
                 break
-                
+
             state = next_state
-    
+
         # Go through the episode and make policy updates
         for t, transition in enumerate(episode):
             # The return after this timestep
-            total_return = sum(discount_factor**i * t.reward for i, t in enumerate(episode[t:]))
+            total_return = sum(discount_factor ** i * t.reward for i, t in enumerate(episode[t:]))
             # Calculate baseline/advantage
             baseline_value = estimator_value.predict(np.array([transition.state]))
             advantage = total_return - baseline_value
@@ -127,8 +129,9 @@ def reinforce(env, estimator_policy, estimator_value, num_episodes, discount_fac
             global _action
             _action = transition.action
             estimator_policy.update(np.array([transition.state]), advantage)
-    
+
     return rewards_log
+
 
 policy_estimator = PolicyEstimator()
 value_estimator = ValueEstimator()

@@ -9,9 +9,7 @@ from rl.agents import DDPGAgent
 from rl.memory import SequentialMemory
 from rl.random import OrnsteinUhlenbeckProcess
 
-
 ENV_NAME = 'Pendulum-v0'
-
 
 # Get the environment and extract the number of actions.
 env = gym.make(ENV_NAME)

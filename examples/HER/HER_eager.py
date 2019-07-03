@@ -60,11 +60,11 @@ obs = env.reset()
 
 # prep for basic stats
 env_params = {
-	'obs': obs['observation'].shape[0],
-	'goal': obs['desired_goal'].shape[0],
-	'action': env.action_space.shape[0],
-	'action_max': env.action_space.high[0],
-	'max_timesteps': env._max_episode_steps
+    'obs': obs['observation'].shape[0],
+    'goal': obs['desired_goal'].shape[0],
+    'action': env.action_space.shape[0],
+    'action_max': env.action_space.high[0],
+    'max_timesteps': env._max_episode_steps
 }
 
 her_sample_func = her_sampler(params.replay_strategy, params.replay_k, env.compute_reward)
@@ -75,10 +75,9 @@ o_norm = RunningMeanStd(env_params['obs'])
 g_norm = RunningMeanStd(env_params['goal'])
 
 if params.debug_flg:
-	agent = HER_debug(Actor, Critic, env.action_space.shape[0], params, o_norm, g_norm)
+    agent = HER_debug(Actor, Critic, env.action_space.shape[0], params, o_norm, g_norm)
 else:
-	agent = HER(Actor, Critic, env.action_space.shape[0], params, o_norm, g_norm)
-
+    agent = HER(Actor, Critic, env.action_space.shape[0], params, o_norm, g_norm)
 
 train_HER(agent, env, replay_buffer, summary_writer)
 # train_HER_ray(agent, env, replay_buffer, summary_writer)

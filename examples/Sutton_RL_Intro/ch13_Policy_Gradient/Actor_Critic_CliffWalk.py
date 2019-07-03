@@ -9,9 +9,10 @@ import tensorflow as tf
 import collections
 
 if "../" not in sys.path:
-  sys.path.append("../")
+    sys.path.append("../")
 
 from libs.envs.cliff_walking import CliffWalkingEnv
+
 
 class PolicyEstimator:
     def __init__(self, learning_rate=0.01, scope="policy_estimator"):
@@ -28,7 +29,7 @@ class PolicyEstimator:
                 weights_initializer=tf.zeros_initializer)
             self.action_probs = tf.squeeze(tf.nn.softmax(self.output_layer))
             self.picked_action_probs = tf.gather(self.action_probs, self.action)
-            self.loss = - tf.log(self.picked_action_probs)*self.target
+            self.loss = - tf.log(self.picked_action_probs) * self.target
             self.optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
             self.train_op = self.optimizer.minimize(
                 self.loss, global_step=tf.train.get_global_step())
@@ -72,6 +73,7 @@ class ValueEstimator:
         _, loss = sess.run([self.train_op, self.loss], feed_dict)
         return loss
 
+
 def actor_critic(env, estimator_policy, estimator_value, num_episodes, discount_factor=1.0):
     rewards_log = list()
     Transition = collections.namedtuple("Transition", ["state", "action", "reward", "next_state", "done"])
@@ -88,14 +90,14 @@ def actor_critic(env, estimator_policy, estimator_value, num_episodes, discount_
             rewards += reward
 
             value_next = estimator_value.predict(next_state)
-            td_target = reward + discount_factor*value_next
+            td_target = reward + discount_factor * value_next
             td_error = td_target - estimator_value.predict(state)
 
             estimator_value.update(state, td_target)
             estimator_policy.update(state, td_error, action)
 
             print("\rStep {} @ Episode {}/{} ({})".format(
-                t, i_episode+1, num_episodes, rewards), end="")
+                t, i_episode + 1, num_episodes, rewards), end="")
 
             if done:
                 rewards_log.append(rewards)

@@ -18,7 +18,6 @@ from rl.memory import SequentialMemory
 from rl.core import Processor
 from rl.callbacks import FileLogger, ModelIntervalCheckpoint
 
-
 INPUT_SHAPE = (84, 84)
 WINDOW_LENGTH = 4
 
@@ -41,6 +40,7 @@ class AtariProcessor(Processor):
 
     def process_reward(self, reward):
         return np.clip(reward, -1., 1.)
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--mode', choices=['train', 'test'], default='train')

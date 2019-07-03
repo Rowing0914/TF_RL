@@ -32,15 +32,21 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--env_name", default="Ant-v2", help="Env title")
 parser.add_argument("--seed", default=123, type=int, help="seed for randomness")
 parser.add_argument("--num_frames", default=1_000_000, type=int, help="total frame in a training")
-parser.add_argument("--train_interval", default=100, type=int, help="a frequency of training occurring in training phase")
-parser.add_argument("--nb_train_steps", default=50, type=int, help="a number of training, which occurs once in train_interval above!!")
-parser.add_argument("--eval_interval", default=10_000, type=int, help="a frequency of evaluation occurring in training phase")
+parser.add_argument("--train_interval", default=100, type=int,
+                    help="a frequency of training occurring in training phase")
+parser.add_argument("--nb_train_steps", default=50, type=int,
+                    help="a number of training, which occurs once in train_interval above!!")
+parser.add_argument("--eval_interval", default=10_000, type=int,
+                    help="a frequency of evaluation occurring in training phase")
 parser.add_argument("--memory_size", default=100_000, type=int, help="memory size in a training")
-parser.add_argument("--learning_start", default=10_000, type=int, help="frame number which specifies when to start updating the agent")
+parser.add_argument("--learning_start", default=10_000, type=int,
+                    help="frame number which specifies when to start updating the agent")
 parser.add_argument("--batch_size", default=100, type=int, help="batch size of each iteration of update")
 parser.add_argument("--reward_buffer_ep", default=5, type=int, help="reward_buffer size")
-parser.add_argument("--gamma", default=0.99, type=float, help="discount factor => gamma > 1.0 or negative => does not converge!!")
-parser.add_argument("--soft_update_tau", default=1e-2, type=float, help="soft-update needs tau to define the ratio of main model remains")
+parser.add_argument("--gamma", default=0.99, type=float,
+                    help="discount factor => gamma > 1.0 or negative => does not converge!!")
+parser.add_argument("--soft_update_tau", default=1e-2, type=float,
+                    help="soft-update needs tau to define the ratio of main model remains")
 parser.add_argument("--L2_reg", default=0.5, type=float, help="magnitude of L2 regularisation")
 parser.add_argument("--action_range", default=[-1., 1.], type=list, help="magnitude of L2 regularisation")
 parser.add_argument("--log_dir", default="../../logs/logs/DDPG/", help="directory for log")
@@ -54,11 +60,11 @@ params.goal = DDPG_ENV_LIST[params.env_name]
 now = datetime.now()
 
 if params.debug_flg:
-	params.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "-DDPG/"
-	params.model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "-DDPG/"
+    params.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "-DDPG/"
+    params.model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "-DDPG/"
 else:
-	params.log_dir = "../../logs/logs/{}".format(params.env_name)
-	params.model_dir = "../../logs/models/{}".format(params.env_name)
+    params.log_dir = "../../logs/logs/{}".format(params.env_name)
+    params.model_dir = "../../logs/models/{}".format(params.env_name)
 
 env = gym.make(params.env_name)
 # set seed

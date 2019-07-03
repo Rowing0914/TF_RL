@@ -55,13 +55,13 @@ tf.random.set_random_seed(params.seed)
 now = datetime.now()
 
 if params.debug_flg:
-	params.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "-TRPO/"
-	params.model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "-TRPO/"
-	agent = TRPO_debug(Policy, Value, env.action_space.shape[0], params)
+    params.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "-TRPO/"
+    params.model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "-TRPO/"
+    agent = TRPO_debug(Policy, Value, env.action_space.shape[0], params)
 else:
-	params.log_dir = "../../logs/logs/{}".format(params.env_name)
-	params.model_dir = "../../logs/models/{}".format(params.env_name)
-	agent = TRPO(Policy, Value, env.action_space.shape[0], params)
+    params.log_dir = "../../logs/logs/{}".format(params.env_name)
+    params.model_dir = "../../logs/models/{}".format(params.env_name)
+    agent = TRPO(Policy, Value, env.action_space.shape[0], params)
 
 reward_buffer = deque(maxlen=params.reward_buffer_ep)
 summary_writer = tf.contrib.summary.create_file_writer(params.log_dir)

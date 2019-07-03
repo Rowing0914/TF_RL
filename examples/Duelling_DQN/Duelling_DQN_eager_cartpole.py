@@ -2,7 +2,8 @@ import argparse
 import tensorflow as tf
 from collections import deque
 from tf_rl.common.memory import ReplayBuffer
-from tf_rl.common.utils import gradient_clip_fn, eager_setup, create_loss_func, create_log_model_directory, invoke_agent_env, get_alg_name
+from tf_rl.common.utils import gradient_clip_fn, eager_setup, create_loss_func, create_log_model_directory, \
+    invoke_agent_env, get_alg_name
 from tf_rl.common.policy import EpsilonGreedyPolicy_eager
 from tf_rl.common.train import train_DQN
 from tf_rl.common.networks import CartPole as Model
@@ -14,16 +15,20 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--mode", default="CartPole", help="game env type: Atari or CartPole")
 parser.add_argument("--seed", default=123, help="seed of randomness")
 parser.add_argument("--loss_fn", default="huber", help="types of loss function: MSE or huber")
-parser.add_argument("--grad_clip_flg", default="", help="gradient clippings: by value(by_value) or global norm(norm) or nothing")
+parser.add_argument("--grad_clip_flg", default="",
+                    help="gradient clippings: by value(by_value) or global norm(norm) or nothing")
 parser.add_argument("--num_frames", default=10000, type=int, help="total frame in a training")
 parser.add_argument("--train_interval", default=1, type=int, help="a frequency of training occurring in training phase")
-parser.add_argument("--eval_interval", default=2500, type=int, help="a frequency of evaluation occurring in training phase") # temp
+parser.add_argument("--eval_interval", default=2500, type=int,
+                    help="a frequency of evaluation occurring in training phase")  # temp
 parser.add_argument("--memory_size", default=5000, type=int, help="memory size in a training")
-parser.add_argument("--learning_start", default=100, type=int, help="frame number which specifies when to start updating the agent")
+parser.add_argument("--learning_start", default=100, type=int,
+                    help="frame number which specifies when to start updating the agent")
 parser.add_argument("--sync_freq", default=1000, type=int, help="frequency of updating a target model")
 parser.add_argument("--batch_size", default=32, type=int, help="batch size of each iteration of update")
 parser.add_argument("--reward_buffer_ep", default=10, type=int, help="reward_buffer size")
-parser.add_argument("--gamma", default=0.99, type=float, help="discount factor: gamma > 1.0 or negative => does not converge!!")
+parser.add_argument("--gamma", default=0.99, type=float,
+                    help="discount factor: gamma > 1.0 or negative => does not converge!!")
 parser.add_argument("--tau", default=1e-2, type=float, help="soft update tau")
 parser.add_argument("--ep_start", default=1.0, type=float, help="initial value of epsilon")
 parser.add_argument("--ep_end", default=0.02, type=float, help="final value of epsilon")

@@ -18,6 +18,7 @@ def make_epsilon_greedy_policy(Q, epsilon, nA):
         best_action = np.argmax(Q[observation])
         A[best_action] += (1.0 - epsilon)
         return A
+
     return policy
 
 
@@ -46,11 +47,11 @@ def n_step_offpolicy_Sarsa(env, Q, n_step=3, alpha=0.5, discount_factor=1.0, eps
 
             if cnt == n_step:
                 # importance sampling
-                p = np.prod([Q[row[1]] / np.ones(len(Q[0]))/len(Q[0]) for row in memory])
+                p = np.prod([Q[row[1]] / np.ones(len(Q[0])) / len(Q[0]) for row in memory])
                 # n-step accumulated return
-                G = np.sum([ discount_factor**i * r for i, r in enumerate(memory)])
+                G = np.sum([discount_factor ** i * r for i, r in enumerate(memory)])
                 # update rule
-                Q[state][action] += p*alpha*(G - Q[state][action])
+                Q[state][action] += p * alpha * (G - Q[state][action])
 
             stats[i, 0] = t
             stats[i, 1] += reward

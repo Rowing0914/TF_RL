@@ -18,6 +18,7 @@ def make_epsilon_greedy_policy(Q, epsilon, nA):
         best_action = np.argmax(Q[observation])
         A[best_action] += (1.0 - epsilon)
         return A
+
     return policy
 
 

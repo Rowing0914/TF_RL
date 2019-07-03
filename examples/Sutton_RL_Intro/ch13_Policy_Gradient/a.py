@@ -53,8 +53,6 @@ model.compile(loss=keras.losses.categorical_crossentropy,
               optimizer=keras.optimizers.Adadelta(),
               metrics=['accuracy'])
 
-
-
 print(model.input, model.output)
 
 temp = []

@@ -12,12 +12,14 @@ from libs.envs.windy_gridworld import WindyGridworldEnv
 from libs.plot import plot_result, compare_plots
 from ch6_TD.sarsa import Sarsa
 
+
 def make_epsilon_greedy_policy(Q, epsilon, nA):
     def policy(observation):
         A = np.ones(nA, dtype=float) * epsilon / nA
         best_action = np.argmax(Q[observation])
         A[best_action] += (1.0 - epsilon)
         return A
+
     return policy
 
 

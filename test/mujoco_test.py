@@ -5,8 +5,8 @@ import gym
 from tf_rl.common.params import DDPG_ENV_LIST
 
 for env_name, goal_score in DDPG_ENV_LIST.items():
-	env = gym.make(env_name)
-	env.reset()
-	for _ in range(100):
-		env.render()
-		env.step(env.action_space.sample()) # take a random action
+    env = gym.make(env_name)
+    env.reset()
+    for _ in range(100):
+        env.render()
+        env.step(env.action_space.sample())  # take a random action

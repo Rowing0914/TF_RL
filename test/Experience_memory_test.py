@@ -8,18 +8,18 @@ memory = ReplayBuffer(500_000)
 print("Memory contains {0} timesteps".format(len(memory)))
 
 for i in range(10000):
-	state = env.reset()
-	for t in range(1000):
-		# env.render()
-		action = env.action_space.sample()
-		next_state, reward, done, info = env.step(action)
-		memory.add(state, action, reward, next_state, done)
+    state = env.reset()
+    for t in range(1000):
+        # env.render()
+        action = env.action_space.sample()
+        next_state, reward, done, info = env.step(action)
+        memory.add(state, action, reward, next_state, done)
 
-		if done:
-			print("Episode finished after {} timesteps".format(t + 1))
-			print("Memory contains {0} timesteps".format(len(memory)))
-			break
-	state = next_state
+        if done:
+            print("Episode finished after {} timesteps".format(t + 1))
+            print("Memory contains {0} timesteps".format(len(memory)))
+            break
+    state = next_state
 
 env.close()
 

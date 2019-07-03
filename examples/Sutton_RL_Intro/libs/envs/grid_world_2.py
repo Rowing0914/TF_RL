@@ -6,6 +6,7 @@ import tkinter as tk
 import numpy as np
 import time
 
+
 class Gridworld:
 
     def __init__(self, gamma=0.9, alpha=0.5, epsilon=0.01):
@@ -265,9 +266,10 @@ class Gridworld:
 
         self.root.mainloop()
 
+
 data = Gridworld()
 
 # data.__init__()
-#data.reward_table()
+# data.reward_table()
 # data.grid()
 data.move_agent()

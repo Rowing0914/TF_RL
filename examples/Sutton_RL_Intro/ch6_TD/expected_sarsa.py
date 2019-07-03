@@ -13,12 +13,14 @@ from libs.plot import plot_result, compare_plots
 from ch6_TD.sarsa import Sarsa
 from ch6_TD.q_learning import Q_learning
 
+
 def make_epsilon_greedy_policy(Q, epsilon, nA):
     def policy(observation):
         A = np.ones(nA, dtype=float) * epsilon / nA
         best_action = np.argmax(Q[observation])
         A[best_action] += (1.0 - epsilon)
         return A
+
     return policy
 
 
@@ -34,7 +36,9 @@ def Ex_Sarsa(env, Q, alpha=0.5, discount_factor=1.0, epsilon=0.1, num_episodes=1
         for t in itertools.count():
             next_state, reward, done, _ = env.step(action)
             for next_action in np.arange(env.action_space.n):
-                Q[state][action] += alpha * (reward + discount_factor * policy(next_state)[next_action] * Q[next_state][next_action] - Q[state][action])
+                Q[state][action] += alpha * (
+                            reward + discount_factor * policy(next_state)[next_action] * Q[next_state][next_action] -
+                            Q[state][action])
 
             stats[i, 0] = t
             stats[i, 1] += reward

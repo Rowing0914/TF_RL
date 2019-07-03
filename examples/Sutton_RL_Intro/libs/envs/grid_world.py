@@ -9,6 +9,7 @@ RIGHT = 1
 DOWN = 2
 LEFT = 3
 
+
 class GridworldEnv(discrete.DiscreteEnv):
     """
     Grid World environment from Sutton's Reinforcement Learning book chapter 4.
@@ -31,7 +32,7 @@ class GridworldEnv(discrete.DiscreteEnv):
 
     metadata = {'render.modes': ['human', 'ansi']}
 
-    def __init__(self, shape=[4,4]):
+    def __init__(self, shape=[4, 4]):
         if not isinstance(shape, (list, tuple)) or not len(shape) == 2:
             raise ValueError('shape argument must be a list/tuple of length 2')
 
@@ -51,7 +52,7 @@ class GridworldEnv(discrete.DiscreteEnv):
             s = it.iterindex
             y, x = it.multi_index
 
-            P[s] = {a : [] for a in range(nA)}
+            P[s] = {a: [] for a in range(nA)}
 
             is_done = lambda s: s == 0 or s == (nS - 1)
             reward = 0.0 if is_done(s) else -1.0
@@ -104,7 +105,7 @@ class GridworldEnv(discrete.DiscreteEnv):
                 output = " o "
 
             if x == 0:
-                output = output.lstrip() 
+                output = output.lstrip()
             if x == self.shape[1] - 1:
                 output = output.rstrip()
 
@@ -114,6 +115,7 @@ class GridworldEnv(discrete.DiscreteEnv):
                 outfile.write("\n")
 
             it.iternext()
+
 
 if __name__ == '__main__':
     env = GridworldEnv()

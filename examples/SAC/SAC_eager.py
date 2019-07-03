@@ -32,14 +32,19 @@ parser.add_argument("--env_name", default="Ant-v2", help="Env title")
 parser.add_argument("--seed", default=123, type=int, help="seed for randomness")
 parser.add_argument("--num_frames", default=1_000_000, type=int, help="total frame in a training")
 parser.add_argument("--update_steps", default=100, type=int, help="a frequency of training occurring in training phase")
-parser.add_argument("--eval_interval", default=50_000, type=int, help="a frequency of evaluation occurring in training phase")
+parser.add_argument("--eval_interval", default=50_000, type=int,
+                    help="a frequency of evaluation occurring in training phase")
 parser.add_argument("--memory_size", default=100_000, type=int, help="memory size in a training")
-parser.add_argument("--learning_start", default=10_000, type=int, help="frame number which specifies when to start updating the agent")
+parser.add_argument("--learning_start", default=10_000, type=int,
+                    help="frame number which specifies when to start updating the agent")
 parser.add_argument("--batch_size", default=256, type=int, help="batch size of each iteration of update")
 parser.add_argument("--reward_buffer_ep", default=5, type=int, help="reward_buffer size")
-parser.add_argument("--gamma", default=0.99, type=float, help="discount factor => gamma > 1.0 or negative => does not converge!!")
-parser.add_argument("--alpha", default=0.2, type=float, help="Temperature param which determines the relative importance of the entropy term against the reward")
-parser.add_argument("--soft_update_tau", default=0.005, type=float, help="soft-update needs tau to define the ratio of main model remains")
+parser.add_argument("--gamma", default=0.99, type=float,
+                    help="discount factor => gamma > 1.0 or negative => does not converge!!")
+parser.add_argument("--alpha", default=0.2, type=float,
+                    help="Temperature param which determines the relative importance of the entropy term against the reward")
+parser.add_argument("--soft_update_tau", default=0.005, type=float,
+                    help="soft-update needs tau to define the ratio of main model remains")
 parser.add_argument("--log_dir", default="../../logs/logs/SAC/", help="directory for log")
 parser.add_argument("--model_dir", default="../../logs/models/SAC/", help="directory for trained model")
 parser.add_argument("--debug_flg", default=False, type=bool, help="debug mode or not")
@@ -48,15 +53,15 @@ params = parser.parse_args()
 params.test_episodes = 10
 
 from datetime import datetime
+
 now = datetime.now()
 
 if params.debug_flg:
-	params.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "-SAC/"
-	params.model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "-SAC/"
+    params.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "-SAC/"
+    params.model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "-SAC/"
 else:
-	params.log_dir = "../../logs/logs/{}".format(params.env_name)
-	params.model_dir = "../../logs/models/{}".format(params.env_name)
-
+    params.log_dir = "../../logs/logs/{}".format(params.env_name)
+    params.model_dir = "../../logs/models/{}".format(params.env_name)
 
 env = gym.make(params.env_name)
 # set seed
@@ -66,9 +71,9 @@ tf.random.set_random_seed(params.seed)
 params.goal = DDPG_ENV_LIST[params.env_name]
 
 if params.debug_flg:
-	agent = SAC_debug(Actor, Critic, env.action_space.shape[0], params)
+    agent = SAC_debug(Actor, Critic, env.action_space.shape[0], params)
 else:
-	agent = SAC(Actor, Critic, env.action_space.shape[0], params)
+    agent = SAC(Actor, Critic, env.action_space.shape[0], params)
 
 replay_buffer = ReplayBuffer(params.memory_size)
 reward_buffer = deque(maxlen=params.reward_buffer_ep)

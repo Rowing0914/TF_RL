@@ -13,12 +13,14 @@ from libs.plot import plot_result, compare_plots
 from ch6_TD.sarsa import Sarsa
 from ch6_TD.q_learning import Q_learning
 
+
 def make_epsilon_greedy_policy(Q1, Q2, epsilon, nA):
     def policy(observation):
         A = np.ones(nA, dtype=float) * epsilon / nA
-        best_action = np.argmax(Q1[observation]+Q2[observation])
+        best_action = np.argmax(Q1[observation] + Q2[observation])
         A[best_action] += (1.0 - epsilon)
         return A
+
     return policy
 
 
@@ -36,10 +38,12 @@ def Double_Q_learning(env, Q1, Q2, alpha=0.5, discount_factor=1.0, epsilon=0.1, 
 
             if np.random.random() >= 0.5:
                 next_action = np.argmax(Q1[next_state])
-                Q1[state][action] += alpha * (reward + discount_factor * Q1[next_state][next_action] - Q1[state][action])
+                Q1[state][action] += alpha * (
+                            reward + discount_factor * Q1[next_state][next_action] - Q1[state][action])
             else:
                 next_action = np.argmax(Q2[next_state])
-                Q2[state][action] += alpha * (reward + discount_factor * Q2[next_state][next_action] - Q2[state][action])
+                Q2[state][action] += alpha * (
+                            reward + discount_factor * Q2[next_state][next_action] - Q2[state][action])
 
             stats[i, 0] = t
             stats[i, 1] += reward
@@ -61,7 +65,8 @@ if __name__ == '__main__':
     Q = defaultdict(lambda: np.zeros(env.action_space.n))
     Q1 = defaultdict(lambda: np.zeros(env.action_space.n))
     Q2 = defaultdict(lambda: np.zeros(env.action_space.n))
-    _, stats_double_Q = Double_Q_learning(env, Q1, Q2, alpha=ALPHA, discount_factor=DISCOUNT_FACTOR, num_episodes=NUM_EPISODES)
+    _, stats_double_Q = Double_Q_learning(env, Q1, Q2, alpha=ALPHA, discount_factor=DISCOUNT_FACTOR,
+                                          num_episodes=NUM_EPISODES)
     _, stats_Q = Q_learning(env, Q, alpha=ALPHA, discount_factor=DISCOUNT_FACTOR, num_episodes=NUM_EPISODES)
     _, stats_sarsa = Sarsa(env, Q, alpha=ALPHA, discount_factor=DISCOUNT_FACTOR, num_episodes=NUM_EPISODES)
     stats = {'Double Q-Learning': stats_double_Q, 'Q-Learning': stats_Q, 'Sarsa': stats_sarsa}
