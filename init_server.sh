@@ -8,9 +8,11 @@ apt-get install python3.6
 apt-get install vim
 apt-get install git-core
 apt-get install python-opencv
+apt-get install python3-pip
 
 # set alias for pip3.6
-echo \n"alias pip3.6='python3.6 -m pip'" >> ~/.bashrc
+echo "\n" >> ~/.bashrc
+echo "alias pip3.6='python3.6 -m pip'" >> ~/.bashrc
 export LC_ALL=C
 source ~/.bashrc
 apt-get update
