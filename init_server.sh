@@ -11,5 +11,6 @@ source ~/.bashrc
 apt-get update
 apt-get install -y libsm6 libxext6 libxrender-dev
 
+pip3.6 install --index-url https://test.pypi.org/simple/ --no-deps TF_RL
 pip3.6 install gym tensorflow-gpu==1.14.0 numpy opencv-python matplotlib ipykernel pandas ray tensorflow_probability
 pip3.6 install --upgrade gym[atari]
