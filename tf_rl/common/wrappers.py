@@ -102,7 +102,7 @@ class MyWrapper(gym.Wrapper):
 
 class DiscretisedEnv(gym.Wrapper):
     """
-    Wrapper for getting discredited observation from cartpole
+    Wrapper for getting discredited observation in cartpole
     Inspired by https://medium.com/@tuzzer/cart-pole-balancing-with-q-learning-b54c6068d947
     """
 
@@ -119,13 +119,13 @@ class DiscretisedEnv(gym.Wrapper):
         self.pole_velocity_low = env.observation_space.low[3]
 
         self.cart_position_bins = \
-        pandas.cut([self.cart_position_high, self.cart_position_low], bins=n_bins, retbins=True)[1][1:-1]
+            pandas.cut([self.cart_position_high, self.cart_position_low], bins=n_bins, retbins=True)[1][1:-1]
         self.cart_velocity_bins = \
-        pandas.cut([self.cart_velocity_high, self.cart_velocity_low], bins=n_bins, retbins=True)[1][1:-1]
+            pandas.cut([self.cart_velocity_high, self.cart_velocity_low], bins=n_bins, retbins=True)[1][1:-1]
         self.pole_angle_bins = pandas.cut([self.pole_angle_high, self.pole_angle_low], bins=n_bins, retbins=True)[1][
                                1:-1]
         self.pole_velocity_bins = \
-        pandas.cut([self.pole_velocity_low, self.pole_velocity_low], bins=n_bins, retbins=True)[1][1:-1]
+            pandas.cut([self.pole_velocity_low, self.pole_velocity_low], bins=n_bins, retbins=True)[1][1:-1]
 
         self.buckets = (1, 1, 6, 12,)
 
@@ -172,7 +172,6 @@ class MyWrapper_revertable(gym.Wrapper):
     """
     Wrapper for reverting the time-step, this is mainly used in Q-learning with Particle Filter
     we need this to simulate each particle on cartpole env
-
     """
 
     def __init__(self, env):
@@ -195,6 +194,49 @@ class MyWrapper_revertable(gym.Wrapper):
 
     def set_state(self, state):
         self.env.state = state
+
+
+class ReplayResetEnv(gym.Wrapper):
+    """
+    Wrapper for reverting the game to a specific state and it also changes the internal state(RAM) of ALE as well.
+
+    ## Usage
+    ```python
+    from tf_rl.common.wrappers import wrap_deepmind, make_atari, ReplayResetEnv
+
+    env = wrap_deepmind(make_atari("PongNoFrameskip-v4"))
+    env = ReplayResetEnv(env)
+
+    state = env.reset()
+    init_state = env.get_checkpoint_state()
+
+    for t in range(1, 1000):
+        env.render()
+        action = env.action_space.sample()
+        next_state, reward, done, info = env.step(action)
+        state = next_state
+        if t % 100 == 0:
+            print("done", t)
+            env.recover(init_state)
+    env.close()
+    ```
+
+    """
+
+    def __init__(self, env):
+        gym.Wrapper.__init__(self, env)
+        self.env = env
+
+    def recover(self, state):
+        self.env.unwrapped.restore_state(state)
+        self.env.step(0)  # 1 extra step to burn the current state on ALE's RAM is required!!
+        return self.env.unwrapped._get_image()  # output the newly recovered observation
+
+    def get_checkpoint_state(self):
+        return self.env.unwrapped.clone_state()
+
+    def env_RAM(self):
+        return self.env.unwrapped.ale.getRAM()
 
 
 """
