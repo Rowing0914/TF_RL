@@ -1,0 +1,20 @@
+# get git
+apt-get install git
+
+# install python3.6
+add-apt-repository ppa:jonathonf/python-3.6
+apt-get update
+apt-get install python3.6
+apt-get install vim
+apt-get install git-core
+apt-get install python-opencv
+
+# set alias for pip3.6
+echo \n"alias pip3.6='python3.6 -m pip'" >> ~/.bashrc
+export LC_ALL=C
+source ~/.bashrc
+apt-get update
+apt-get install -y libsm6 libxext6 libxrender-dev
+
+pip3.6 install gym tensorflow-gpu==1.14.0 numpy opencv-python matplotlib ipykernel pandas ray tensorflow_probability
+pip3.6 install --upgrade gym[atari]
