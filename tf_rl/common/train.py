@@ -25,7 +25,7 @@ def train_DQN(agent, env, policy, replay_buffer, reward_buffer, summary_writer):
     """
     get_ready(agent.params)
     time_buffer = list()
-    global_timestep = tf.train.get_or_create_global_step()
+    global_timestep = tf.compat.v1.train.get_global_step()
     log = logger(agent.params)
     # normaliser = RunningMeanStd(env.reset().shape[0])
     with summary_writer.as_default():
@@ -111,7 +111,7 @@ def train_DQN_PER(agent, env, policy, replay_buffer, reward_buffer, Beta, summar
     :return:
     """
     get_ready(agent.params)
-    global_timestep = tf.train.get_or_create_global_step()
+    global_timestep = tf.compat.v1.train.get_global_step()
     time_buffer = list()
     log = logger(agent.params)
     with summary_writer.as_default():
@@ -203,7 +203,7 @@ def pretrain_DQfD(expert, agent, env, policy, replay_buffer, reward_buffer, summ
     :return:
     """
     get_ready(agent.params)
-    global_timestep = tf.train.get_or_create_global_step()
+    global_timestep = tf.compat.v1.train.get_global_step()
     time_buffer = list()
     log = logger(agent.params)
     with summary_writer.as_default():
@@ -466,7 +466,7 @@ def train_DRQN(agent, env, policy, replay_buffer, reward_buffer, params, summary
 def train_DDPG(agent, env, replay_buffer, reward_buffer, summary_writer):
     get_ready(agent.params)
 
-    global_timestep = tf.train.get_or_create_global_step()
+    global_timestep = tf.compat.v1.train.get_global_step()
     time_buffer = deque(maxlen=agent.params.reward_buffer_ep)
     log = logger(agent.params)
 
@@ -538,7 +538,7 @@ def train_DDPG(agent, env, replay_buffer, reward_buffer, summary_writer):
 def train_SAC(agent, env, replay_buffer, reward_buffer, summary_writer):
     get_ready(agent.params)
 
-    global_timestep = tf.train.get_or_create_global_step()
+    global_timestep = tf.compat.v1.train.get_global_step()
     log = logger(agent.params)
 
     with summary_writer.as_default():
@@ -608,7 +608,7 @@ def train_SAC(agent, env, replay_buffer, reward_buffer, summary_writer):
 # design pattern follows this repo: https://github.com/TianhongDai/hindsight-experience-replay
 def train_HER(agent, env, replay_buffer, summary_writer):
     get_ready(agent.params)
-    global_timestep = tf.train.get_or_create_global_step()
+    global_timestep = tf.compat.v1.train.get_global_step()
     total_ep = 0
 
     with summary_writer.as_default():
@@ -719,7 +719,7 @@ def train_HER(agent, env, replay_buffer, summary_writer):
 def train_TRPO(agent, env, reward_buffer, summary_writer):
     get_ready(agent.params)
 
-    global_timestep = tf.train.get_or_create_global_step()
+    global_timestep = tf.compat.v1.train.get_global_step()
     time_buffer = deque(maxlen=agent.params.reward_buffer_ep)
     log = logger(agent.params)
     init_state = env.reset()
@@ -799,7 +799,7 @@ import ray
 def train_HER_ray(agent, env, replay_buffer, summary_writer):
     ray.init()
     get_ready(agent.params)
-    global_timestep = tf.train.get_or_create_global_step()
+    global_timestep = tf.compat.v1.train.get_global_step()
     total_ep = 0
 
     with summary_writer.as_default():

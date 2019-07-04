@@ -18,12 +18,12 @@ def eager_setup():
 
     :return:
     """
-    config = tf.ConfigProto(allow_soft_placement=True,
-                            intra_op_parallelism_threads=1,
-                            inter_op_parallelism_threads=1)
+    config = tf.compat.v1.ConfigProto(allow_soft_placement=True,
+                                      intra_op_parallelism_threads=1,
+                                      inter_op_parallelism_threads=1)
     config.gpu_options.allow_growth = True
-    tf.enable_eager_execution(config=config)
-    tf.enable_resource_variables()
+    tf.compat.v1.enable_eager_execution(config=config)
+    tf.compat.v1.enable_resource_variables()
 
 
 """
@@ -95,9 +95,9 @@ def create_log_model_directory(params, alg):
 
 def create_loss_func(loss_name="mse"):
     if loss_name == "huber":
-        loss_fn = tf.losses.huber_loss
+        loss_fn = tf.compat.v1.losses.huber_loss
     elif loss_name == "mse":
-        loss_fn = tf.losses.mean_squared_error
+        loss_fn = tf.compat.v1.losses.mean_squared_error
     else:
         assert False, "Choose the loss_fn from either huber or mse"
     return loss_fn
@@ -126,17 +126,17 @@ def create_checkpoint(model, optimizer, model_dir):
     checkpoint_dir = model_dir
     check_point = tf.train.Checkpoint(optimizer=optimizer,
                                       model=model,
-                                      optimizer_step=tf.train.get_or_create_global_step())
+                                      optimizer_step=tf.compat.v1.train.get_or_create_global_step())
     manager = tf.train.CheckpointManager(check_point, checkpoint_dir, max_to_keep=3)
 
     # try re-loading the previous training progress!
     try:
         print("Try loading the previous training progress")
         check_point.restore(manager.latest_checkpoint)
-        assert tf.train.get_global_step().numpy() != 0
+        assert tf.compat.v1.train.get_global_step().numpy() != 0
         print("===================================================\n")
         print("Restored the model from {}".format(checkpoint_dir))
-        print("Currently we are on time-step: {}".format(tf.train.get_global_step().numpy()))
+        print("Currently we are on time-step: {}".format(tf.compat.v1.train.get_global_step().numpy()))
         print("\n===================================================")
     except:
         print("===================================================\n")
@@ -599,7 +599,7 @@ def gradient_clip_fn(flag=None):
             return grads
     elif flag == "norm":
         def _func(grads):
-            grads, _ = tf.clip_by_global_norm(grads, 5.0)
+            grads, _ = tf.clip_by_global_norm(grads, 10.0)
             return grads
     else:
         assert False, "Choose the gradient clipping function from by_value, norm, or nothing!"
