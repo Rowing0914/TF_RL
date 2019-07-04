@@ -1,14 +1,7 @@
-# get git
-apt-get install git
-
-# install python3.6
+# apt installs
 add-apt-repository ppa:jonathonf/python-3.6
 apt-get update
-apt-get install python3.6
-apt-get install vim
-apt-get install git-core
-apt-get install python-opencv
-apt-get install python3-pip
+apt-get install -y git python3.6 vim git-core python-opencv python3-pip
 
 # set alias for pip3.6
 echo "\n" >> ~/.bashrc
