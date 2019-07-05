@@ -235,7 +235,7 @@ class ReplayResetEnv(gym.Wrapper):
     def get_checkpoint_state(self):
         return self.env.unwrapped.clone_state()
 
-    def env_RAM(self):
+    def get_RAM(self):
         return self.env.unwrapped.ale.getRAM()
 
 
