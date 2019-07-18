@@ -456,7 +456,7 @@ def train_DRQN(agent, env, policy, replay_buffer, reward_buffer, params, summary
 
 """
 
-===== Policy Based Algorithm =====
+===== Policy Gradient Algorithm =====
 
 """
 
@@ -510,18 +510,25 @@ def train_DDPG(agent, env, replay_buffer, reward_buffer, summary_writer):
                     soft_target_model_update_eager(agent.target_actor, agent.actor, tau=agent.params.soft_update_tau)
                     soft_target_model_update_eager(agent.target_critic, agent.critic, tau=agent.params.soft_update_tau)
 
+                # save the update models
+                agent.actor_manager.save()
+                agent.critic_manager.save()
+
+                # store the episode related variables
+                reward_buffer.append(total_reward)
+                time_buffer.append(time.time() - start)
+
+                # logging on Tensorboard
                 tf.contrib.summary.scalar("reward", total_reward, step=i)
                 tf.contrib.summary.scalar("exec time", time.time() - start, step=i)
                 if i >= agent.params.reward_buffer_ep:
                     tf.contrib.summary.scalar("Moving Ave Reward", np.mean(reward_buffer), step=i)
 
-                # store the episode reward
-                reward_buffer.append(total_reward)
-                time_buffer.append(time.time() - start)
-
+                # logging
                 if global_timestep.numpy() > agent.params.learning_start and i % agent.params.reward_buffer_ep == 0:
                     log.logging(global_timestep.numpy(), i, np.sum(time_buffer), reward_buffer, np.mean(loss), 0, [0])
 
+                # evaluation
                 if agent.eval_flg:
                     test_Agent_DDPG(agent, env)
                     agent.eval_flg = False

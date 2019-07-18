@@ -55,14 +55,12 @@ params.goal = 0
 
 now = datetime.now()
 
-if params.debug_flg:
-    params.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "-DDPG/"
-    params.model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "-DDPG/"
-else:
-    params.log_dir = "../../logs/logs/{}".format(params.env_name)
-    params.model_dir = "../../logs/models/{}".format(params.env_name)
+params.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "-DDPG/"
+params.actor_model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "-DDPG_actor/"
+params.critic_model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "-DDPG_critic/"
 
 env = gym.make(params.env_name)
+
 # set seed
 env.seed(params.seed)
 tf.random.set_random_seed(params.seed)

@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 from copy import deepcopy
+from tf_rl.common.utils import create_checkpoint
 from tf_rl.common.random_process import OrnsteinUhlenbeckProcess
 from tf_rl.agents.core import Agent
 
@@ -18,8 +19,12 @@ class DDPG(Agent):
         self.actor_optimizer = tf.train.AdamOptimizer(learning_rate=1e-4)
         self.critic_optimizer = tf.train.AdamOptimizer(learning_rate=1e-3)
         self.random_process = OrnsteinUhlenbeckProcess(size=self.num_action, theta=0.15, mu=0.0, sigma=0.05)
-
-    # TODO: implement the checkpoints for model
+        self.actor_manager = create_checkpoint(model=self.actor,
+                                               optimizer=self.actor_optimizer,
+                                               model_dir=params.actor_model_dir)
+        self.critic_manager = create_checkpoint(model=self.critic,
+                                                optimizer=self.critic_optimizer,
+                                                model_dir=params.critic_model_dir)
 
     def predict(self, state):
         state = np.expand_dims(state, axis=0).astype(np.float32)

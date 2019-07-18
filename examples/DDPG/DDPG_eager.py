@@ -29,7 +29,7 @@ DDPG_ENV_LIST = {
 """
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--env_name", default="Ant-v2", help="Env title")
+parser.add_argument("--env_name", default="Humanoid-v2", help="Env title")
 parser.add_argument("--seed", default=123, type=int, help="seed for randomness")
 parser.add_argument("--num_frames", default=1_000_000, type=int, help="total frame in a training")
 parser.add_argument("--train_interval", default=100, type=int,  help="a frequency of training in training phase")
@@ -53,14 +53,12 @@ params.goal = DDPG_ENV_LIST[params.env_name]
 
 now = datetime.now()
 
-if params.debug_flg:
-    params.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "-DDPG/"
-    params.model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "-DDPG/"
-else:
-    params.log_dir = "../../logs/logs/{}".format(params.env_name)
-    params.model_dir = "../../logs/models/{}".format(params.env_name)
+params.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "-DDPG/"
+params.actor_model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "-DDPG_actor/"
+params.critic_model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "-DDPG_critic/"
 
 env = gym.make(params.env_name)
+
 # set seed
 env.seed(params.seed)
 tf.random.set_random_seed(params.seed)
