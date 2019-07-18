@@ -466,7 +466,7 @@ def train_DRQN(agent, env, policy, replay_buffer, reward_buffer, params, summary
 def train_DDPG(agent, env, replay_buffer, reward_buffer, summary_writer):
     get_ready(agent.params)
 
-    global_timestep = tf.compat.v1.train.get_global_step()
+    global_timestep = tf.compat.v1.train.get_or_create_global_step()
     time_buffer = deque(maxlen=agent.params.reward_buffer_ep)
     log = logger(agent.params)
 
@@ -482,7 +482,6 @@ def train_DDPG(agent, env, replay_buffer, reward_buffer, summary_writer):
                 done = False
                 episode_len = 0
                 while not done:
-                    # env.render()
                     if global_timestep.numpy() < agent.params.learning_start:
                         action = env.action_space.sample()
                     else:
@@ -530,7 +529,7 @@ def train_DDPG(agent, env, replay_buffer, reward_buffer, summary_writer):
                 # check the stopping condition
                 if global_timestep.numpy() > agent.params.num_frames:
                     print("=== Training is Done ===")
-                    test_Agent_DDPG(agent, env, n_trial=agent.params.test_episodes)
+                    test_Agent_DDPG(agent, env, n_trial=agent.params.test_episodes, visualise=True)
                     env.close()
                     break
 

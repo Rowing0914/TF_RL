@@ -664,7 +664,7 @@ def test_Agent(agent, env, n_trial=1):
                                                                   np.std(all_rewards), np.mean(all_rewards)))
 
 
-def test_Agent_DDPG(agent, env, n_trial=1):
+def test_Agent_DDPG(agent, env, n_trial=1, visualise=False):
     """
     Evaluate the trained agent!
 
@@ -677,6 +677,8 @@ def test_Agent_DDPG(agent, env, n_trial=1):
         done = False
         episode_reward = 0
         while not done:
+            if visualise:
+                env.render()
             action = agent.predict(state)
             # scale for execution in env (in DDPG, every action is clipped between [-1, 1] in agent.predict)
             next_state, reward, done, _ = env.step(action * env.action_space.high)

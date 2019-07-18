@@ -230,6 +230,22 @@ for env_name, goal_score in DDPG_ENV_LIST.items():
 		env.step(env.action_space.sample()) # take a random action
 ```
 
+### MuJoCo Humanoid Maze
+https://github.com/Rowing0914/MuJoCo_Humanoid_Maze
+
+```python
+import gym
+import humanoid_maze # this is the external library(check the link above!!)
+
+env = gym.make('HumanoidMaze-v0')
+
+env.reset()
+for _ in range(2000):
+    env.render()
+    env.step(env.action_space.sample()) # take a random action
+env.close()
+
+```
 
 
 ## PC Envs

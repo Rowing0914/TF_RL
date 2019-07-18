@@ -19,10 +19,7 @@ class DDPG(Agent):
         self.critic_optimizer = tf.train.AdamOptimizer(learning_rate=1e-3)
         self.random_process = OrnsteinUhlenbeckProcess(size=self.num_action, theta=0.15, mu=0.0, sigma=0.05)
 
-    #  TODO: implement the checkpoints for model
-
-    # TODO: make this available to construct graph when this class is being initialised
-    # tf.convert_to_tensor(np.random.random((1, self.state_size)), dtype=tf.float32)
+    # TODO: implement the checkpoints for model
 
     def predict(self, state):
         state = np.expand_dims(state, axis=0).astype(np.float32)
@@ -96,7 +93,7 @@ class DDPG_debug(Agent):
         self.critic_optimizer = tf.train.AdamOptimizer(learning_rate=1e-3)
         self.random_process = OrnsteinUhlenbeckProcess(size=self.num_action, theta=0.15, mu=0.0, sigma=0.05)
 
-    #  TODO: implement the checkpoints for model
+    # TODO: implement the checkpoints for model
 
     def predict(self, state):
         state = np.expand_dims(state, axis=0).astype(np.float32)
