@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
 import os, datetime, itertools, shutil, gym, sys
+from gym.wrappers import Monitor
 from tf_rl.common.visualise import plot_Q_values
 from tf_rl.common.wrappers import MyWrapper, CartPole_Pixel, wrap_deepmind, make_atari
 
@@ -451,8 +452,39 @@ def simple_goal_subtract(goal, achieved_goal):
     assert goal.shape == achieved_goal.shape
     return goal - achieved_goal
 
+ALIVE_BONUS = 1.0
+
+def get_distance(env_name, action, reward, info):
+    """
+    This returns the distance according to the implementation of env
+    For instance, halfcheetah and humanoid have the different way to return the distance
+    so that we need to deal with them accordingly.
+
+    :param env_name:
+    :param reward:
+    :param info:
+    :return: distance(float)
+    """
+    obj_name = env_name.split("-")[0]
+    if obj_name == "HalfCheetah":
+        # https://github.com/openai/gym/blob/master/gym/envs/mujoco/half_cheetah.py
+        distance = info['reward_run']
+        return distance
+    elif obj_name in ["Hopper", "Walker2d"]:
+        # https://github.com/openai/gym/blob/master/gym/envs/mujoco/hopper.py#L15
+        # https://github.com/openai/gym/blob/master/gym/envs/mujoco/walker2d.py#L16
+        distance = (reward - ALIVE_BONUS) + 1e-3 * np.square(action).sum()
+        return distance
+    elif obj_name == "Humanoid":
+        # https://github.com/openai/gym/blob/master/gym/envs/mujoco/humanoid.py#L30
+        distance = info["reward_linvel"]/1.25
+        return distance
+    else:
+        assert False, "This env: {} is not supported yet.".format(env_name)
+
 
 """
+TODO: I think I will remove this.
 
 # Copyright 2018 The Dopamine Authors.
 #
@@ -664,13 +696,19 @@ def test_Agent(agent, env, n_trial=1):
                                                                   np.std(all_rewards), np.mean(all_rewards)))
 
 
-def test_Agent_DDPG(agent, env, n_trial=1, visualise=False):
+def test_Agent_DDPG(agent, n_trial=1, visualise=False):
     """
-    Evaluate the trained agent!
+    Evaluate the trained agent with the recording of its behaviour
 
     :return:
     """
-    all_rewards = list()
+
+    env = gym.make(agent.params.env_name)
+    # record a video once in n runs
+    # env = Monitor(env, "./video", video_callable=lambda episode_id: episode_id % 10 == 0, force=True)
+    env = Monitor(env, "../../logs/video_{}".format(agent.params.env_name.split("-")[0]), force=True)
+
+    all_distances, all_rewards, all_actions = list(), list(), list()
     print("=== Evaluation Mode ===")
     for ep in range(n_trial):
         state = env.reset()
@@ -679,21 +717,20 @@ def test_Agent_DDPG(agent, env, n_trial=1, visualise=False):
         while not done:
             if visualise:
                 env.render()
-            action = agent.predict(state)
+            action = agent.eval_predict(state)
             # scale for execution in env (in DDPG, every action is clipped between [-1, 1] in agent.predict)
-            next_state, reward, done, _ = env.step(action * env.action_space.high)
+            next_state, reward, done, info = env.step(action * env.action_space.high)
+            distance = get_distance(agent.params.env_name, action, reward, info)
+            all_actions.append(action.mean()**2) # Mean Squared of action values
+            all_distances.append(distance)
             state = next_state
             episode_reward += reward
 
         all_rewards.append(episode_reward)
         tf.contrib.summary.scalar("Evaluation Score", episode_reward, step=agent.index_timestep)
         print("| Ep: {}/{} | Score: {} |".format(ep + 1, n_trial, episode_reward))
-
-    if n_trial > 2:
-        print("=== Evaluation Result ===")
-        all_rewards = np.array([all_rewards])
-        print("| Max: {} | Min: {} | STD: {} | MEAN: {} |".format(np.max(all_rewards), np.min(all_rewards),
-                                                                  np.std(all_rewards), np.mean(all_rewards)))
+    env.close()
+    return all_rewards, all_distances, all_actions
 
 
 def test_Agent_TRPO(agent, env, n_trial=1):

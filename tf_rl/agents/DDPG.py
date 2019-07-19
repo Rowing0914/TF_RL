@@ -2,12 +2,11 @@ import numpy as np
 import tensorflow as tf
 from copy import deepcopy
 from tf_rl.common.utils import create_checkpoint
-from tf_rl.common.random_process import OrnsteinUhlenbeckProcess
 from tf_rl.agents.core import Agent
 
 
 class DDPG(Agent):
-    def __init__(self, actor, critic, num_action, params):
+    def __init__(self, actor, critic, num_action, random_process, params):
         self.params = params
         self.num_action = num_action
         self.eval_flg = False
@@ -18,7 +17,7 @@ class DDPG(Agent):
         self.target_critic = deepcopy(self.critic)
         self.actor_optimizer = tf.train.AdamOptimizer(learning_rate=1e-4)
         self.critic_optimizer = tf.train.AdamOptimizer(learning_rate=1e-3)
-        self.random_process = OrnsteinUhlenbeckProcess(size=self.num_action, theta=0.15, mu=0.0, sigma=0.05)
+        self.random_process = random_process
         self.actor_manager = create_checkpoint(model=self.actor,
                                                optimizer=self.actor_optimizer,
                                                model_dir=params.actor_model_dir)
@@ -30,6 +29,12 @@ class DDPG(Agent):
         state = np.expand_dims(state, axis=0).astype(np.float32)
         action = self._select_action(tf.constant(state))
         return action.numpy()[0] + self.random_process.sample()
+
+    def eval_predict(self, state):
+        """ Deterministic behaviour """
+        state = np.expand_dims(state, axis=0).astype(np.float32)
+        action = self._select_action(tf.constant(state))
+        return action.numpy()[0]
 
     @tf.contrib.eager.defun(autograph=False)
     def _select_action(self, state):
@@ -85,7 +90,7 @@ class DDPG(Agent):
 
 
 class DDPG_debug(Agent):
-    def __init__(self, actor, critic, num_action, params):
+    def __init__(self, actor, critic, num_action, random_process, params):
         self.params = params
         self.num_action = num_action
         self.eval_flg = False
@@ -96,7 +101,13 @@ class DDPG_debug(Agent):
         self.target_critic = deepcopy(self.critic)
         self.actor_optimizer = tf.train.AdamOptimizer(learning_rate=1e-4)
         self.critic_optimizer = tf.train.AdamOptimizer(learning_rate=1e-3)
-        self.random_process = OrnsteinUhlenbeckProcess(size=self.num_action, theta=0.15, mu=0.0, sigma=0.05)
+        self.random_process = random_process
+        self.actor_manager = create_checkpoint(model=self.actor,
+                                               optimizer=self.actor_optimizer,
+                                               model_dir=params.actor_model_dir)
+        self.critic_manager = create_checkpoint(model=self.critic,
+                                                optimizer=self.critic_optimizer,
+                                                model_dir=params.critic_model_dir)
 
     # TODO: implement the checkpoints for model
 
@@ -104,6 +115,12 @@ class DDPG_debug(Agent):
         state = np.expand_dims(state, axis=0).astype(np.float32)
         action = self._select_action(tf.constant(state))
         return action.numpy()[0] + self.random_process.sample()
+
+    def eval_predict(self, state):
+        """ Deterministic behaviour """
+        state = np.expand_dims(state, axis=0).astype(np.float32)
+        action = self._select_action(tf.constant(state))
+        return action.numpy()[0]
 
     @tf.contrib.eager.defun(autograph=False)
     def _select_action(self, state):
