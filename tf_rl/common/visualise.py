@@ -3,6 +3,31 @@ from matplotlib import cm
 import matplotlib.pyplot as plt
 
 
+def visualise_act_and_dist(epochs, action_buffer, distance_buffer):
+    """ DDPG eval visualisation method """
+
+    for i in range(distance_buffer.shape[0]):
+        plt.subplot(311)
+        plt.hist(distance_buffer[i], bins=100, alpha=0.3, density=True, label="Epoch_{}".format(epochs[i]))
+        plt.xlabel("Distance")
+        plt.ylabel("Density")
+        plt.legend()
+
+        plt.subplot(312)
+        plt.hist(action_buffer[i], bins=100, alpha=0.3, density=True, label="Epoch_{}".format(epochs[i]))
+        plt.xlabel("Mean Squared Action")
+        plt.ylabel("Density")
+        plt.legend()
+
+        plt.subplot(313)
+        plt.plot(np.cumsum(distance_buffer[i]), label="Epoch_{}".format(epochs[i]))
+        plt.xlabel("Time-Step")
+        plt.ylabel("Acc Distance Over Timestep")
+        plt.legend()
+
+    plt.show()
+
+
 def plot_comparison_graph(model_names):
     """
     2D Plot rewards arose in games(model_names)

@@ -1,6 +1,7 @@
 import time
 from collections import deque
 from tf_rl.common.utils import *
+from tf_rl.common.visualise import visualise_act_and_dist
 
 """
 ===== Value Based Algorithm =====
@@ -469,6 +470,7 @@ def train_DDPG(agent, env, replay_buffer, reward_buffer, summary_writer):
     global_timestep = tf.compat.v1.train.get_or_create_global_step()
     time_buffer = deque(maxlen=agent.params.reward_buffer_ep)
     log = logger(agent.params)
+    action_buffer, distance_buffer, eval_epochs = list(), list(), list()
 
     with summary_writer.as_default():
         # for summary purpose, we put all codes in this context
@@ -504,7 +506,8 @@ def train_DDPG(agent, env, replay_buffer, reward_buffer, summary_writer):
                 """
 
                 # train the model at this point
-                for t_train in range(episode_len):  # in mujoco, this will be 1,000 iterations!
+                for t_train in range(int(episode_len/10)):
+                # for t_train in range(10): # for test purpose
                     states, actions, rewards, next_states, dones = replay_buffer.sample(agent.params.batch_size)
                     loss = agent.update(states, actions, rewards, next_states, dones)
                     soft_target_model_update_eager(agent.target_actor, agent.actor, tau=agent.params.soft_update_tau)
@@ -530,13 +533,20 @@ def train_DDPG(agent, env, replay_buffer, reward_buffer, summary_writer):
 
                 # evaluation
                 if agent.eval_flg:
-                    test_Agent_DDPG(agent, env)
+                    eval_reward, eval_distance, eval_action = test_Agent_DDPG(agent)
+                    eval_epochs.append(global_timestep.numpy())
+                    action_buffer.append(eval_action)
+                    distance_buffer.append(eval_distance)
                     agent.eval_flg = False
 
                 # check the stopping condition
                 if global_timestep.numpy() > agent.params.num_frames:
                     print("=== Training is Done ===")
-                    test_Agent_DDPG(agent, env, n_trial=agent.params.test_episodes, visualise=True)
+                    eval_reward, eval_distance, eval_action = test_Agent_DDPG(agent)
+                    eval_epochs.append(global_timestep.numpy())
+                    action_buffer.append(eval_action)
+                    distance_buffer.append(eval_distance)
+                    visualise_act_and_dist(np.array(eval_epochs), np.array(action_buffer), np.array(distance_buffer))
                     env.close()
                     break
 
