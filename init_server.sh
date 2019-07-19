@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 # apt installs
 add-apt-repository ppa:jonathonf/python-3.6
 apt-get update
