@@ -1,7 +1,6 @@
 import tensorflow as tf
 import numpy as np
 import os, datetime, itertools, shutil, gym, sys
-from gym.wrappers import Monitor
 from tf_rl.common.visualise import plot_Q_values
 from tf_rl.common.wrappers import MyWrapper, CartPole_Pixel, wrap_deepmind, make_atari
 
@@ -444,43 +443,57 @@ def state_unpacker(state):
 def simple_goal_subtract(goal, achieved_goal):
     """
     We subtract the achieved goal from the desired one to see how much we are still far from the desired position
-
-    :param a:
-    :param b:
-    :return:
     """
     assert goal.shape == achieved_goal.shape
     return goal - achieved_goal
 
+
 ALIVE_BONUS = 1.0
 
-def get_distance(env_name, action, reward, info):
+def get_distance(env_name):
     """
     This returns the distance according to the implementation of env
     For instance, halfcheetah and humanoid have the different way to return the distance
     so that we need to deal with them accordingly.
-
-    :param env_name:
-    :param reward:
-    :param info:
-    :return: distance(float)
+    :return: func to calculate the distance(float)
     """
     obj_name = env_name.split("-")[0]
-    if obj_name == "HalfCheetah":
-        # https://github.com/openai/gym/blob/master/gym/envs/mujoco/half_cheetah.py
-        distance = info['reward_run']
-        return distance
-    elif obj_name in ["Hopper", "Walker2d"]:
-        # https://github.com/openai/gym/blob/master/gym/envs/mujoco/hopper.py#L15
-        # https://github.com/openai/gym/blob/master/gym/envs/mujoco/walker2d.py#L16
-        distance = (reward - ALIVE_BONUS) + 1e-3 * np.square(action).sum()
-        return distance
-    elif obj_name == "Humanoid":
-        # https://github.com/openai/gym/blob/master/gym/envs/mujoco/humanoid.py#L30
-        distance = info["reward_linvel"]/1.25
-        return distance
+    if obj_name in "Ant":
+        def func(action, reward, info):
+            # https://github.com/openai/gym/blob/master/gym/envs/mujoco/ant.py#L14
+            distance = info["reward_forward"]
+            return distance
+    elif obj_name in "HalfCheetah":
+        def func(action, reward, info):
+            # https://github.com/openai/gym/blob/master/gym/envs/mujoco/half_cheetah.py
+            distance = info["reward_run"]
+            return distance
+    elif obj_name in "Hopper":
+        def func(action, reward, info):
+            # https://github.com/openai/gym/blob/master/gym/envs/mujoco/hopper.py#L15
+            distance = (reward - ALIVE_BONUS) + 1e-3 * np.square(action).sum()
+            return distance
+    elif obj_name in "Humanoid":
+        def func(action, reward, info):
+            # https://github.com/openai/gym/blob/master/gym/envs/mujoco/humanoid.py#L30
+            distance = info["reward_linvel"]/1.25
+            return distance
+    elif obj_name in "Swimmer":
+        def func(action, reward, info):
+            # https://github.com/openai/gym/blob/master/gym/envs/mujoco/swimmer.py#L15
+            distance = info["reward_fwd"]
+            return distance
+    elif obj_name in "Walker2d":
+        def func(action, reward, info):
+            # https://github.com/openai/gym/blob/master/gym/envs/mujoco/walker2d.py#L16 -> original version
+            distance = (reward - ALIVE_BONUS) + 1e-3 * np.square(action).sum()
+
+            # https://github.com/openai/gym/blob/master/gym/envs/mujoco/walker2d_v3.py#L90 -> version 3.0
+            # distance = info["x_velocity"]
+            return distance
     else:
         assert False, "This env: {} is not supported yet.".format(env_name)
+    return func
 
 
 """
@@ -696,7 +709,7 @@ def test_Agent(agent, env, n_trial=1):
                                                                   np.std(all_rewards), np.mean(all_rewards)))
 
 
-def test_Agent_DDPG(agent, n_trial=1, visualise=False):
+def test_Agent_DDPG(agent, n_trial=1):
     """
     Evaluate the trained agent with the recording of its behaviour
 
@@ -704,23 +717,18 @@ def test_Agent_DDPG(agent, n_trial=1, visualise=False):
     """
 
     env = gym.make(agent.params.env_name)
-    # record a video once in n runs
-    # env = Monitor(env, "./video", video_callable=lambda episode_id: episode_id % 10 == 0, force=True)
-    env = Monitor(env, "../../logs/video_{}".format(agent.params.env_name.split("-")[0]), force=True)
-
     all_distances, all_rewards, all_actions = list(), list(), list()
+    distance_func = get_distance(agent.params.env_name) # create the distance measure func
     print("=== Evaluation Mode ===")
     for ep in range(n_trial):
         state = env.reset()
         done = False
         episode_reward = 0
         while not done:
-            if visualise:
-                env.render()
             action = agent.eval_predict(state)
             # scale for execution in env (in DDPG, every action is clipped between [-1, 1] in agent.predict)
             next_state, reward, done, info = env.step(action * env.action_space.high)
-            distance = get_distance(agent.params.env_name, action, reward, info)
+            distance = distance_func(action, reward, info)
             all_actions.append(action.mean()**2) # Mean Squared of action values
             all_distances.append(distance)
             state = next_state
@@ -729,7 +737,6 @@ def test_Agent_DDPG(agent, n_trial=1, visualise=False):
         all_rewards.append(episode_reward)
         tf.contrib.summary.scalar("Evaluation Score", episode_reward, step=agent.index_timestep)
         print("| Ep: {}/{} | Score: {} |".format(ep + 1, n_trial, episode_reward))
-    env.close()
     return all_rewards, all_distances, all_actions
 
 

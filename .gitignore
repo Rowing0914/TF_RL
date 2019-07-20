@@ -9,3 +9,5 @@ TF_RL.egg-info
 *.pyc
 examples/Research/
 /test/video/
+/examples/DDPG/video/
+/examples/DDPG/models/

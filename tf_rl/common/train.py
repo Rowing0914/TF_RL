@@ -506,8 +506,8 @@ def train_DDPG(agent, env, replay_buffer, reward_buffer, summary_writer):
                 """
 
                 # train the model at this point
-                for t_train in range(int(episode_len/10)):
-                # for t_train in range(10): # for test purpose
+                for t_train in range(int(episode_len / 10)):
+                    # for t_train in range(10): # for test purpose
                     states, actions, rewards, next_states, dones = replay_buffer.sample(agent.params.batch_size)
                     loss = agent.update(states, actions, rewards, next_states, dones)
                     soft_target_model_update_eager(agent.target_actor, agent.actor, tau=agent.params.soft_update_tau)
@@ -546,7 +546,8 @@ def train_DDPG(agent, env, replay_buffer, reward_buffer, summary_writer):
                     eval_epochs.append(global_timestep.numpy())
                     action_buffer.append(eval_action)
                     distance_buffer.append(eval_distance)
-                    visualise_act_and_dist(np.array(eval_epochs), np.array(action_buffer), np.array(distance_buffer))
+                    visualise_act_and_dist(np.array(eval_epochs), np.array(action_buffer), np.array(distance_buffer),
+                                           file_dir=agent.params.plot_path)
                     env.close()
                     break
 

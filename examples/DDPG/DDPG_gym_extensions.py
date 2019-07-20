@@ -1,6 +1,7 @@
 import gym
 import argparse
 import tensorflow as tf
+from gym_extensions.continuous import mujoco
 from datetime import datetime
 from collections import deque
 from gym.wrappers import Monitor
@@ -14,24 +15,8 @@ from tf_rl.common.networks import DDPG_Actor as Actor, DDPG_Critic as Critic
 
 eager_setup()
 
-"""
-this is defined in params.py
-DDPG_ENV_LIST = {
-	"Ant-v2": 3500,
-	"HalfCheetah-v2": 7000,
-	"Hopper-v2": 1500,
-	"Humanoid-v2": 2000,
-	"HumanoidStandup-v2": 0, # maybe we don't need this...
-	"InvertedDoublePendulum-v2": 6000,
-	"InvertedPendulum-v2": 800,
-	"Reacher-v2": -6,
-	"Swimmer-v2": 40,
-	"Walker2d-v2": 2500
-}
-"""
-
 parser = argparse.ArgumentParser()
-parser.add_argument("--env_name", default="HalfCheetah-v2", type=str, help="Env title")
+parser.add_argument("--env_name", default="HalfCheetahGravityOneAndHalf-v1", help="Env title")
 parser.add_argument("--seed", default=123, type=int, help="seed for randomness")
 # parser.add_argument("--num_frames", default=1_000_000, type=int, help="total frame in a training")
 parser.add_argument("--num_frames", default=500_000, type=int, help="total frame in a training")
@@ -54,21 +39,15 @@ parser.add_argument("--debug_flg", default=False, type=bool, help="debug mode or
 parser.add_argument("--google_colab", default=False, type=bool, help="if you are executing this on GoogleColab")
 params = parser.parse_args()
 params.test_episodes = 1
-params.goal = DDPG_ENV_LIST[params.env_name]
+params.goal = 0
 
 now = datetime.now()
 
-# params.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "-DDPG/"
-# params.actor_model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "-DDPG_actor/"
-# params.critic_model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "-DDPG_critic/"
-# params.video_dir = "../../logs/video/video_{}".format(now.strftime("%Y%m%d-%H%M%S") + "_" + str(params.env_name))
-# params.plot_path = "../../logs/plots/plot_{}/".format(now.strftime("%Y%m%d-%H%M%S") + "_" + str(params.env_name))
-
-params.log_dir = "../../logs/logs/DDPG/{}".format(str(params.env_name.split("-")[0]))
-params.actor_model_dir = "../../logs/models/DDPG/{}/actor/".format(str(params.env_name.split("-")[0]))
-params.critic_model_dir = "../../logs/models/DDPG/{}/critic/".format(str(params.env_name.split("-")[0]))
-params.video_dir = "../../logs/video/{}".format(str(params.env_name.split("-")[0]))
-params.plot_path = "../../logs/plots/{}/".format(str(params.env_name.split("-")[0]))
+params.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "-DDPG/"
+params.actor_model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "-DDPG_actor/"
+params.critic_model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "-DDPG_critic/"
+params.video_dir = "../../logs/video/video_{}".format(now.strftime("%Y%m%d-%H%M%S") + "_" + str(params.env_name))
+params.plot_path = "../../logs/plots/plot_{}/".format(now.strftime("%Y%m%d-%H%M%S") + "_" + str(params.env_name))
 
 env = gym.make(params.env_name)
 env = Monitor(env,
