@@ -1,8 +1,8 @@
-## TF-RL(Reinforcement Learning with Tensorflow: EAGER!!)
 
 <p align="center"><img src="./assets/logo1.png"></p>
 
-  This is the repo for implementing and experimenting the variety of RL algorithms using **Tensorflow Eager Execution**. And, since our Lord Google gracefully allows us to use their precious GPU resources without almost restriction, I have decided to enable most of codes run on **Google Colab**. So, if you don't have GPUs, please feel free to try it out on **Google Colab**
+## TF-RL(Reinforcement Learning with Tensorflow: EAGER!!)
+This is the repo for implementing and experimenting the variety of RL algorithms using **Tensorflow Eager Execution**. And, since our Lord Google gracefully allows us to use their precious GPU resources without almost restriction, I have decided to enable most of codes run on **Google Colab**. So, if you don't have GPUs, please feel free to try it out on **Google Colab**
 
 Note: As it is known that **Eager mode** takes time than **Graph Execution** in general so that in this repo, I use **Eager** for debugging and **Graph** mode for training!!! The beauty of eager mode come here!! we can flexibly switch eager mode and graph mode with minimal modification(`@tf.contrib.eager.defun`), pls check [**the link**](<https://medium.com/tensorflow/code-with-eager-execution-run-with-graphs-optimizing-your-code-with-revnet-as-an-example-6162333f9b08>)
 
