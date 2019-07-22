@@ -10,7 +10,7 @@ from tf_rl.common.networks import DDPG_Actor as Actor, DDPG_Critic as Critic
 eager_setup()
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--env_name", default="Humanoid-v2", help="Env title")
+parser.add_argument("--env_name", default="HalfCheetah-v2", help="Env title")
 parser.add_argument("--seed", default=123, type=int, help="seed for randomness")
 parser.add_argument("--num_frames", default=1_000_000, type=int, help="total frame in a training")
 parser.add_argument("--train_interval", default=100, type=int, help="a frequency of training in training phase")
@@ -25,13 +25,17 @@ parser.add_argument("--soft_update_tau", default=1e-2, type=float, help="soft-up
 parser.add_argument("--L2_reg", default=0.5, type=float, help="magnitude of L2 regularisation")
 parser.add_argument("--action_range", default=[-1., 1.], type=list, help="magnitude of L2 regularisation")
 parser.add_argument("--debug_flg", default=False, type=bool, help="debug mode or not")
-parser.add_argument("--model_name", default="mu00", type=str, help="path to pre-trained model")
+parser.add_argument("--mu", default=0.2, type=float, help="magnitude of randomness")
+parser.add_argument("--sigma", default=0.05, type=float, help="magnitude of randomness")
 parser.add_argument("--google_colab", default=False, type=bool, help="if you are executing this on GoogleColab")
 params = parser.parse_args()
 params.test_episodes = 10
 params.goal = 0
-params.actor_model_dir = "./models/actor_{}/".format(params.model_name)
-params.critic_model_dir = "./models/critic_{}/".format(params.model_name)
+
+mu = str(params.mu).split(".")
+mu = str(mu[0]+mu[1])
+params.actor_model_dir = "../../logs/models/DDPG/{}/actor-mu{}/".format(str(params.env_name.split("-")[0]), mu)
+params.critic_model_dir = "../../logs/models/DDPG/{}/critic-mu{}/".format(str(params.env_name.split("-")[0]), mu)
 
 # available env list: https://github.com/Rowing0914/gym-extensions/blob/mujoco200/tests/all_tests.py
 HalfCheetah_Env_list = [
@@ -60,7 +64,7 @@ agent = DDPG(Actor, Critic, 6, random_process, params)
 for env_name in HalfCheetah_Env_list:
     print(env_name)
     env = gym.make(env_name)
-    env = Monitor(env, "./video/{}/video_{}".format(params.model_name, env_name), force=True)
+    env = Monitor(env, "./video/{}/video_{}".format(str(params.env_name.split("-")[0]), env_name), force=True)
 
     # set seed
     env.seed(params.seed)

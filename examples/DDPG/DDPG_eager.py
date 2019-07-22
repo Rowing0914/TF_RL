@@ -31,13 +31,11 @@ DDPG_ENV_LIST = {
 """
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--env_name", default="HalfCheetah-v2", type=str, help="Env title")
+parser.add_argument("--env_name", default="Ant-v2", type=str, help="Env title")
 parser.add_argument("--seed", default=123, type=int, help="seed for randomness")
 # parser.add_argument("--num_frames", default=1_000_000, type=int, help="total frame in a training")
 parser.add_argument("--num_frames", default=500_000, type=int, help="total frame in a training")
 # parser.add_argument("--num_frames", default=40_000, type=int, help="total frame in a training")
-parser.add_argument("--train_interval", default=100, type=int, help="a frequency of training in training phase")
-parser.add_argument("--nb_train_steps", default=50, type=int, help="a number of training after one episode")
 parser.add_argument("--eval_interval", default=100_000, type=int, help="a frequency of evaluation in training phase")
 # parser.add_argument("--eval_interval", default=10_000, type=int, help="a frequency of evaluation in training phase")
 parser.add_argument("--memory_size", default=100_000, type=int, help="memory size in a training")
@@ -63,12 +61,13 @@ now = datetime.now()
 # params.critic_model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "-DDPG_critic/"
 # params.video_dir = "../../logs/video/video_{}".format(now.strftime("%Y%m%d-%H%M%S") + "_" + str(params.env_name))
 # params.plot_path = "../../logs/plots/plot_{}/".format(now.strftime("%Y%m%d-%H%M%S") + "_" + str(params.env_name))
-
-params.log_dir = "../../logs/logs/DDPG/{}".format(str(params.env_name.split("-")[0]))
-params.actor_model_dir = "../../logs/models/DDPG/{}/actor/".format(str(params.env_name.split("-")[0]))
-params.critic_model_dir = "../../logs/models/DDPG/{}/critic/".format(str(params.env_name.split("-")[0]))
-params.video_dir = "../../logs/video/{}".format(str(params.env_name.split("-")[0]))
-params.plot_path = "../../logs/plots/{}/".format(str(params.env_name.split("-")[0]))
+mu = str(params.mu).split(".")
+mu = str(mu[0]+mu[1])
+params.log_dir = "../../logs/logs/DDPG/{}-mu{}".format(str(params.env_name.split("-")[0]), mu)
+params.actor_model_dir = "../../logs/models/DDPG/{}/actor-mu{}/".format(str(params.env_name.split("-")[0]), mu)
+params.critic_model_dir = "../../logs/models/DDPG/{}/critic-mu{}/".format(str(params.env_name.split("-")[0]), mu)
+params.video_dir = "../../logs/video/{}-mu{}".format(str(params.env_name.split("-")[0]), mu)
+params.plot_path = "../../logs/plots/{}-mu{}/".format(str(params.env_name.split("-")[0]), mu)
 
 env = gym.make(params.env_name)
 env = Monitor(env,
