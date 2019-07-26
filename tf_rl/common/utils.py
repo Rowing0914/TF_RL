@@ -491,6 +491,10 @@ def get_distance(env_name):
             # https://github.com/openai/gym/blob/master/gym/envs/mujoco/walker2d_v3.py#L90 -> version 3.0
             # distance = info["x_velocity"]
             return distance
+    elif obj_name in "Centipede":
+        def func(action, reward, info):
+            distance = info["forward_reward"]
+            return distance
     else:
         assert False, "This env: {} is not supported yet.".format(env_name)
     return func
