@@ -4,7 +4,7 @@ import tensorflow as tf
 from gym_extensions.continuous import mujoco
 from datetime import datetime
 from collections import deque
-from gym.wrappers import Monitor
+from tf_rl.common.monitor import Monitor
 from tf_rl.common.random_process import OrnsteinUhlenbeckProcess, GaussianNoise
 from tf_rl.common.memory import ReplayBuffer
 from tf_rl.common.utils import eager_setup
@@ -50,11 +50,7 @@ params.video_dir = "../../logs/video/video_{}".format(now.strftime("%Y%m%d-%H%M%
 params.plot_path = "../../logs/plots/plot_{}/".format(now.strftime("%Y%m%d-%H%M%S") + "_" + str(params.env_name))
 
 env = gym.make(params.env_name)
-env = Monitor(env,
-              params.video_dir,
-              video_callable=lambda _:
-              True if tf.compat.v1.train.get_global_step().numpy() % params.eval_interval==0 else False,
-              force=True)
+env = Monitor(env, params.video_dir, force=True)
 
 # set seed
 env.seed(params.seed)

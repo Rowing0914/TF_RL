@@ -87,13 +87,13 @@ def train_DQN(agent, env, policy, replay_buffer, reward_buffer, summary_writer):
                     time_buffer = list()
 
                 if agent.eval_flg:
-                    test_Agent(agent, env)
+                    eval_Agent(agent, env)
                     agent.eval_flg = False
 
                 # check the stopping condition
                 if global_timestep.numpy() > agent.params.num_frames:
                     print("=== Training is Done ===")
-                    test_Agent(agent, env, n_trial=agent.params.test_episodes)
+                    eval_Agent(agent, env, n_trial=agent.params.test_episodes)
                     env.close()
                     break
 
@@ -179,13 +179,13 @@ def train_DQN_PER(agent, env, policy, replay_buffer, reward_buffer, Beta, summar
                     time_buffer = list()
 
                 if agent.eval_flg:
-                    test_Agent(agent, env)
+                    eval_Agent(agent, env)
                     agent.eval_flg = False
 
                 # check the stopping condition
                 if global_timestep.numpy() > agent.params.num_frames:
                     print("=== Training is Done ===")
-                    test_Agent(agent, env, n_trial=agent.params.test_episodes)
+                    eval_Agent(agent, env, n_trial=agent.params.test_episodes)
                     env.close()
                     break
 
@@ -271,13 +271,13 @@ def pretrain_DQfD(expert, agent, env, policy, replay_buffer, reward_buffer, summ
                     time_buffer = list()
 
                 if agent.eval_flg:
-                    test_Agent(agent, env)
+                    eval_Agent(agent, env)
                     agent.eval_flg = False
 
                 # check the stopping condition
                 if global_timestep.numpy() > agent.params.num_frames:
                     print("=== Training is Done ===")
-                    test_Agent(agent, env, n_trial=agent.params.test_episodes)
+                    eval_Agent(agent, env, n_trial=agent.params.test_episodes)
                     env.close()
                     break
 
@@ -506,7 +506,7 @@ def train_DDPG(agent, env, replay_buffer, reward_buffer, summary_writer):
                 """
 
                 # train the model at this point
-                for t_train in range(int(episode_len / 10)):
+                for t_train in range(int(episode_len/5)):
                     # for t_train in range(10): # for test purpose
                     states, actions, rewards, next_states, dones = replay_buffer.sample(agent.params.batch_size)
                     loss = agent.update(states, actions, rewards, next_states, dones)
@@ -533,7 +533,7 @@ def train_DDPG(agent, env, replay_buffer, reward_buffer, summary_writer):
 
                 # evaluation
                 if agent.eval_flg:
-                    eval_reward, eval_distance, eval_action = test_Agent_DDPG(agent)
+                    eval_reward, eval_distance, eval_action = eval_Agent_DDPG(env, agent)
                     eval_epochs.append(global_timestep.numpy())
                     action_buffer.append(eval_action)
                     distance_buffer.append(eval_distance)
@@ -542,7 +542,7 @@ def train_DDPG(agent, env, replay_buffer, reward_buffer, summary_writer):
                 # check the stopping condition
                 if global_timestep.numpy() > agent.params.num_frames:
                     print("=== Training is Done ===")
-                    eval_reward, eval_distance, eval_action = test_Agent_DDPG(agent)
+                    eval_reward, eval_distance, eval_action = eval_Agent_DDPG(env, agent)
                     eval_epochs.append(global_timestep.numpy())
                     action_buffer.append(eval_action)
                     distance_buffer.append(eval_distance)
@@ -611,13 +611,13 @@ def train_SAC(agent, env, replay_buffer, reward_buffer, summary_writer):
                     log.logging(global_timestep.numpy(), i, time.time() - start, reward_buffer, np.mean(loss), 0, [0])
 
                 if agent.eval_flg:
-                    test_Agent_TRPO(agent, env)
+                    eval_Agent_TRPO(agent, env)
                     agent.eval_flg = False
 
                 # check the stopping condition
                 if global_timestep.numpy() > agent.params.num_frames:
                     print("=== Training is Done ===")
-                    test_Agent_TRPO(agent, env, n_trial=agent.params.test_episodes)
+                    eval_Agent_TRPO(agent, env, n_trial=agent.params.test_episodes)
                     env.close()
                     break
 
@@ -719,7 +719,7 @@ def train_HER(agent, env, replay_buffer, summary_writer):
                 === After 1 epoch ===
                 """
                 # each epoch, we test the agent
-                success_rate = test_Agent_HER(agent, env, n_trial=agent.params.test_episodes)
+                success_rate = eval_Agent_HER(agent, env, n_trial=agent.params.test_episodes)
                 tf.contrib.summary.scalar("Test Success Rate", success_rate, step=epoch)
 
                 print("Epoch: {:03d}/{} | Train Success Rate: {:.3f} | Test Success Rate: {:.3f}".format(
@@ -727,7 +727,7 @@ def train_HER(agent, env, replay_buffer, summary_writer):
                 ))
 
             print("=== Training is Done ===")
-            test_Agent_HER(agent, env, n_trial=agent.params.test_episodes)
+            eval_Agent_HER(agent, env, n_trial=agent.params.test_episodes)
             env.close()
 
 
@@ -794,12 +794,12 @@ def train_TRPO(agent, env, reward_buffer, summary_writer):
                 log.logging(global_timestep.numpy(), total_ep, np.sum(time_buffer), reward_buffer, np.mean(loss), 0,
                             [0])
 
-                test_Agent_TRPO(agent, env)
+                eval_Agent_TRPO(agent, env)
 
                 # check the stopping condition
                 if global_timestep.numpy() > agent.params.num_frames:
                     print("=== Training is Done ===")
-                    test_Agent_TRPO(agent, env, n_trial=agent.params.test_episodes)
+                    eval_Agent_TRPO(agent, env, n_trial=agent.params.test_episodes)
                     env.close()
                     break
 
@@ -878,7 +878,7 @@ def train_HER_ray(agent, env, replay_buffer, summary_writer):
                 === After 1 epoch ===
                 """
                 # each epoch, we test the agent
-                success_rate = test_Agent_HER(agent, env, n_trial=agent.params.test_episodes)
+                success_rate = eval_Agent_HER(agent, env, n_trial=agent.params.test_episodes)
                 tf.contrib.summary.scalar("Test Success Rate", success_rate, step=epoch)
 
                 print("Epoch: {:03d}/{} | Train Success Rate: {:.3f} | Test Success Rate: {:.3f}".format(
@@ -886,7 +886,7 @@ def train_HER_ray(agent, env, replay_buffer, summary_writer):
                 ))
 
             print("=== Training is Done ===")
-            test_Agent_HER(agent, env, n_trial=agent.params.test_episodes)
+            eval_Agent_HER(agent, env, n_trial=agent.params.test_episodes)
             env.close()
 
 

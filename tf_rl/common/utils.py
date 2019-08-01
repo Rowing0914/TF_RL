@@ -357,10 +357,10 @@ class logger:
         remaining_time = str(datetime.timedelta(
             seconds=(self.params.num_frames - time_step) * exec_time / (episode_steps)))
         print(
-            "{0}/{1}: Ep: {2}({3:.1f} fps), Remaining: {4}, (R) GOAL: {5}, {6} Ep => [MEAN: {7}, MAX: {8}], (last ep) Loss: {9:.6f}, Eps: {10:.6f}, Act: {11}".format(
+            "{0}/{1}: Ep: {2}({3:.1f} fps), Remaining: {4}, (R) GOAL: {5}, {6} Ep => [MEAN: {7:.3f}, MAX: {8:.3f}], (last ep) Loss: {9:.3f}, Eps: {10:.3f}, Act: {11}".format(
                 time_step, self.params.num_frames, current_episode, episode_steps / exec_time, remaining_time,
-                self.params.goal,
-                self.params.reward_buffer_ep, np.mean(reward_buffer), np.max(reward_buffer), loss, epsilon, cnt_actions
+                self.params.goal, self.params.reward_buffer_ep, np.mean(reward_buffer), np.max(reward_buffer), loss,
+                epsilon, cnt_actions
             ))
         self.prev_update_step = time_step
 
@@ -450,6 +450,7 @@ def simple_goal_subtract(goal, achieved_goal):
 
 ALIVE_BONUS = 1.0
 
+
 def get_distance(env_name):
     """
     This returns the distance according to the implementation of env
@@ -458,32 +459,32 @@ def get_distance(env_name):
     :return: func to calculate the distance(float)
     """
     obj_name = env_name.split("-")[0]
-    if obj_name in "Ant":
+    if not obj_name.find("Ant") == -1:
         def func(action, reward, info):
             # https://github.com/openai/gym/blob/master/gym/envs/mujoco/ant.py#L14
             distance = info["reward_forward"]
             return distance
-    elif obj_name in "HalfCheetah":
+    elif not obj_name.find("HalfCheetah") == -1:
         def func(action, reward, info):
             # https://github.com/openai/gym/blob/master/gym/envs/mujoco/half_cheetah.py
             distance = info["reward_run"]
             return distance
-    elif obj_name in "Hopper":
+    elif not obj_name.find("Hopper") == -1:
         def func(action, reward, info):
             # https://github.com/openai/gym/blob/master/gym/envs/mujoco/hopper.py#L15
             distance = (reward - ALIVE_BONUS) + 1e-3 * np.square(action).sum()
             return distance
-    elif obj_name in "Humanoid":
+    elif not obj_name.find("Humanoid") == -1:
         def func(action, reward, info):
             # https://github.com/openai/gym/blob/master/gym/envs/mujoco/humanoid.py#L30
-            distance = info["reward_linvel"]/1.25
+            distance = info["reward_linvel"] / 1.25
             return distance
-    elif obj_name in "Swimmer":
+    elif not obj_name.find("Swimmer") == -1:
         def func(action, reward, info):
             # https://github.com/openai/gym/blob/master/gym/envs/mujoco/swimmer.py#L15
             distance = info["reward_fwd"]
             return distance
-    elif obj_name in "Walker2d":
+    elif not obj_name.find("Walker2d") == -1:
         def func(action, reward, info):
             # https://github.com/openai/gym/blob/master/gym/envs/mujoco/walker2d.py#L16 -> original version
             distance = (reward - ALIVE_BONUS) + 1e-3 * np.square(action).sum()
@@ -491,9 +492,9 @@ def get_distance(env_name):
             # https://github.com/openai/gym/blob/master/gym/envs/mujoco/walker2d_v3.py#L90 -> version 3.0
             # distance = info["x_velocity"]
             return distance
-    elif obj_name in "Centipede":
+    elif not obj_name.find("Centipede") == -1:
         def func(action, reward, info):
-            distance = info["forward_reward"]
+            distance = info["reward_forward"]
             return distance
     else:
         assert False, "This env: {} is not supported yet.".format(env_name)
@@ -673,7 +674,7 @@ Test Methods
 """
 
 
-def test_Agent(agent, env, n_trial=1):
+def eval_Agent(agent, env, n_trial=1):
     """
     Evaluate the trained agent!
 
@@ -713,18 +714,18 @@ def test_Agent(agent, env, n_trial=1):
                                                                   np.std(all_rewards), np.mean(all_rewards)))
 
 
-def test_Agent_DDPG(agent, n_trial=1):
+def eval_Agent_DDPG(env, agent, n_trial=1):
     """
     Evaluate the trained agent with the recording of its behaviour
 
     :return:
     """
 
-    env = gym.make(agent.params.env_name)
     all_distances, all_rewards, all_actions = list(), list(), list()
-    distance_func = get_distance(agent.params.env_name) # create the distance measure func
+    distance_func = get_distance(agent.params.env_name)  # create the distance measure func
     print("=== Evaluation Mode ===")
     for ep in range(n_trial):
+        env.record_start()
         state = env.reset()
         done = False
         episode_reward = 0
@@ -733,7 +734,7 @@ def test_Agent_DDPG(agent, n_trial=1):
             # scale for execution in env (in DDPG, every action is clipped between [-1, 1] in agent.predict)
             next_state, reward, done, info = env.step(action * env.action_space.high)
             distance = distance_func(action, reward, info)
-            all_actions.append(action.mean()**2) # Mean Squared of action values
+            all_actions.append(action.mean() ** 2)  # Mean Squared of action values
             all_distances.append(distance)
             state = next_state
             episode_reward += reward
@@ -741,10 +742,11 @@ def test_Agent_DDPG(agent, n_trial=1):
         all_rewards.append(episode_reward)
         tf.contrib.summary.scalar("Evaluation Score", episode_reward, step=agent.index_timestep)
         print("| Ep: {}/{} | Score: {} |".format(ep + 1, n_trial, episode_reward))
+    env.record_end()
     return all_rewards, all_distances, all_actions
 
 
-def test_Agent_TRPO(agent, env, n_trial=1):
+def eval_Agent_TRPO(agent, env, n_trial=1):
     """
     Evaluate the trained agent!
 
@@ -774,7 +776,7 @@ def test_Agent_TRPO(agent, env, n_trial=1):
                                                                   np.std(all_rewards), np.mean(all_rewards)))
 
 
-def test_Agent_HER(agent, env, n_trial=1):
+def eval_Agent_HER(agent, env, n_trial=1):
     """
     Evaluate the trained agent!
 

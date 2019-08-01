@@ -2,7 +2,7 @@ import gym, time
 import argparse
 import tensorflow as tf
 from collections import deque
-from gym.wrappers import Monitor
+from tf_rl.common.monitor import Monitor
 from tf_rl.common.random_process import OrnsteinUhlenbeckProcess, GaussianNoise
 from tf_rl.common.memory import ReplayBuffer
 from tf_rl.common.utils import *
@@ -57,11 +57,7 @@ params.video_dir = "../../logs/video/{}-mu{}".format(str(params.env_name.split("
 params.plot_path = "../../logs/plots/{}-mu{}/".format(str(params.env_name.split("-")[0]), mu)
 
 env = gym.make(params.env_name)
-env = Monitor(env,
-              params.video_dir,
-              video_callable=lambda _:
-              True if tf.compat.v1.train.get_global_step().numpy() % params.eval_interval==0 else False,
-              force=True)
+env = Monitor(env, params.video_dir, force=True)
 
 # set seed
 env.seed(params.seed)

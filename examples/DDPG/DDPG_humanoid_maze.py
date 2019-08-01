@@ -3,6 +3,7 @@ import argparse
 import tensorflow as tf
 from datetime import datetime
 from collections import deque
+from tf_rl.common.monitor import Monitor
 from tf_rl.common.random_process import OrnsteinUhlenbeckProcess
 from tf_rl.common.memory import ReplayBuffer
 from tf_rl.common.utils import eager_setup
@@ -58,6 +59,7 @@ params.actor_model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + 
 params.critic_model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "-DDPG_critic/"
 
 env = gym.make(params.env_name)
+env = Monitor(env, params.video_dir, force=True)
 
 # set seed
 env.seed(params.seed)

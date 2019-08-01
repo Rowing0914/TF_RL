@@ -133,7 +133,7 @@ class DDPG_Actor(tf.keras.Model):
         x = self.dense1(inputs)
         # x = self.batch1(x)
         x = self.dense2(x)
-        x = self.batch2(x)
+        # x = self.batch2(x)
         pred = self.pred(x)
         return pred
 
@@ -155,7 +155,7 @@ class DDPG_Critic(tf.keras.Model):
         x = self.dense1(obs)
         # x = self.batch1(x)
         x = self.dense2(tf.concat([x, act], axis=-1))
-        x = self.batch2(x)
+        # x = self.batch2(x)
         pred = self.pred(x)
         return pred
 
