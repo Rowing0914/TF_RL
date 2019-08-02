@@ -196,3 +196,34 @@ ROBOTICS_ENV_LIST = {
     "FetchReach-v1": 0,
     "FetchSlide-v1": 0
 }
+
+
+"""
+Storage of Params
+if you need to run the source code on Google Colab and need something conveniently accessible
+then use below!
+"""
+
+class Params:
+    def __init__(self):
+        self.env_name= "AntMuJoCotEnv-v0"
+        self.seed= 123
+        # self.num_frames= 1_000_000
+        self.num_frames= 500_000
+        # self.num_frames= 20_000
+        self.eval_interval= 100_000
+        # self.eval_interval= 5_000
+        self.memory_size= 100_000
+        self.learning_start= 10_000
+        # self.learning_start= 1_000
+        self.batch_size= 200
+        self.reward_buffer_ep= 10
+        self.gamma= 0.99
+        self.soft_update_tau= 1e-2
+        self.L2_reg= 0.5
+        self.mu= 0.2
+        self.sigma= 0.05
+        self.action_range= [-1., 1.]
+        self.debug_flg= False
+        self.google_colab= False
+        self.test_episodes= 1

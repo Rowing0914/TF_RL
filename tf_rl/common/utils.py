@@ -357,7 +357,7 @@ class logger:
         remaining_time = str(datetime.timedelta(
             seconds=(self.params.num_frames - time_step) * exec_time / (episode_steps)))
         print(
-            "{0}/{1}: Ep: {2}({3:.1f} fps), Remaining: {4}, (R) {5} Ep => [MEAN: 67:.3f}, MAX: {7:.3f}], (last ep) Loss: {8:.3f}, Eps: {9:.3f}, Act: {10}".format(
+            "{0}/{1}: Ep: {2}({3:.1f} fps), Remaining: {4}, (R) {5} Ep => [MEAN: {6:.3f}, MAX: {7:.3f}], (last ep) Loss: {8:.3f}, Eps: {9:.3f}, Act: {10}".format(
                 time_step, self.params.num_frames, current_episode, episode_steps / exec_time, remaining_time,
                 self.params.reward_buffer_ep, np.mean(reward_buffer), np.max(reward_buffer), loss,
                 epsilon, cnt_actions
