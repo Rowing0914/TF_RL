@@ -53,7 +53,6 @@ parser.add_argument("--debug_flg", default=False, type=bool, help="debug mode or
 parser.add_argument("--google_colab", default=False, type=bool, help="if you are executing this on GoogleColab")
 params = parser.parse_args()
 params.test_episodes = 1
-params.goal = DDPG_ENV_LIST[params.env_name]
 
 now = datetime.now()
 
@@ -64,11 +63,11 @@ now = datetime.now()
 # params.plot_path = "../../logs/plots/plot_{}/".format(now.strftime("%Y%m%d-%H%M%S") + "_" + str(params.env_name))
 mu = str(params.mu).split(".")
 mu = str(mu[0]+mu[1])
-params.log_dir = "../../logs/logs/DDPG-OUH/{}-mu{}".format(str(params.env_name.split("-")[0]), mu)
-params.actor_model_dir = "../../logs/models/DDPG-OUH/{}/actor-mu{}/".format(str(params.env_name.split("-")[0]), mu)
-params.critic_model_dir = "../../logs/models/DDPG-OUH/{}/critic-mu{}/".format(str(params.env_name.split("-")[0]), mu)
-params.video_dir = "../../logs/video/OUH-{}-mu{}".format(str(params.env_name.split("-")[0]), mu)
-params.plot_path = "../../logs/plots/OUH-{}-mu{}/".format(str(params.env_name.split("-")[0]), mu)
+params.log_dir = "../../logs/logs/myDDPG/{}-mu{}".format(str(params.env_name.split("-")[0]), mu)
+params.actor_model_dir = "../../logs/models/myDDPG/{}/actor-mu{}/".format(str(params.env_name.split("-")[0]), mu)
+params.critic_model_dir = "../../logs/models/myDDPG/{}/critic-mu{}/".format(str(params.env_name.split("-")[0]), mu)
+params.video_dir = "../../logs/video/myDDPG-{}-mu{}".format(str(params.env_name.split("-")[0]), mu)
+params.plot_path = "../../logs/plots/myDDPG-{}-mu{}/".format(str(params.env_name.split("-")[0]), mu)
 
 env = gym.make(params.env_name)
 env = Monitor(env, params.video_dir, force=True)

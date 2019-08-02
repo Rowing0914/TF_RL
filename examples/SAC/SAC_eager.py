@@ -1,6 +1,7 @@
 import gym
 import argparse
 import tensorflow as tf
+from datetime import datetime
 from collections import deque
 from tf_rl.common.memory import ReplayBuffer
 from tf_rl.common.utils import eager_setup
@@ -43,32 +44,26 @@ parser.add_argument("--gamma", default=0.99, type=float,
                     help="discount factor => gamma > 1.0 or negative => does not converge!!")
 parser.add_argument("--alpha", default=0.2, type=float,
                     help="Temperature param which determines the relative importance of the entropy term against the reward")
-parser.add_argument("--soft_update_tau", default=0.005, type=float,
-                    help="soft-update needs tau to define the ratio of main model remains")
-parser.add_argument("--log_dir", default="../../logs/logs/SAC/", help="directory for log")
-parser.add_argument("--model_dir", default="../../logs/models/SAC/", help="directory for trained model")
+parser.add_argument("--soft_update_tau", default=0.005, type=float, help="soft-update")
 parser.add_argument("--debug_flg", default=False, type=bool, help="debug mode or not")
 parser.add_argument("--google_colab", default=False, type=bool, help="if you are executing this on GoogleColab")
 params = parser.parse_args()
+params.goal = DDPG_ENV_LIST[params.env_name]
 params.test_episodes = 10
-
-from datetime import datetime
 
 now = datetime.now()
 
-if params.debug_flg:
-    params.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "-SAC/"
-    params.model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "-SAC/"
-else:
-    params.log_dir = "../../logs/logs/{}".format(params.env_name)
-    params.model_dir = "../../logs/models/{}".format(params.env_name)
+params.log_dir = "../../logs/logs/SAC/{}".format(str(params.env_name.split("-")[0]))
+params.actor_model_dir = "../../logs/models/SAC/{}/actor/".format(str(params.env_name.split("-")[0]))
+params.critic_model_dir = "../../logs/models/SAC/{}/critic/".format(str(params.env_name.split("-")[0]))
+params.video_dir = "../../logs/video/SAC-{}".format(str(params.env_name.split("-")[0]))
+params.plot_path = "../../logs/plots/SAC-{}/".format(str(params.env_name.split("-")[0]))
 
 env = gym.make(params.env_name)
 # set seed
 env.seed(params.seed)
 tf.random.set_random_seed(params.seed)
 
-params.goal = DDPG_ENV_LIST[params.env_name]
 
 if params.debug_flg:
     agent = SAC_debug(Actor, Critic, env.action_space.shape[0], params)

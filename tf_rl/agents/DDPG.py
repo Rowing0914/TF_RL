@@ -69,7 +69,6 @@ class DDPG(Agent):
             # Compute critic loss(MSE or huber_loss) + L2 loss
             critic_loss = tf.compat.v1.losses.mean_squared_error(Y, tf.reshape(q_values, [-1])) + tf.add_n(
                 self.critic.losses) * self.params.L2_reg
-        # critic_loss = tf.math.reduce_mean(tf.compat.v1.losses.huber_loss(Y, q_values, reduction=tf.compat.v1.losses.Reduction.NONE)) + tf.add_n(self.critic.losses)*self.params.L2_reg
 
         # get gradients
         critic_grads = tape.gradient(critic_loss, self.critic.trainable_variables)
@@ -155,7 +154,6 @@ class DDPG_debug(Agent):
             # Compute critic loss(MSE or huber_loss) + L2 loss
             critic_loss = tf.compat.v1.losses.mean_squared_error(Y, tf.reshape(q_values, [-1])) + tf.add_n(
                 self.critic.losses) * self.params.L2_reg
-        # critic_loss = tf.math.reduce_mean(tf.compat.v1.losses.huber_loss(Y, q_values, reduction=tf.compat.v1.losses.Reduction.NONE)) + tf.add_n(self.critic.losses)*self.params.L2_reg
 
         # get gradients
         critic_grads = tape.gradient(critic_loss, self.critic.trainable_variables)
@@ -249,7 +247,6 @@ class self_rewarding_DDPG(Agent):
             # Compute critic loss(MSE or huber_loss) + L2 loss
             critic_loss = tf.compat.v1.losses.mean_squared_error(Y, tf.reshape(q_values, [-1])) + tf.add_n(
                 self.critic.losses) * self.params.L2_reg
-        # critic_loss = tf.math.reduce_mean(tf.compat.v1.losses.huber_loss(Y, q_values, reduction=tf.compat.v1.losses.Reduction.NONE)) + tf.add_n(self.critic.losses)*self.params.L2_reg
 
         # get gradients
         critic_grads = tape.gradient(critic_loss, self.critic.trainable_variables)

@@ -506,14 +506,14 @@ def train_DDPG(agent, env, replay_buffer, reward_buffer, summary_writer):
                 """
 
                 # train the model at this point
-                for t_train in range(int(episode_len/5)):
+                for t_train in range(int(episode_len)):
                     # for t_train in range(10): # for test purpose
                     states, actions, rewards, next_states, dones = replay_buffer.sample(agent.params.batch_size)
                     loss = agent.update(states, actions, rewards, next_states, dones)
                     soft_target_model_update_eager(agent.target_actor, agent.actor, tau=agent.params.soft_update_tau)
                     soft_target_model_update_eager(agent.target_critic, agent.critic, tau=agent.params.soft_update_tau)
 
-                # save the update models
+                # save the updated models
                 agent.actor_manager.save()
                 agent.critic_manager.save()
 
@@ -555,7 +555,7 @@ def train_DDPG(agent, env, replay_buffer, reward_buffer, summary_writer):
 def train_SAC(agent, env, replay_buffer, reward_buffer, summary_writer):
     get_ready(agent.params)
 
-    global_timestep = tf.compat.v1.train.get_global_step()
+    global_timestep = tf.compat.v1.train.get_or_create_global_step()
     log = logger(agent.params)
 
     with summary_writer.as_default():
@@ -591,8 +591,7 @@ def train_SAC(agent, env, replay_buffer, reward_buffer, summary_writer):
                     if global_timestep.numpy() > agent.params.learning_start:
                         states, actions, rewards, next_states, dones = replay_buffer.sample(agent.params.batch_size)
                         loss = agent.update(states, actions, rewards, next_states, dones)
-                        soft_target_model_update_eager(agent.target_critic, agent.critic,
-                                                       tau=agent.params.soft_update_tau)
+                        soft_target_model_update_eager(agent.target_critic, agent.critic, tau=agent.params.soft_update_tau)
 
                 """
                 ===== After 1 Episode is Done =====
@@ -810,122 +809,122 @@ Distributed Version of Training APIs
 
 """
 
-import ray
-
-
-def train_HER_ray(agent, env, replay_buffer, summary_writer):
-    ray.init()
-    get_ready(agent.params)
-    global_timestep = tf.compat.v1.train.get_global_step()
-    total_ep = 0
-
-    with summary_writer.as_default():
-        # for summary purpose, we put all codes in this context
-        with tf.contrib.summary.always_record_summaries():
-
-            for epoch in range(agent.params.num_epochs):
-                successes = list()
-                for cycle in range(agent.params.num_cycles):
-                    mb_obs, mb_ag, mb_g, mb_actions = [], [], [], []
-                    # for ep in range(agent.params.num_episodes):
-                    agent_id = ray.put(agent)
-                    env_id = ray.put(env)
-                    tasks = [_inner_train_HER.remote(agent_id, env_id) for _ in range(agent.params.num_episodes)]
-
-                    res = ray.get(tasks)
-                    print(res)
-                    # asdf
-
-                    """
-                    === After num_episodes ===
-                    """
-                    # convert them into arrays
-                    mb_obs = np.array(mb_obs)
-                    mb_ag = np.array(mb_ag)
-                    mb_g = np.array(mb_g)
-                    mb_actions = np.array(mb_actions)
-                    replay_buffer.store_episode([mb_obs, mb_ag, mb_g, mb_actions])
-
-                    # ==== update normaliser ====
-                    mb_obs_next = mb_obs[:, 1:, :]
-                    mb_ag_next = mb_ag[:, 1:, :]
-                    # get the number of normalization transitions
-                    num_transitions = mb_actions.shape[1]
-                    # create the new buffer to store them
-                    buffer_temp = {'obs': mb_obs,
-                                   'ag': mb_ag,
-                                   'g': mb_g,
-                                   'actions': mb_actions,
-                                   'obs_next': mb_obs_next,
-                                   'ag_next': mb_ag_next,
-                                   }
-                    transitions = replay_buffer.sample_func(buffer_temp, num_transitions)
-                    # update
-                    agent.o_norm.update(transitions['obs'])
-                    agent.g_norm.update(transitions['g'])
-                    # ==== finish update normaliser ====
-
-                    # Update Loop
-                    for _ in range(agent.params.num_updates):
-                        transitions = replay_buffer.sample(agent.params.batch_size)
-                        agent.update(transitions)
-
-                    # sync networks
-                    soft_target_model_update_eager(agent.target_actor, agent.actor, tau=agent.params.tau)
-                    soft_target_model_update_eager(agent.target_critic, agent.critic, tau=agent.params.tau)
-
-                """
-                === After 1 epoch ===
-                """
-                # each epoch, we test the agent
-                success_rate = eval_Agent_HER(agent, env, n_trial=agent.params.test_episodes)
-                tf.contrib.summary.scalar("Test Success Rate", success_rate, step=epoch)
-
-                print("Epoch: {:03d}/{} | Train Success Rate: {:.3f} | Test Success Rate: {:.3f}".format(
-                    epoch, agent.params.num_epochs, np.mean(np.array(successes)), success_rate
-                ))
-
-            print("=== Training is Done ===")
-            eval_Agent_HER(agent, env, n_trial=agent.params.test_episodes)
-            env.close()
-
-
-@ray.remote
-def _inner_train_HER(agent, env):
-    successes, mb_obs, mb_ag, mb_g, mb_actions = [], [], [], [], []
-    state = env.reset()
-    # obs, achieved_goal, desired_goal in `numpy.ndarray`
-    obs, ag, dg, rg = state_unpacker(state)
-    ep_obs, ep_ag, ep_g, ep_actions = [], [], [], []
-    success = list()
-    for ts in range(agent.params.num_steps):
-        # env.render()
-        action = agent.predict(obs, dg)
-        action = action_postprocessing(action, agent.params)
-
-        next_state, _, _, info = env.step(action)
-
-        # obs, achieved_goal, desired_goal in `numpy.ndarray`
-        next_obs, next_ag, next_dg, next_rg = state_unpacker(next_state)
-
-        ep_obs.append(obs.copy())
-        ep_ag.append(ag.copy())
-        ep_g.append(dg.copy())
-        ep_actions.append(action.copy())
-
-        success.append(info.get('is_success'))
-        obs = next_obs
-        # rg = next_rg
-        ag = next_ag
-
-    """
-    === After 1 ep ===
-    """
-    ep_obs.append(obs.copy())
-    ep_ag.append(ag.copy())
-    mb_obs.append(ep_obs)
-    mb_ag.append(ep_ag)
-    mb_g.append(ep_g)
-    mb_actions.append(ep_actions)
-    successes.append(success)
-    return successes, mb_obs, mb_ag, mb_g, mb_actions
+# import ray
+# 
+# 
+# def train_HER_ray(agent, env, replay_buffer, summary_writer):
+#     ray.init()
+#     get_ready(agent.params)
+#     global_timestep = tf.compat.v1.train.get_global_step()
+#     total_ep = 0
+# 
+#     with summary_writer.as_default():
+#         # for summary purpose, we put all codes in this context
+#         with tf.contrib.summary.always_record_summaries():
+# 
+#             for epoch in range(agent.params.num_epochs):
+#                 successes = list()
+#                 for cycle in range(agent.params.num_cycles):
+#                     mb_obs, mb_ag, mb_g, mb_actions = [], [], [], []
+#                     # for ep in range(agent.params.num_episodes):
+#                     agent_id = ray.put(agent)
+#                     env_id = ray.put(env)
+#                     tasks = [_inner_train_HER.remote(agent_id, env_id) for _ in range(agent.params.num_episodes)]
+# 
+#                     res = ray.get(tasks)
+#                     print(res)
+#                     # asdf
+# 
+#                     """
+#                     === After num_episodes ===
+#                     """
+#                     # convert them into arrays
+#                     mb_obs = np.array(mb_obs)
+#                     mb_ag = np.array(mb_ag)
+#                     mb_g = np.array(mb_g)
+#                     mb_actions = np.array(mb_actions)
+#                     replay_buffer.store_episode([mb_obs, mb_ag, mb_g, mb_actions])
+# 
+#                     # ==== update normaliser ====
+#                     mb_obs_next = mb_obs[:, 1:, :]
+#                     mb_ag_next = mb_ag[:, 1:, :]
+#                     # get the number of normalization transitions
+#                     num_transitions = mb_actions.shape[1]
+#                     # create the new buffer to store them
+#                     buffer_temp = {'obs': mb_obs,
+#                                    'ag': mb_ag,
+#                                    'g': mb_g,
+#                                    'actions': mb_actions,
+#                                    'obs_next': mb_obs_next,
+#                                    'ag_next': mb_ag_next,
+#                                    }
+#                     transitions = replay_buffer.sample_func(buffer_temp, num_transitions)
+#                     # update
+#                     agent.o_norm.update(transitions['obs'])
+#                     agent.g_norm.update(transitions['g'])
+#                     # ==== finish update normaliser ====
+# 
+#                     # Update Loop
+#                     for _ in range(agent.params.num_updates):
+#                         transitions = replay_buffer.sample(agent.params.batch_size)
+#                         agent.update(transitions)
+# 
+#                     # sync networks
+#                     soft_target_model_update_eager(agent.target_actor, agent.actor, tau=agent.params.tau)
+#                     soft_target_model_update_eager(agent.target_critic, agent.critic, tau=agent.params.tau)
+# 
+#                 """
+#                 === After 1 epoch ===
+#                 """
+#                 # each epoch, we test the agent
+#                 success_rate = eval_Agent_HER(agent, env, n_trial=agent.params.test_episodes)
+#                 tf.contrib.summary.scalar("Test Success Rate", success_rate, step=epoch)
+# 
+#                 print("Epoch: {:03d}/{} | Train Success Rate: {:.3f} | Test Success Rate: {:.3f}".format(
+#                     epoch, agent.params.num_epochs, np.mean(np.array(successes)), success_rate
+#                 ))
+# 
+#             print("=== Training is Done ===")
+#             eval_Agent_HER(agent, env, n_trial=agent.params.test_episodes)
+#             env.close()
+# 
+# 
+# @ray.remote
+# def _inner_train_HER(agent, env):
+#     successes, mb_obs, mb_ag, mb_g, mb_actions = [], [], [], [], []
+#     state = env.reset()
+#     # obs, achieved_goal, desired_goal in `numpy.ndarray`
+#     obs, ag, dg, rg = state_unpacker(state)
+#     ep_obs, ep_ag, ep_g, ep_actions = [], [], [], []
+#     success = list()
+#     for ts in range(agent.params.num_steps):
+#         # env.render()
+#         action = agent.predict(obs, dg)
+#         action = action_postprocessing(action, agent.params)
+# 
+#         next_state, _, _, info = env.step(action)
+# 
+#         # obs, achieved_goal, desired_goal in `numpy.ndarray`
+#         next_obs, next_ag, next_dg, next_rg = state_unpacker(next_state)
+# 
+#         ep_obs.append(obs.copy())
+#         ep_ag.append(ag.copy())
+#         ep_g.append(dg.copy())
+#         ep_actions.append(action.copy())
+# 
+#         success.append(info.get('is_success'))
+#         obs = next_obs
+#         # rg = next_rg
+#         ag = next_ag
+# 
+#     """
+#     === After 1 ep ===
+#     """
+#     ep_obs.append(obs.copy())
+#     ep_ag.append(ag.copy())
+#     mb_obs.append(ep_obs)
+#     mb_ag.append(ep_ag)
+#     mb_g.append(ep_g)
+#     mb_actions.append(ep_actions)
+#     successes.append(success)
+#     return successes, mb_obs, mb_ag, mb_g, mb_actions

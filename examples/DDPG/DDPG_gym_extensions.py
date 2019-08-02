@@ -10,7 +10,6 @@ from tf_rl.common.memory import ReplayBuffer
 from tf_rl.common.utils import eager_setup
 from tf_rl.agents.DDPG import DDPG
 from tf_rl.common.train import train_DDPG
-from tf_rl.common.params import DDPG_ENV_LIST
 from tf_rl.common.networks import DDPG_Actor as Actor, DDPG_Critic as Critic
 
 eager_setup()
@@ -39,7 +38,6 @@ parser.add_argument("--debug_flg", default=False, type=bool, help="debug mode or
 parser.add_argument("--google_colab", default=False, type=bool, help="if you are executing this on GoogleColab")
 params = parser.parse_args()
 params.test_episodes = 1
-params.goal = 0
 
 now = datetime.now()
 

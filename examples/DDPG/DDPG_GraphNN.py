@@ -39,7 +39,6 @@ parser.add_argument("--debug_flg", default=False, type=bool, help="debug mode or
 parser.add_argument("--google_colab", default=False, type=bool, help="if you are executing this on GoogleColab")
 params = parser.parse_args()
 params.test_episodes = 1
-params.goal = 0
 
 now = datetime.datetime.now()
 
@@ -150,7 +149,7 @@ with summary_writer.as_default():
 
             # evaluation
             if agent.eval_flg:
-                eval_reward, eval_distance, eval_action = test_Agent_DDPG(agent)
+                eval_reward, eval_distance, eval_action = eval_Agent_DDPG(env, agent)
                 eval_epochs.append(global_timestep.numpy())
                 action_buffer.append(eval_action)
                 distance_buffer.append(eval_distance)
@@ -159,7 +158,7 @@ with summary_writer.as_default():
             # check the stopping condition
             if global_timestep.numpy() > agent.params.num_frames:
                 print("=== Training is Done ===")
-                eval_reward, eval_distance, eval_action = test_Agent_DDPG(agent)
+                eval_reward, eval_distance, eval_action = eval_Agent_DDPG(env, agent)
                 eval_epochs.append(global_timestep.numpy())
                 action_buffer.append(eval_action)
                 distance_buffer.append(eval_distance)
