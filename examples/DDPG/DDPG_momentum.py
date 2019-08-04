@@ -39,14 +39,14 @@ now = datetime.datetime.now()
 
 mu = str(params.mu).split(".")
 mu = str(mu[0] + mu[1])
-params.log_dir = "../../logs/logs/DDPG-original/{}-mu{}".format(str(params.env_name.split("-")[0]), mu)
-params.actor_model_dir = "../../logs/models/DDPG-original/{}/actor-mu{}/".format(str(params.env_name.split("-")[0]), mu)
-params.critic_model_dir = "../../logs/models/DDPG-original/{}/critic-mu{}/".format(str(params.env_name.split("-")[0]), mu)
-params.video_dir = "../../logs/video/DDPG-original-{}-mu{}".format(str(params.env_name.split("-")[0]), mu)
-params.plot_path = "../../logs/plots/DDPG-original-{}-mu{}/".format(str(params.env_name.split("-")[0]), mu)
+params.log_dir = "../../logs/logs/DDPG-momentum/{}-mu{}".format(str(params.env_name.split("-")[0]), mu)
+params.actor_model_dir = "../../logs/models/DDPG-momentum/{}/actor-mu{}/".format(str(params.env_name.split("-")[0]), mu)
+params.critic_model_dir = "../../logs/models/DDPG-momentum/{}/critic-mu{}/".format(str(params.env_name.split("-")[0]), mu)
+params.video_dir = "../../logs/video/DDPG-momentum-{}-mu{}".format(str(params.env_name.split("-")[0]), mu)
+params.plot_path = "../../logs/plots/DDPG-momentum-{}-mu{}/".format(str(params.env_name.split("-")[0]), mu)
 
 env = gym.make(params.env_name)
-env = Monitor(env, params.video_dir, force=True)
+env = Monitor(env, params.video_dir)
 
 # set seed
 env.seed(params.seed)
@@ -67,6 +67,18 @@ time_buffer = deque(maxlen=agent.params.reward_buffer_ep)
 log = logger(agent.params)
 action_buffer, distance_buffer, eval_epochs = list(), list(), list()
 
+def Momentum(action, past_actions, T=5, gamma=0.9, mode="normal"):
+    # T represents the time-horizon
+    if mode == "normal":
+        # a = gamma * 1/T * sum(a_t-1) + a_t
+        return gamma*np.mean(past_actions, axis=0) + action
+    elif mode == "weighted":
+        # a = 1/T (sum^T_k (gamma**(T-k)) * a_T-k) + a_t
+        _inner = np.mean([gamma**(T-k)*past_actions[-k, :] for k in range(T)], axis=0)
+        return _inner + action
+
+moment_buffer = deque(maxlen=5)
+
 with summary_writer.as_default():
     # for summary purpose, we put all codes in this context
     with tf.contrib.summary.always_record_summaries():
@@ -81,8 +93,13 @@ with summary_writer.as_default():
             while not done:
                 if global_timestep.numpy() < agent.params.learning_start:
                     action = env.action_space.sample()
+                    moment_buffer.append(action)
                 else:
                     action = agent.predict(state)
+                    moment_buffer.append(action)
+                    action = Momentum(action, past_actions=np.array(moment_buffer), T=len(moment_buffer), mode="weighted")
+                    # print(action, momentum)
+
                 # scale for execution in env (in DDPG, every action is clipped between [-1, 1] in agent.predict)
                 next_state, reward, done, info = env.step(action * env.action_space.high)
                 replay_buffer.add(state, action, reward, next_state, done)

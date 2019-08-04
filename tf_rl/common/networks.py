@@ -123,17 +123,13 @@ class DDPG_Actor(tf.keras.Model):
     def __init__(self, num_action=1):
         super(DDPG_Actor, self).__init__()
         self.dense1 = tf.keras.layers.Dense(400, activation='relu', kernel_initializer=KERNEL_INIT)
-        self.batch1 = tf.keras.layers.BatchNormalization()
         self.dense2 = tf.keras.layers.Dense(300, activation='relu', kernel_initializer=KERNEL_INIT)
-        self.batch2 = tf.keras.layers.BatchNormalization()
         self.pred = tf.keras.layers.Dense(num_action, activation='tanh', kernel_initializer=KERNEL_INIT)
 
     @tf.contrib.eager.defun(autograph=False)
     def call(self, inputs):
         x = self.dense1(inputs)
-        # x = self.batch1(x)
         x = self.dense2(x)
-        # x = self.batch2(x)
         pred = self.pred(x)
         return pred
 
@@ -143,26 +139,22 @@ class DDPG_Critic(tf.keras.Model):
         super(DDPG_Critic, self).__init__()
         self.dense1 = tf.keras.layers.Dense(400, activation='relu', kernel_regularizer=L2, bias_regularizer=L2,
                                             kernel_initializer=KERNEL_INIT)
-        self.batch1 = tf.keras.layers.BatchNormalization()
         self.dense2 = tf.keras.layers.Dense(300, activation='relu', kernel_regularizer=L2, bias_regularizer=L2,
                                             kernel_initializer=KERNEL_INIT)
-        self.batch2 = tf.keras.layers.BatchNormalization()
         self.pred = tf.keras.layers.Dense(output_shape, activation='linear', kernel_regularizer=L2, bias_regularizer=L2,
                                           kernel_initializer=KERNEL_INIT)
 
     @tf.contrib.eager.defun(autograph=False)
     def call(self, obs, act):
         x = self.dense1(obs)
-        # x = self.batch1(x)
         x = self.dense2(tf.concat([x, act], axis=-1))
-        # x = self.batch2(x)
         pred = self.pred(x)
         return pred
 
 
-class small_DDPG_Actor(tf.keras.Model):
+class BatchNorm_DDPG_Actor(tf.keras.Model):
     def __init__(self, num_action=1):
-        super(small_DDPG_Actor, self).__init__()
+        super(BatchNorm_DDPG_Actor, self).__init__()
         self.dense1 = tf.keras.layers.Dense(400, activation='relu', kernel_initializer=KERNEL_INIT)
         self.batch1 = tf.keras.layers.BatchNormalization()
         self.dense2 = tf.keras.layers.Dense(300, activation='relu', kernel_initializer=KERNEL_INIT)
@@ -172,16 +164,16 @@ class small_DDPG_Actor(tf.keras.Model):
     @tf.contrib.eager.defun(autograph=False)
     def call(self, inputs):
         x = self.dense1(inputs)
-        # x = self.batch1(x)
+        x = self.batch1(x)
         x = self.dense2(x)
-        # x = self.batch2(x)
+        x = self.batch2(x)
         pred = self.pred(x)
         return pred
 
 
-class small_DDPG_Critic(tf.keras.Model):
+class BatchNorm_DDPG_Critic(tf.keras.Model):
     def __init__(self, output_shape):
-        super(small_DDPG_Critic, self).__init__()
+        super(BatchNorm_DDPG_Critic, self).__init__()
         self.dense1 = tf.keras.layers.Dense(400, activation='relu', kernel_regularizer=L2, bias_regularizer=L2,
                                             kernel_initializer=KERNEL_INIT)
         self.batch1 = tf.keras.layers.BatchNormalization()
@@ -194,9 +186,9 @@ class small_DDPG_Critic(tf.keras.Model):
     @tf.contrib.eager.defun(autograph=False)
     def call(self, obs, act):
         x = self.dense1(obs)
-        # x = self.batch1(x)
+        x = self.batch1(x)
         x = self.dense2(tf.concat([x, act], axis=-1))
-        # x = self.batch2(x)
+        x = self.batch2(x)
         pred = self.pred(x)
         return pred
 

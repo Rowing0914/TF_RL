@@ -461,10 +461,97 @@ def train_DRQN(agent, env, policy, replay_buffer, reward_buffer, params, summary
 
 """
 
+def train_DDPG_original(agent, env, replay_buffer, reward_buffer, summary_writer):
+    """ the cycle of updating the model is the on-policy, we use the updated policy in the same episode """
+    get_ready(agent.params)
 
-# I have referred to https://github.com/laket/DDPG_Eager in terms of design of algorithm
-# I know this is not precisely accurate to the original algo, but this works better than that... lol
-def train_DDPG(agent, env, replay_buffer, reward_buffer, summary_writer):
+    global_timestep = tf.compat.v1.train.get_or_create_global_step()
+    time_buffer = deque(maxlen=agent.params.reward_buffer_ep)
+    log = logger(agent.params)
+    action_buffer, distance_buffer, eval_epochs = list(), list(), list()
+
+    with summary_writer.as_default():
+        # for summary purpose, we put all codes in this context
+        with tf.contrib.summary.always_record_summaries():
+
+            for i in itertools.count():
+                state = env.reset()
+                total_reward = 0
+                start = time.time()
+                agent.random_process.reset_states()
+                done = False
+                episode_len = 0
+                while not done:
+                    if global_timestep.numpy() < agent.params.learning_start:
+                        action = env.action_space.sample()
+                    else:
+                        action = agent.predict(state)
+                    # scale for execution in env (in DDPG, every action is clipped between [-1, 1] in agent.predict)
+                    next_state, reward, done, info = env.step(action * env.action_space.high)
+                    replay_buffer.add(state, action, reward, next_state, done)
+
+                    """
+                    Update the models
+                    """
+
+                    states, actions, rewards, next_states, dones = replay_buffer.sample(agent.params.batch_size)
+                    loss = agent.update(states, actions, rewards, next_states, dones)
+                    soft_target_model_update_eager(agent.target_actor, agent.actor, tau=agent.params.soft_update_tau)
+                    soft_target_model_update_eager(agent.target_critic, agent.critic, tau=agent.params.soft_update_tau)
+
+                    global_timestep.assign_add(1)
+                    episode_len += 1
+                    total_reward += reward
+                    state = next_state
+
+                    # for evaluation purpose
+                    if global_timestep.numpy() % agent.params.eval_interval == 0:
+                        agent.eval_flg = True
+
+                """
+                ===== After 1 Episode is Done =====
+                """
+                # save the updated models
+                agent.actor_manager.save()
+                agent.critic_manager.save()
+
+                # store the episode related variables
+                reward_buffer.append(total_reward)
+                time_buffer.append(time.time() - start)
+
+                # logging on Tensorboard
+                tf.contrib.summary.scalar("reward", total_reward, step=i)
+                tf.contrib.summary.scalar("exec time", time.time() - start, step=i)
+                if i >= agent.params.reward_buffer_ep:
+                    tf.contrib.summary.scalar("Moving Ave Reward", np.mean(reward_buffer), step=i)
+
+                # logging
+                if global_timestep.numpy() > agent.params.learning_start and i % agent.params.reward_buffer_ep == 0:
+                    log.logging(global_timestep.numpy(), i, np.sum(time_buffer), reward_buffer, np.mean(loss), 0, [0])
+
+                # evaluation
+                if agent.eval_flg:
+                    eval_reward, eval_distance, eval_action = eval_Agent_DDPG(env, agent)
+                    eval_epochs.append(global_timestep.numpy())
+                    action_buffer.append(eval_action)
+                    distance_buffer.append(eval_distance)
+                    agent.eval_flg = False
+
+                # check the stopping condition
+                if global_timestep.numpy() > agent.params.num_frames:
+                    print("=== Training is Done ===")
+                    eval_reward, eval_distance, eval_action = eval_Agent_DDPG(env, agent)
+                    eval_epochs.append(global_timestep.numpy())
+                    action_buffer.append(eval_action)
+                    distance_buffer.append(eval_distance)
+                    visualise_act_and_dist(np.array(eval_epochs), np.array(action_buffer), np.array(distance_buffer),
+                                           env_name=agent.params.env_name, file_dir=agent.params.plot_path)
+                    env.close()
+                    break
+
+
+def train_DDPG_offpolicy(agent, env, replay_buffer, reward_buffer, summary_writer):
+    """ the cycle of updating the model is the off-policy, we use the updated policy after the previous episode """
     get_ready(agent.params)
 
     global_timestep = tf.compat.v1.train.get_or_create_global_step()
@@ -547,7 +634,7 @@ def train_DDPG(agent, env, replay_buffer, reward_buffer, summary_writer):
                     action_buffer.append(eval_action)
                     distance_buffer.append(eval_distance)
                     visualise_act_and_dist(np.array(eval_epochs), np.array(action_buffer), np.array(distance_buffer),
-                                           file_dir=agent.params.plot_path)
+                                           env_name=agent.params.env_name, file_dir=agent.params.plot_path)
                     env.close()
                     break
 

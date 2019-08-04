@@ -72,11 +72,7 @@ params.video_dir = "../../logs/video/self_R/{}-mu{}".format(str(params.env_name.
 params.plot_path = "../../logs/plots/self_R/{}-mu{}/".format(str(params.env_name.split("-")[0]), mu)
 
 env = gym.make(params.env_name)
-env = Monitor(env,
-              params.video_dir,
-              video_callable=lambda _:
-              True if tf.compat.v1.train.get_global_step().numpy() % params.eval_interval==0 else False,
-              force=True)
+env = Monitor(env, params.video_dir)
 
 # set seed
 env.seed(params.seed)
