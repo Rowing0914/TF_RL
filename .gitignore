@@ -8,8 +8,10 @@ dist/
 TF_RL.egg-info
 *.pyc
 examples/Research/
+examples/Policy_Eval_lab/
 /test/video/
 *.mp4
 *.meta.json
 /examples/DDPG/video/
 /examples/DDPG/models/
+result/result_transformer/result_graphs/
