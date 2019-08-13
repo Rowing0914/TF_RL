@@ -113,7 +113,7 @@ time.sleep(0.5)
 9. Continuous Control with Deep Reinforcement Leaning, TP Lillicrap et al., 2015 [[arxiv]](<https://arxiv.org/pdf/1509.02971.pdf>) [[code]](https://github.com/Rowing0914/TF_RL/blob/master/examples/DDPG/)
 10. Deep Recurrent Q-Learning for Partially Observable MDPs, M Hausknecht., 2015 [[arxiv]](<https://arxiv.org/abs/1507.06527>) [[code]](https://github.com/Rowing0914/TF_RL/blob/master/examples/DRQN/)
 11. Hindsight Experience Replay, M.Andrychowicz et al., 2017 [[arxiv]](<https://arxiv.org/pdf/1707.01495.pdf>) [[code]](https://github.com/Rowing0914/TF_RL/blob/master/examples/HER/) [[video1]](https://youtu.be/zVV_lF_X4DA) [[video2]](https://youtu.be/OoG0A3hrMD4)
-12. Soft Actor-Critic: Off-Policy Maximum Entropy Deep Reinforcement Learning with a Stochastic Actor, Haarnoja et al., 2018 [[arxiv]](<https://arxiv.org/abs/1801.01290>) [[code]](https://github.com/Rowing0914/TF_RL/tree/master/examples/SAC)
+12. Soft Actor-Critic: Off-Policy Maximum Entropy Deep Reinforcement Learning with a Stochastic Actor, Haarnoja et al., 2018 [[arxiv]](<https://arxiv.org/abs/1801.01290>) [[video]](https://www.youtube.com/watch?v=Bh_t_kfXTAU) [[code]](https://github.com/Rowing0914/TF_RL/tree/master/examples/SAC)
 13. Trust Region Policy Optimization, J.Schulman et al., 2015 [[arxiv]](https://arxiv.org/abs/1502.05477) [[code]](https://github.com/Rowing0914/TF_RL/tree/master/examples/TRPO)
 
 
@@ -122,6 +122,8 @@ time.sleep(0.5)
 - DDPG: https://github.com/Rowing0914/TF_RL/tree/master/result/DDPG
 - HER
     - [![video2](http://img.youtube.com/vi/OoG0A3hrMD4/0.jpg)](http://www.youtube.com/watch?v=OoG0A3hrMD4 "HER Demo")
+- SAC
+    - [[video]](https://www.youtube.com/watch?v=Bh_t_kfXTAU)
 
 #### Future dev
 
