@@ -280,7 +280,7 @@ class SAC_Actor(tf.keras.Model):
         self.mean = tf.keras.layers.Dense(num_action, activation='linear', kernel_initializer=XAVIER_INIT)
         self.std = tf.keras.layers.Dense(num_action, activation='linear', kernel_initializer=XAVIER_INIT)
 
-    # @tf.contrib.eager.defun(autograph=False)
+    @tf.contrib.eager.defun(autograph=False)
     def call(self, inputs):
         """
         As mentioned in the topic of `policy evaluation` at sec5.2(`ablation study`) in the paper,
@@ -296,18 +296,16 @@ class SAC_Actor(tf.keras.Model):
         dist = tfd.Normal(loc=mean, scale=std)
         # dist = tfd.MultivariateNormalDiag(loc=mean, scale_diag=std)
         x = dist.sample()
-        action = tf.nn.tanh(x)
+        action = tf.keras.activations.tanh(x)
         log_prob = dist.log_prob(x)
-        # log_prob -= tf.math.reduce_sum(tf.math.log(1. - tf.math.square(action) + 1e-6))
         log_prob -= tf.math.log(1. - tf.math.square(action) + 1e-6)
         log_prob = tf.math.reduce_sum(log_prob, 1, keep_dims=True)
-        return action, log_prob, mean
+        return action, log_prob, tf.keras.activations.tanh(mean)
 
 
 class SAC_Critic(tf.keras.Model):
     """
-    It contains two Q-network. And usage of two Q-functions improves performance by reducing overestimation bias.
-
+    It contains two Q-network. And the usage of two Q-functions improves performance by reducing overestimation bias.
     """
 
     def __init__(self, output_shape):
@@ -318,8 +316,8 @@ class SAC_Critic(tf.keras.Model):
         self.Q1 = tf.keras.layers.Dense(output_shape, activation='linear', kernel_initializer=XAVIER_INIT)
 
         # Q2 architecture
+        self.dense3 = tf.keras.layers.Dense(256, activation='relu', kernel_initializer=XAVIER_INIT)
         self.dense4 = tf.keras.layers.Dense(256, activation='relu', kernel_initializer=XAVIER_INIT)
-        self.dense5 = tf.keras.layers.Dense(256, activation='relu', kernel_initializer=XAVIER_INIT)
         self.Q2 = tf.keras.layers.Dense(output_shape, activation='linear', kernel_initializer=XAVIER_INIT)
 
     @tf.contrib.eager.defun(autograph=False)
@@ -328,10 +326,22 @@ class SAC_Critic(tf.keras.Model):
         x1 = self.dense2(tf.concat([x1, act], axis=-1))
         Q1 = self.Q1(x1)
 
-        x2 = self.dense1(obs)
-        x2 = self.dense2(tf.concat([x2, act], axis=-1))
-        Q2 = self.Q1(x2)
+        x2 = self.dense3(obs)
+        x2 = self.dense4(tf.concat([x2, act], axis=-1))
+        Q2 = self.Q2(x2)
         return Q1, Q2
+
+    # @tf.contrib.eager.defun(autograph=False)
+    # def call(self, obs, act):
+    #     _concat = tf.concat([obs, act], axis=-1)
+    #     x1 = self.dense1(_concat)
+    #     x1 = self.dense2(x1)
+    #     Q1 = self.Q1(x1)
+    #
+    #     x2 = self.dense3(_concat)
+    #     x2 = self.dense4(x2)
+    #     Q2 = self.Q2(x2)
+    #     return Q1, Q2
 
 
 class TRPO_Policy(tf.keras.Model):

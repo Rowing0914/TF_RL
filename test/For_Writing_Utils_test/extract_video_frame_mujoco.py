@@ -16,7 +16,7 @@ for env_name in ENVS:
     if success:
         for i in range(100):
             if i == 40:
-                cv2.imwrite("{}.jpg".format(env_name), image)
+                cv2.imwrite("./images/{}.jpg".format(env_name), image)
             success, image = vidcap.read()
             # print('Read a new frame: ', success)
     else:

@@ -462,7 +462,6 @@ def train_DRQN(agent, env, policy, replay_buffer, reward_buffer, params, summary
 """
 
 def train_DDPG_original(agent, env, replay_buffer, reward_buffer, summary_writer):
-    """ the cycle of updating the model is the on-policy, we use the updated policy in the same episode """
     get_ready(agent.params)
 
     global_timestep = tf.compat.v1.train.get_or_create_global_step()
@@ -491,13 +490,13 @@ def train_DDPG_original(agent, env, replay_buffer, reward_buffer, summary_writer
                     replay_buffer.add(state, action, reward, next_state, done)
 
                     """
-                    Update the models
+                    === Update the models
                     """
-
-                    states, actions, rewards, next_states, dones = replay_buffer.sample(agent.params.batch_size)
-                    loss = agent.update(states, actions, rewards, next_states, dones)
-                    soft_target_model_update_eager(agent.target_actor, agent.actor, tau=agent.params.soft_update_tau)
-                    soft_target_model_update_eager(agent.target_critic, agent.critic, tau=agent.params.soft_update_tau)
+                    if global_timestep.numpy() > agent.params.learning_start:
+                        states, actions, rewards, next_states, dones = replay_buffer.sample(agent.params.batch_size)
+                        loss = agent.update(states, actions, rewards, next_states, dones)
+                        soft_target_model_update_eager(agent.target_actor, agent.actor, tau=agent.params.soft_update_tau)
+                        soft_target_model_update_eager(agent.target_critic, agent.critic, tau=agent.params.soft_update_tau)
 
                     global_timestep.assign_add(1)
                     episode_len += 1
@@ -550,7 +549,7 @@ def train_DDPG_original(agent, env, replay_buffer, reward_buffer, summary_writer
                     break
 
 
-def train_DDPG_offpolicy(agent, env, replay_buffer, reward_buffer, summary_writer):
+def train_DDPG_onpolicy(agent, env, replay_buffer, reward_buffer, summary_writer):
     """ the cycle of updating the model is the off-policy, we use the updated policy after the previous episode """
     get_ready(agent.params)
 
@@ -643,7 +642,9 @@ def train_SAC(agent, env, replay_buffer, reward_buffer, summary_writer):
     get_ready(agent.params)
 
     global_timestep = tf.compat.v1.train.get_or_create_global_step()
+    time_buffer = deque(maxlen=agent.params.reward_buffer_ep)
     log = logger(agent.params)
+    action_buffer, distance_buffer, eval_epochs = list(), list(), list()
 
     with summary_writer.as_default():
         # for summary purpose, we put all codes in this context
@@ -656,7 +657,6 @@ def train_SAC(agent, env, replay_buffer, reward_buffer, summary_writer):
                 done = False
                 episode_len = 0
                 while not done:
-                    # env.render()
                     if global_timestep.numpy() < agent.params.learning_start:
                         action = env.action_space.sample()
                     else:
@@ -670,11 +670,13 @@ def train_SAC(agent, env, replay_buffer, reward_buffer, summary_writer):
                     total_reward += reward
                     state = next_state
 
-                    # evaluate the model once in 10 episodes
-                    if i + 1 % 10 == 0:
+                    # for evaluation purpose
+                    if global_timestep.numpy() % agent.params.eval_interval == 0:
                         agent.eval_flg = True
 
-                    # train the model at this point
+                    """
+                    === Update the models
+                    """
                     if global_timestep.numpy() > agent.params.learning_start:
                         states, actions, rewards, next_states, dones = replay_buffer.sample(agent.params.batch_size)
                         loss = agent.update(states, actions, rewards, next_states, dones)
@@ -683,30 +685,43 @@ def train_SAC(agent, env, replay_buffer, reward_buffer, summary_writer):
                 """
                 ===== After 1 Episode is Done =====
                 """
+                # save the updated models
+                agent.actor_manager.save()
+                agent.critic_manager.save()
 
+                # store the episode related variables
+                reward_buffer.append(total_reward)
+                time_buffer.append(time.time() - start)
+
+                # logging on Tensorboard
                 tf.contrib.summary.scalar("reward", total_reward, step=i)
                 tf.contrib.summary.scalar("exec time", time.time() - start, step=i)
                 if i >= agent.params.reward_buffer_ep:
                     tf.contrib.summary.scalar("Moving Ave Reward", np.mean(reward_buffer), step=i)
 
-                # store the episode reward
-                reward_buffer.append(total_reward)
-
                 # we log the training progress once in a `reward_buffer_ep` time
                 if global_timestep.numpy() > agent.params.learning_start and i % agent.params.reward_buffer_ep == 0:
                     log.logging(global_timestep.numpy(), i, time.time() - start, reward_buffer, np.mean(loss), 0, [0])
 
+                # evaluation
                 if agent.eval_flg:
-                    eval_Agent_TRPO(agent, env)
+                    eval_reward, eval_distance, eval_action = eval_Agent_DDPG(env, agent)
+                    eval_epochs.append(global_timestep.numpy())
+                    action_buffer.append(eval_action)
+                    distance_buffer.append(eval_distance)
                     agent.eval_flg = False
 
                 # check the stopping condition
                 if global_timestep.numpy() > agent.params.num_frames:
                     print("=== Training is Done ===")
-                    eval_Agent_TRPO(agent, env, n_trial=agent.params.test_episodes)
+                    eval_reward, eval_distance, eval_action = eval_Agent_DDPG(env, agent)
+                    eval_epochs.append(global_timestep.numpy())
+                    action_buffer.append(eval_action)
+                    distance_buffer.append(eval_distance)
+                    visualise_act_and_dist(np.array(eval_epochs), np.array(action_buffer), np.array(distance_buffer),
+                                           env_name=agent.params.env_name, file_dir=agent.params.plot_path)
                     env.close()
                     break
-
 
 # design pattern follows this repo: https://github.com/TianhongDai/hindsight-experience-replay
 def train_HER(agent, env, replay_buffer, summary_writer):

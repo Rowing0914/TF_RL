@@ -9,9 +9,11 @@ TF_RL.egg-info
 *.pyc
 examples/Research/
 examples/Policy_Eval_lab/
-/test/video/
+test/video/
 *.mp4
 *.meta.json
-/examples/DDPG/video/
-/examples/DDPG/models/
+examples/DDPG/video/
+examples/DDPG/models/
 result/result_transformer/result_graphs/
+test/For_Writing_Utils_test/images/
+test/Recording_test/video/

@@ -8,7 +8,7 @@ from tf_rl.common.random_process import OrnsteinUhlenbeckProcess, GaussianNoise
 from tf_rl.common.memory import ReplayBuffer
 from tf_rl.common.utils import eager_setup
 from tf_rl.agents.DDPG import DDPG
-from tf_rl.common.train import train_DDPG_original, train_DDPG_offpolicy
+from tf_rl.common.train import train_DDPG_original, train_DDPG_onpolicy
 from tf_rl.common.networks import DDPG_Actor as Actor, DDPG_Critic as Critic
 
 eager_setup()
@@ -31,8 +31,8 @@ DDPG_ENV_LIST = {
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--env_name", default="Ant-v2", type=str, help="Env title")
-parser.add_argument("--train_flg", default="original", type=str, help="train flg: original or off-policy")
-# parser.add_argument("--train_flg", default="off-policy", type=str, help="train flg: original or off-policy")
+parser.add_argument("--train_flg", default="original", type=str, help="train flg: original or on-policy")
+# parser.add_argument("--train_flg", default="on-policy", type=str, help="train flg: original or on-policy")
 parser.add_argument("--seed", default=123, type=int, help="seed for randomness")
 parser.add_argument("--num_frames", default=1_000_000, type=int, help="total frame in a training")
 # parser.add_argument("--num_frames", default=500_000, type=int, help="total frame in a training")
@@ -86,5 +86,5 @@ agent = DDPG(Actor, Critic, env.action_space.shape[0], random_process, params)
 
 if params.train_flg == "original":
     train_DDPG_original(agent, env, replay_buffer, reward_buffer, summary_writer)
-elif params.train_flg == "off-policy":
-    train_DDPG_offpolicy(agent, env, replay_buffer, reward_buffer, summary_writer)
+elif params.train_flg == "on-policy":
+    train_DDPG_onpolicy(agent, env, replay_buffer, reward_buffer, summary_writer)

@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 from copy import deepcopy
+from tf_rl.common.utils import create_checkpoint
 from tf_rl.agents.core import Agent
 
 
@@ -12,26 +13,30 @@ class SAC(Agent):
         self.index_timestep = 0
         self.actor = actor(num_action)
         self.critic = critic(1)
+        # self.target_actor = deepcopy(self.actor)
         self.target_critic = deepcopy(self.critic)
         self.actor_optimizer = tf.train.AdamOptimizer(learning_rate=3e-4)  # used as in paper
         self.critic_optimizer = tf.train.AdamOptimizer(learning_rate=3e-4)  # used as in paper
-
-    #  TODO: implement the checkpoints for model
-
-    # TODO: make this available to construct graph when this class is being initialised
-    # tf.convert_to_tensor(np.random.random((1, self.state_size)), dtype=tf.float32)
+        self.actor_manager = create_checkpoint(model=self.actor,
+                                               optimizer=self.actor_optimizer,
+                                               model_dir=params.actor_model_dir)
+        self.critic_manager = create_checkpoint(model=self.critic,
+                                                optimizer=self.critic_optimizer,
+                                                model_dir=params.critic_model_dir)
 
     def predict(self, state):
+        state = np.expand_dims(state, axis=0).astype(np.float32)
+        action, _, _ = self._select_action(tf.constant(state))
+        return action.numpy()[0]
+
+    def eval_predict(self, state):
         """
         As mentioned in the topic of `policy evaluation` at sec5.2(`ablation study`) in the paper,
         for evaluation phase, using a deterministic action(choosing the mean of the policy dist) works better than
         stochastic one(Gaussian Policy).
         """
         state = np.expand_dims(state, axis=0).astype(np.float32)
-        if self.eval_flg:
-            _, _, action = self._select_action(tf.constant(state))
-        else:
-            action, _, _ = self._select_action(tf.constant(state))
+        _, _, action = self._select_action(tf.constant(state))
         return action.numpy()[0]
 
     @tf.contrib.eager.defun(autograph=False)
@@ -82,26 +87,33 @@ class SAC_debug(Agent):
         self.index_timestep = 0
         self.actor = actor(num_action)
         self.critic = critic(1)
+        self.target_actor = deepcopy(self.actor)
         self.target_critic = deepcopy(self.critic)
         self.actor_optimizer = tf.train.AdamOptimizer(learning_rate=3e-4)  # used as in paper
         self.critic_optimizer = tf.train.AdamOptimizer(learning_rate=3e-4)  # used as in paper
-
-    #  TODO: implement the checkpoints for model
+        self.actor_manager = create_checkpoint(model=self.actor,
+                                               optimizer=self.actor_optimizer,
+                                               model_dir=params.actor_model_dir)
+        self.critic_manager = create_checkpoint(model=self.critic,
+                                                optimizer=self.critic_optimizer,
+                                                model_dir=params.critic_model_dir)
 
     def predict(self, state):
+        state = np.expand_dims(state, axis=0).astype(np.float32)
+        action, _, _ = self._select_action(tf.constant(state))
+        return action.numpy()[0]
+
+    def eval_predict(self, state):
         """
         As mentioned in the topic of `policy evaluation` at sec5.2(`ablation study`) in the paper,
         for evaluation phase, using a deterministic action(choosing the mean of the policy dist) works better than
         stochastic one(Gaussian Policy).
         """
         state = np.expand_dims(state, axis=0).astype(np.float32)
-        if self.eval_flg:
-            _, _, action = self._select_action(tf.constant(state))
-        else:
-            action, _, _ = self._select_action(tf.constant(state))
+        _, _, action = self._select_action(tf.constant(state))
         return action.numpy()[0]
 
-    # @tf.contrib.eager.defun(autograph=False)
+    @tf.contrib.eager.defun(autograph=False)
     def _select_action(self, state):
         return self.actor(state)
 
