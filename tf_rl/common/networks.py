@@ -320,28 +320,30 @@ class SAC_Critic(tf.keras.Model):
         self.dense4 = tf.keras.layers.Dense(256, activation='relu', kernel_initializer=XAVIER_INIT)
         self.Q2 = tf.keras.layers.Dense(output_shape, activation='linear', kernel_initializer=XAVIER_INIT)
 
-    @tf.contrib.eager.defun(autograph=False)
-    def call(self, obs, act):
-        x1 = self.dense1(obs)
-        x1 = self.dense2(tf.concat([x1, act], axis=-1))
-        Q1 = self.Q1(x1)
-
-        x2 = self.dense3(obs)
-        x2 = self.dense4(tf.concat([x2, act], axis=-1))
-        Q2 = self.Q2(x2)
-        return Q1, Q2
-
     # @tf.contrib.eager.defun(autograph=False)
     # def call(self, obs, act):
-    #     _concat = tf.concat([obs, act], axis=-1)
-    #     x1 = self.dense1(_concat)
-    #     x1 = self.dense2(x1)
+    #     """ My Implementation """
+    #     x1 = self.dense1(obs)
+    #     x1 = self.dense2(tf.concat([x1, act], axis=-1))
     #     Q1 = self.Q1(x1)
     #
-    #     x2 = self.dense3(_concat)
-    #     x2 = self.dense4(x2)
+    #     x2 = self.dense3(obs)
+    #     x2 = self.dense4(tf.concat([x2, act], axis=-1))
     #     Q2 = self.Q2(x2)
     #     return Q1, Q2
+
+    @tf.contrib.eager.defun(autograph=False)
+    def call(self, obs, act):
+        """ Original Implementation """
+        _concat = tf.concat([obs, act], axis=-1)
+        x1 = self.dense1(_concat)
+        x1 = self.dense2(x1)
+        Q1 = self.Q1(x1)
+
+        x2 = self.dense3(_concat)
+        x2 = self.dense4(x2)
+        Q2 = self.Q2(x2)
+        return Q1, Q2
 
 
 class TRPO_Policy(tf.keras.Model):
