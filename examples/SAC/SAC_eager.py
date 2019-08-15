@@ -49,11 +49,11 @@ params.test_episodes = 10
 
 now = datetime.now()
 
-params.log_dir = "../../logs/logs/SAC_original/{}".format(str(params.env_name.split("-")[0]))
-params.actor_model_dir = "../../logs/models/SAC_original/{}/actor/".format(str(params.env_name.split("-")[0]))
-params.critic_model_dir = "../../logs/models/SAC_original/{}/critic/".format(str(params.env_name.split("-")[0]))
-params.video_dir = "../../logs/video/SAC_original-{}".format(str(params.env_name.split("-")[0]))
-params.plot_path = "../../logs/plots/SAC_original-{}/".format(str(params.env_name.split("-")[0]))
+params.log_dir = "../../logs/logs/SAC_original-seed{}/{}".format(params.seed, str(params.env_name.split("-")[0]))
+params.actor_model_dir = "../../logs/models/SAC_original-seed{}/{}/actor/".format(params.seed, str(params.env_name.split("-")[0]))
+params.critic_model_dir = "../../logs/models/SAC_original-seed{}/{}/critic/".format(params.seed, str(params.env_name.split("-")[0]))
+params.video_dir = "../../logs/video/SAC_original-seed{}/{}".format(params.seed, str(params.env_name.split("-")[0]))
+params.plot_path = "../../logs/plots/SAC_original-seed{}/{}".format(params.seed, str(params.env_name.split("-")[0]))
 
 env = gym.make(params.env_name)
 env = Monitor(env, params.video_dir)

@@ -569,6 +569,8 @@ def train_DDPG_onpolicy(agent, env, replay_buffer, reward_buffer, summary_writer
                 agent.random_process.reset_states()
                 done = False
                 episode_len = 0
+                # we refresh the replay_buffer at every episode
+                replay_buffer.refresh()
                 while not done:
                     if global_timestep.numpy() < agent.params.learning_start:
                         action = env.action_space.sample()
@@ -591,10 +593,13 @@ def train_DDPG_onpolicy(agent, env, replay_buffer, reward_buffer, summary_writer
                 ===== After 1 Episode is Done =====
                 """
 
+                # We have to be careful about the amount of minibatch size
+                batch_size = np.minimum(len(replay_buffer)-1, agent.params.batch_size)
+
                 # train the model at this point
                 for t_train in range(int(episode_len)):
                     # for t_train in range(10): # for test purpose
-                    states, actions, rewards, next_states, dones = replay_buffer.sample(agent.params.batch_size)
+                    states, actions, rewards, next_states, dones = replay_buffer.sample(batch_size)
                     loss = agent.update(states, actions, rewards, next_states, dones)
                     soft_target_model_update_eager(agent.target_actor, agent.actor, tau=agent.params.soft_update_tau)
                     soft_target_model_update_eager(agent.target_critic, agent.critic, tau=agent.params.soft_update_tau)

@@ -163,6 +163,10 @@ class ReplayBuffer(object):
         data = json.dumps(data)
         json.dump(data, dir)
 
+    def refresh(self):
+        self._storage = []
+        self._next_idx = 0
+
 
 class PrioritizedReplayBuffer(ReplayBuffer):
     def __init__(self, size, alpha, n_step=0, gamma=0.99):
