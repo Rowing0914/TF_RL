@@ -30,8 +30,8 @@ DDPG_ENV_LIST = {
 """
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--env_name", default="Ant-v2", help="Env title")
-parser.add_argument("--seed", default=123, type=int, help="seed for randomness")
+parser.add_argument("--env_name", default="Hopper-v2", help="Env title")
+parser.add_argument("--seed", default=20, type=int, help="seed for randomness")
 parser.add_argument("--num_frames", default=1_000_000, type=int, help="total frame in a training")
 parser.add_argument("--eval_interval", default=100_000, type=int, help="a frequency of evaluation in training phase")
 parser.add_argument("--memory_size", default=100_000, type=int, help="memory size in a training")

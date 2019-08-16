@@ -3,8 +3,8 @@ import os
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 ENV_LIST = [
-    "Ant-v2",
-    "HalfCheetah-v2",
+    # "Ant-v2",
+    # "HalfCheetah-v2",
     "Hopper-v2",
     "Humanoid-v2",
     "Swimmer-v2",
