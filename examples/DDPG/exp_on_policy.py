@@ -6,8 +6,8 @@ ENV_LIST = [
     # "Ant-v2",
     # "HalfCheetah-v2",
     # "Hopper-v2",
-    "Humanoid-v2",
-    "Swimmer-v2",
+    # "Humanoid-v2",
+    # "Swimmer-v2",
     "Walker2d-v2"
 ]
 
