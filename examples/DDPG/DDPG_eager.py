@@ -57,19 +57,19 @@ params.test_episodes = 1
 
 now = datetime.now()
 
-params.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "-DDPG/"
-params.actor_model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "-DDPG_actor/"
-params.critic_model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "-DDPG_critic/"
-params.video_dir = "../../logs/video/video_{}".format(now.strftime("%Y%m%d-%H%M%S") + "_" + str(params.env_name))
-params.plot_path = "../../logs/plots/plot_{}/".format(now.strftime("%Y%m%d-%H%M%S") + "_" + str(params.env_name))
+# params.log_dir = "../../logs/logs/" + now.strftime("%Y%m%d-%H%M%S") + "-DDPG/"
+# params.actor_model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "-DDPG_actor/"
+# params.critic_model_dir = "../../logs/models/" + now.strftime("%Y%m%d-%H%M%S") + "-DDPG_critic/"
+# params.video_dir = "../../logs/video/video_{}".format(now.strftime("%Y%m%d-%H%M%S") + "_" + str(params.env_name))
+# params.plot_path = "../../logs/plots/plot_{}/".format(now.strftime("%Y%m%d-%H%M%S") + "_" + str(params.env_name))
 
-# mu = str(params.mu).split(".")
-# mu = str(mu[0]+mu[1])
-# params.log_dir = "../../logs/logs/DDPG-{}-seed{}/{}-mu{}".format(params.train_flg, params.seed, str(params.env_name.split("-")[0]), mu)
-# params.actor_model_dir = "../../logs/models/DDPG-{}-seed{}/{}/actor-mu{}/".format(params.train_flg, params.seed, str(params.env_name.split("-")[0]), mu)
-# params.critic_model_dir = "../../logs/models/DDPG-{}-seed{}/{}/critic-mu{}/".format(params.train_flg, params.seed, str(params.env_name.split("-")[0]), mu)
-# params.video_dir = "../../logs/video/DDPG-{}-seed{}/{}-mu{}/".format(params.train_flg, params.seed, str(params.env_name.split("-")[0]), mu)
-# params.plot_path = "../../logs/plots/DDPG-{}-seed{}/{}-mu{}/".format(params.train_flg, params.seed, str(params.env_name.split("-")[0]), mu)
+mu = str(params.mu).split(".")
+mu = str(mu[0]+mu[1])
+params.log_dir = "../../logs/logs/DDPG-{}-seed{}/{}-mu{}".format(params.train_flg, params.seed, str(params.env_name.split("-")[0]), mu)
+params.actor_model_dir = "../../logs/models/DDPG-{}-seed{}/{}/actor-mu{}/".format(params.train_flg, params.seed, str(params.env_name.split("-")[0]), mu)
+params.critic_model_dir = "../../logs/models/DDPG-{}-seed{}/{}/critic-mu{}/".format(params.train_flg, params.seed, str(params.env_name.split("-")[0]), mu)
+params.video_dir = "../../logs/video/DDPG-{}-seed{}/{}-mu{}/".format(params.train_flg, params.seed, str(params.env_name.split("-")[0]), mu)
+params.plot_path = "../../logs/plots/DDPG-{}-seed{}/{}-mu{}/".format(params.train_flg, params.seed, str(params.env_name.split("-")[0]), mu)
 
 env = gym.make(params.env_name)
 env = Monitor(env, params.video_dir)
