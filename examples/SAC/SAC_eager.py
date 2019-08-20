@@ -45,7 +45,7 @@ parser.add_argument("--debug_flg", default=False, type=bool, help="debug mode or
 parser.add_argument("--google_colab", default=False, type=bool, help="if you are executing this on GoogleColab")
 params = parser.parse_args()
 params.goal = DDPG_ENV_LIST[params.env_name]
-params.test_episodes = 10
+params.test_episodes = 1
 
 now = datetime.now()
 

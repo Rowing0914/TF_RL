@@ -1,17 +1,21 @@
 import argparse
+import itertools
 import time
 from collections import deque
-from tf_rl.common.random_process import OrnsteinUhlenbeckProcess
-from tf_rl.common.memory import ReplayBuffer
-from tf_rl.common.utils import *
-from tf_rl.agents.DDPG import DDPG
-from tf_rl.common.visualise import visualise_act_and_dist
+
+import numpy as np
+import tensorflow as tf
 
 from experiments.Exploration_Strategies.utils import eval_Agent, make_grid_env
+from tf_rl.agents.DDPG import DDPG
+from tf_rl.common.memory import ReplayBuffer
+from tf_rl.common.random_process import OrnsteinUhlenbeckProcess
+from tf_rl.common.utils import eager_setup, get_ready, soft_target_model_update_eager, logger
 
 eager_setup()
 KERNEL_INIT = tf.random_uniform_initializer(minval=-3e-3, maxval=3e-3)
 L2 = tf.keras.regularizers.l2(1e-2)
+
 
 # define the actor and critic
 class Actor(tf.keras.Model):
@@ -46,18 +50,16 @@ class Critic(tf.keras.Model):
         pred = self.pred(x)
         return pred
 
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--env_name", default="Cont-GridWorld-v2", type=str, help="Env title")
 parser.add_argument("--train_flg", default="original", type=str, help="train flg: original or on-policy")
 parser.add_argument("--seed", default=123, type=int, help="seed for randomness")
 # parser.add_argument("--num_frames", default=1_000_000, type=int, help="total frame in a training")
-# parser.add_argument("--num_frames", default=500_000, type=int, help="total frame in a training")
-parser.add_argument("--num_frames", default=30_000, type=int, help="total frame in a training")
-# parser.add_argument("--eval_interval", default=100_000, type=int, help="a frequency of evaluation in training phase")
-parser.add_argument("--eval_interval", default=10_000, type=int, help="a frequency of evaluation in training phase")
+parser.add_argument("--num_frames", default=500_000, type=int, help="total frame in a training")
+parser.add_argument("--eval_interval", default=100_000, type=int, help="a frequency of evaluation in training phase")
 parser.add_argument("--memory_size", default=100_000, type=int, help="memory size in a training")
-# parser.add_argument("--learning_start", default=10_000, type=int, help="length before training")
-parser.add_argument("--learning_start", default=2_000, type=int, help="length before training")
+parser.add_argument("--learning_start", default=10_000, type=int, help="length before training")
 parser.add_argument("--batch_size", default=200, type=int, help="batch size of each iteration of update")
 parser.add_argument("--reward_buffer_ep", default=10, type=int, help="reward_buffer size")
 parser.add_argument("--gamma", default=0.99, type=float, help="discount factor")
@@ -159,16 +161,18 @@ with summary_writer.as_default():
 
             # evaluation
             if agent.eval_flg:
+                env.vis_exploration(traj=np.array(traj),
+                                    file_name="exploration_train_{}.png".format(global_timestep.numpy()))
+                env.vis_trajectory(traj=np.array(traj), file_name="traj_train_{}.png".format(global_timestep.numpy()))
                 eval_Agent(env, agent)
                 agent.eval_flg = False
 
             # check the stopping condition
             if global_timestep.numpy() > agent.params.num_frames:
                 print("=== Training is Done ===")
+                traj = np.array(traj)
+                env.vis_exploration(traj=traj, file_name="exploration_during_training.png")
+                env.vis_trajectory(traj=traj, file_name="traj_during_training.png")
                 eval_Agent(env, agent)
                 env.close()
                 break
-
-traj = np.array(traj)
-env.vis_exploration(traj=traj, file_name="exploration_training.png")
-env.vis_trajectory(traj=traj, file_name="traj_training.png")

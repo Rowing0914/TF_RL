@@ -70,6 +70,7 @@ class GridWorld(gym.Env):
         self.dense_reward = dense_reward
         # List of dense goal coordinates
         self.dense_goals = dense_goals
+        self._dense_goals = dense_goals
 
         # rewards
         self.goal_reward = goal_reward
@@ -182,8 +183,10 @@ class GridWorld(gym.Env):
         reward = self.per_step_penalty
 
         # Adding dense Rewards:
-        for idx, mini_goal in enumerate(self.dense_goals):
+        for idx, mini_goal in enumerate(self._dense_goals):
             if np.linalg.norm(np.array(self.state) - np.array(mini_goal), 2) <= self.goal_radius:
+                # when it reaches the mini-goal, remove it from the goals
+                self._dense_goals.remove(mini_goal)
                 reward = self.dense_reward
 
         # if reached goal (within a radius of 1 unit)

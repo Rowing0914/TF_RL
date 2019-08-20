@@ -1,16 +1,10 @@
 import argparse
-import itertools
-import time
-from collections import deque
 
-import numpy as np
-import tensorflow as tf
 import tensorflow_probability as tfp
 
-from experiments.Exploration_Strategies.utils import eval_Agent, make_grid_env
+from experiments.Exploration_Strategies.utils import make_grid_env
 from tf_rl.agents.SAC import SAC
-from tf_rl.common.memory import ReplayBuffer
-from tf_rl.common.utils import eager_setup, get_ready, soft_target_model_update_eager, logger
+from tf_rl.common.utils import *
 
 tfd = tfp.distributions
 XAVIER_INIT = tf.contrib.layers.xavier_initializer()
@@ -92,7 +86,7 @@ class Critic(tf.keras.Model):
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--env_name", default="Cont-GridWorld-v2", help="Env title")
-parser.add_argument("--seed", default=20, type=int, help="seed for randomness")
+parser.add_argument("--seed", default=10, type=int, help="seed for randomness")
 # parser.add_argument("--num_frames", default=1_000_000, type=int, help="total frame in a training")
 parser.add_argument("--num_frames", default=500_000, type=int, help="total frame in a training")
 parser.add_argument("--eval_interval", default=100_000, type=int, help="a frequency of evaluation in training phase")
@@ -123,90 +117,25 @@ tf.random.set_random_seed(params.seed)
 
 agent = SAC(Actor, Critic, env.action_space.shape[0], params)
 
-replay_buffer = ReplayBuffer(params.memory_size)
-reward_buffer = deque(maxlen=params.reward_buffer_ep)
-summary_writer = tf.contrib.summary.create_file_writer(params.log_dir)
-
 get_ready(agent.params)
-
-global_timestep = tf.compat.v1.train.get_or_create_global_step()
-time_buffer = deque(maxlen=agent.params.reward_buffer_ep)
-log = logger(agent.params)
 
 traj = list()
 
-with summary_writer.as_default():
-    # for summary purpose, we put all codes in this context
-    with tf.contrib.summary.always_record_summaries():
+print("=== Evaluation Mode ===")
+for ep in range(params.test_episodes):
+    state = env.reset()
+    done = False
+    episode_reward = 0
+    while not done:
+        traj.append(state)
+        action = agent.eval_predict(state)
+        next_state, reward, done, info = env.step(np.clip(action, -1.0, 1.0))
+        state = next_state
+        episode_reward += reward
 
-        for i in itertools.count():
-            state = env.reset()
-            total_reward = 0
-            start = time.time()
-            done = False
-            episode_len = 0
-            while not done:
-                traj.append(state)
-                if global_timestep.numpy() < agent.params.learning_start:
-                    action = env.action_space.sample()
-                else:
-                    action = agent.predict(state)
-
-                next_state, reward, done, info = env.step(action)
-                replay_buffer.add(state, action, reward, next_state, done)
-
-                global_timestep.assign_add(1)
-                episode_len += 1
-                total_reward += reward
-                state = next_state
-
-                # for evaluation purpose
-                if global_timestep.numpy() % agent.params.eval_interval == 0:
-                    agent.eval_flg = True
-
-                """
-                === Update the models
-                """
-                if global_timestep.numpy() > agent.params.learning_start:
-                    states, actions, rewards, next_states, dones = replay_buffer.sample(agent.params.batch_size)
-                    loss = agent.update(states, actions, rewards, next_states, dones)
-                    soft_target_model_update_eager(agent.target_critic, agent.critic, tau=agent.params.soft_update_tau)
-
-            """
-            ===== After 1 Episode is Done =====
-            """
-            # save the updated models
-            agent.actor_manager.save()
-            agent.critic_manager.save()
-
-            # store the episode related variables
-            reward_buffer.append(total_reward)
-            time_buffer.append(time.time() - start)
-
-            # logging on Tensorboard
-            tf.contrib.summary.scalar("reward", total_reward, step=global_timestep.numpy())
-            tf.contrib.summary.scalar("exec time", time.time() - start, step=global_timestep.numpy())
-            if i >= agent.params.reward_buffer_ep:
-                tf.contrib.summary.scalar("Moving Ave Reward", np.mean(reward_buffer), step=global_timestep.numpy())
-
-            # we log the training progress once in a `reward_buffer_ep` time
-            if global_timestep.numpy() > agent.params.learning_start and i % agent.params.reward_buffer_ep == 0:
-                log.logging(global_timestep.numpy(), i, time.time() - start, reward_buffer, np.mean(loss), 0, [0])
-
-            # evaluation
-            if agent.eval_flg:
-                env.vis_exploration(traj=np.array(traj),
-                                    file_name="exploration_train_{}.png".format(global_timestep.numpy()))
-                env.vis_trajectory(traj=np.array(traj), file_name="traj_train_{}.png".format(global_timestep.numpy()))
-                eval_Agent(env, agent)
-                agent.eval_flg = False
-
-            # check the stopping condition
-            if global_timestep.numpy() > agent.params.num_frames:
-                print("=== Training is Done ===")
-                traj = np.array(traj)
-                env.vis_exploration(traj=traj, file_name="exploration_during_training.png")
-                env.vis_trajectory(traj=traj, file_name="traj_during_training.png")
-                eval_Agent(env, agent)
-                env.close()
-                break
+    traj = np.array(traj)
+    env.vis_exploration(traj=traj,
+                        file_name="eval_exploration_{}.png".format(tf.compat.v1.train.get_global_step().numpy()))
+    env.vis_trajectory(traj=traj, file_name="eval_traj_{}.png".format(tf.compat.v1.train.get_global_step().numpy()))
+    tf.contrib.summary.scalar("Evaluation Score", episode_reward, step=agent.index_timestep)
+    print("| Ep: {}/{} | Score: {} |".format(ep + 1, params.test_episodes, episode_reward))
