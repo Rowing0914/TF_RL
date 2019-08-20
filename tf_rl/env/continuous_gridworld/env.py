@@ -68,9 +68,10 @@ class GridWorld(gym.Env):
 
         # Dense reward stuff:
         self.dense_reward = dense_reward
+
         # List of dense goal coordinates
         self.dense_goals = dense_goals
-        self._dense_goals = dense_goals
+        self._dense_goals = copy.deepcopy(self.dense_goals)
 
         # rewards
         self.goal_reward = goal_reward
@@ -149,6 +150,7 @@ class GridWorld(gym.Env):
         self.state = copy.deepcopy(self.start_position)
         self.t = 0
         self.done = False
+        self._dense_goals = copy.deepcopy(self.dense_goals)
 
         return self._get_obs()
 
@@ -184,13 +186,15 @@ class GridWorld(gym.Env):
 
         # Adding dense Rewards:
         for idx, mini_goal in enumerate(self._dense_goals):
-            if np.linalg.norm(np.array(self.state) - np.array(mini_goal), 2) <= self.goal_radius:
+            # if np.linalg.norm(np.array(self.state) - np.array(mini_goal), 2) <= self.goal_radius:
+            if ((self.state[0] - mini_goal[0])**2 + (self.state[1] - mini_goal[1])**2)**.5 <= self.goal_radius:
                 # when it reaches the mini-goal, remove it from the goals
                 self._dense_goals.remove(mini_goal)
                 reward = self.dense_reward
 
         # if reached goal (within a radius of 1 unit)
-        if np.linalg.norm(np.array(self.state) - np.array(self.goal_position), 2) <= self.goal_radius:
+        # if np.linalg.norm(np.array(self.state) - np.array(self.goal_position), 2) <= self.goal_radius:
+        if ((self.state[0] - self.goal_position[0])**2 + (self.state[1] - self.goal_position[1])**2)**.5 <= self.goal_radius:
             # episode done
             self.done = True
             reward = self.goal_reward
@@ -198,19 +202,17 @@ class GridWorld(gym.Env):
         if self.t >= self.max_episode_len:
             self.done = True
 
-        line = Line(Point(self.state_temp[0] * self.scale + 20, self.state_temp[1] * self.scale + 20),
-                    Point(self.state[0] * self.scale + 20, self.state[1] * self.scale + 20))
-
         if not self.silent_mode:
+            line = Line(Point(self.state_temp[0] * self.scale + 20, self.state_temp[1] * self.scale + 20),
+                        Point(self.state[0] * self.scale + 20, self.state[1] * self.scale + 20))
             line.draw(self.win1)
             line.setOutline('black')
-            # self.win1.getMouse()
+
         self.state_temp = self.state
 
         if self.silent_mode:
             return self._get_obs(), reward, self.done, None
 
-        # return self.win1,self._get_obs(), reward, self.done, None
         return self._get_obs(), reward, self.done, None
 
     def sample(self, exploration, b_0, l_p, ou_noise, stddev):
@@ -307,9 +309,7 @@ class GridWorld(gym.Env):
         fig.savefig(self.plot_path+"/"+file_name, dpi=300)
 
     def vis_exploration(self, traj, file_name="exploration.png"):
-        """
-        creates the trajectory and return the plot
-        """
+        """ creates the trajectory and return the plot """
         x = traj[:, 0]
         y = traj[:, 1]
 
@@ -318,6 +318,13 @@ class GridWorld(gym.Env):
         # check the other choices of colourmap
         # https://matplotlib.org/users/colormaps.html
         ax.hist2d(x, y, bins=40, norm=LogNorm(), cmap=plt.cm.Oranges)
+        ax.set_title("grid")
+        ax.axis('scaled')
+        fig.savefig(self.plot_path+"/"+file_name, dpi=300)
+
+    def show_casing(self, file_name):
+        """ Save the image of the world with only goals """
+        fig, ax = self._visualise_setup()
         ax.set_title("grid")
         ax.axis('scaled')
         fig.savefig(self.plot_path+"/"+file_name, dpi=300)
