@@ -17,3 +17,4 @@ examples/DDPG/models/
 result/result_transformer/result_graphs/
 test/For_Writing_Utils_test/images/
 test/Recording_test/video/
+/test/Continuous_GridWorld/images/

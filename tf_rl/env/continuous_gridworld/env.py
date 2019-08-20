@@ -13,9 +13,11 @@ import numpy as np
 import matplotlib.patches as patches
 import matplotlib.path as path
 import matplotlib.pyplot as plt
+from gym import spaces
+from matplotlib.colors import LogNorm
+
 from tf_rl.env.continuous_gridworld.exploration_models import PolyNoise
 from tf_rl.env.continuous_gridworld.graphics import *
-from gym import spaces
 
 
 class GridWorld(gym.Env):
@@ -37,10 +39,16 @@ class GridWorld(gym.Env):
                  wall_breadth=1,
                  door_breadth=5,
                  action_limit_max=1.0,
-                 silent_mode=False):
+                 silent_mode=False,
+                 plot_path="../logs/plots/"):
         """
         params:
         """
+
+        # create the plot directory
+        if not os.path.isdir(plot_path):
+            os.makedirs(plot_path)
+        self.plot_path = plot_path
 
         # num of rooms
         self.num_rooms = num_rooms
@@ -281,25 +289,44 @@ class GridWorld(gym.Env):
                 return True
         return False
 
-    def vis_trajectory(self, traj, name_plot, experiment_id=None, imp_states=None):
+    def vis_trajectory(self, traj, file_name="traj.png"):
         """
         creates the trajectory and return the plot
-
-        trj: numpy_array
-
-
-        Code taken from: https://discuss.pytorch.org/t/example-code-to-put-matplotlib-graph-to-tensorboard-x/15806
         """
+        fig, ax = self._visualise_setup()
+
+        # add the trajectory here
+        # https://stackoverflow.com/questions/36607742/drawing-phase-space-trajectories-with-arrows-in-matplotlib
+        ax.quiver(traj[:-1, 0], traj[:-1, 1], traj[1:, 0] - traj[:-1, 0], traj[1:, 1] - traj[:-1, 1],
+                  scale_units='xy', angles='xy', scale=1, color='black')
+
+        ax.set_title("grid")
+        fig.savefig(self.plot_path+"/"+file_name, dpi=300)
+
+    def vis_exploration(self, traj, file_name="exploration.png"):
+        """
+        creates the trajectory and return the plot
+        """
+        x = traj[:, 0]
+        y = traj[:, 1]
+
+        fig, ax = self._visualise_setup()
+
+        # check the other choices of colourmap
+        # https://matplotlib.org/users/colormaps.html
+        ax.hist2d(x, y, bins=40, norm=LogNorm(), cmap=plt.cm.Oranges)
+        ax.set_title("grid")
+        ax.axis('scaled')
+        fig.savefig(self.plot_path+"/"+file_name, dpi=300)
+
+    def _visualise_setup(self):
+        """ Basic setup for visualisation """
         fig = plt.figure(figsize=(10, 10))
         ax = fig.add_subplot(111)
 
         # convert the environment to the image
         ax.set_xlim(0.0, self.max_position)
         ax.set_ylim(0.0, self.max_position)
-
-        # add the border here
-        # for i in ax.spines.itervalues():
-        #     i.set_linewidth(0.1)
 
         # plot any walls if any
         for w in self.walls:
@@ -314,90 +341,4 @@ class GridWorld(gym.Env):
         for idx, mini_goal in enumerate(self.dense_goals):
             ax.scatter([mini_goal[0]], [mini_goal[1]], c='b')
 
-        # add the trajectory here
-        # https://stackoverflow.com/questions/36607742/drawing-phase-space-trajectories-with-arrows-in-matplotlib
-
-        ax.quiver(traj[:-1, 0], traj[:-1, 1],
-                  traj[1:, 0] - traj[:-1, 0], traj[1:, 1] - traj[:-1, 1],
-                  scale_units='xy', angles='xy', scale=1, color='black')
-
-        # plot the decision points/states
-        if imp_states is not None:
-            ax.scatter(imp_states[:, 0], imp_states[:, 1], c='r')
-
-        # return the image buff
-
-        ax.set_title("grid")
-        # fig.savefig(buf, format='jpeg') # maybe png
-        fig.savefig('install/{}_{}'.format(name_plot, experiment_id), dpi=300)  # maybe png
-
-    def test_vis_trajectory(self, traj, name_plot, heatmap_title, experiment_id=None, heatmap_normalize=False,
-                            heatmap_vertical_clip_value=2500):
-
-        # Trajectory heatmap
-        x = np.array([point[0] * self.scale for point in traj])
-        y = np.array([point[1] * self.scale for point in traj])
-
-        # Save heatmap for different bin scales
-        for num in range(2, 6):
-            fig, ax = plt.subplots()
-
-            bin_scale = num * 0.1
-
-            h = ax.hist2d(x, y, bins=[np.arange(self.min_position * self.scale,
-                                                self.max_position * self.scale, num),
-                                      np.arange(self.min_position * self.scale,
-                                                self.max_position * self.scale, num)],
-                          cmap='Blues', normed=heatmap_normalize, vmax=heatmap_vertical_clip_value)
-            image = h[3]
-            plt.colorbar(image, ax=ax)
-
-            # Build graph barriers and start and goal positions
-            start_point = (self.start_position[0] * self.scale, self.start_position[1] * self.scale)
-            radius = self.goal_radius * self.scale / 2
-            start_circle = patches.Circle(start_point, radius,
-                                          facecolor='gold', edgecolor='black', lw=0.5, zorder=10)
-
-            goal_point = (self.goal_position[0] * self.scale, self.goal_position[1] * self.scale)
-            goal_circle = patches.Circle(goal_point, radius,
-                                         facecolor='brown', edgecolor='black', lw=0.5, zorder=10)
-
-            for idx, dense_goal in enumerate(self.dense_goals):
-                dense_goal_point = (dense_goal[0] * self.scale, dense_goal[1] * self.scale)
-                dense_goal_circle = patches.Circle(dense_goal_point, radius,
-                                                   facecolor='crimson', edgecolor='black', lw=0.5, zorder=10)
-                ax.add_patch(dense_goal_circle)
-
-            ax.add_patch(start_circle)
-            ax.add_patch(goal_circle)
-
-            if self.num_rooms == 1:
-                wall1_xy = (self.min_position * self.scale,
-                            self.max_position / 2 * self.scale - self.wall_breadth * self.scale)
-                wall1_width = (self.max_position / 2 - self.min_position) * self.scale
-                wall1_height = 2 * self.wall_breadth * self.scale
-                wall1_rect = patches.Rectangle(xy=wall1_xy, width=wall1_width, height=wall1_height,
-                                               facecolor='grey', zorder=10)
-
-                wall2_xy = (self.max_position / 2 * self.scale - self.wall_breadth * self.scale,
-                            self.min_position * self.scale)
-                wall2_width = 2 * self.wall_breadth * self.scale
-                wall2_height = (self.max_position / 4 - self.door_breadth - self.min_position) * self.scale
-                wall2_rect = patches.Rectangle(xy=wall2_xy, width=wall2_width, height=wall2_height,
-                                               facecolor='grey', zorder=10)
-
-                wall3_xy = ((self.max_position / 2 - self.wall_breadth) * self.scale,
-                            (self.max_position / 4 + self.door_breadth) * self.scale)
-                wall3_width = 2 * self.wall_breadth * self.scale
-                wall3_height = (
-                                           self.max_position / 2 + self.wall_breadth - self.max_position / 4 - self.door_breadth) * self.scale
-                wall3_rect = patches.Rectangle(xy=wall3_xy, width=wall3_width, height=wall3_height,
-                                               facecolor='grey', zorder=10)
-
-                ax.add_patch(wall1_rect)
-                ax.add_patch(wall2_rect)
-                ax.add_patch(wall3_rect)
-
-            ax.set_title(heatmap_title)
-            plt.savefig('install/{}_{}_{}.pdf'.format(name_plot, experiment_id, num))
-
+        return fig, ax

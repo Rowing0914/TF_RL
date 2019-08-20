@@ -89,11 +89,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--env_name", default="Cont-GridWorld-v2", help="Env title")
 parser.add_argument("--seed", default=20, type=int, help="seed for randomness")
 # parser.add_argument("--num_frames", default=1_000_000, type=int, help="total frame in a training")
-parser.add_argument("--num_frames", default=500_000, type=int, help="total frame in a training")
-parser.add_argument("--eval_interval", default=100_000, type=int, help="a frequency of evaluation in training phase")
+# parser.add_argument("--num_frames", default=500_000, type=int, help="total frame in a training")
+parser.add_argument("--num_frames", default=30_000, type=int, help="total frame in a training")
+# parser.add_argument("--eval_interval", default=100_000, type=int, help="a frequency of evaluation in training phase")
+parser.add_argument("--eval_interval", default=10_000, type=int, help="a frequency of evaluation in training phase")
 parser.add_argument("--memory_size", default=100_000, type=int, help="memory size in a training")
-parser.add_argument("--learning_start", default=10_000, type=int, help="length before training")
-parser.add_argument("--batch_size", default=256, type=int, help="batch size of each iteration of update")
+# parser.add_argument("--learning_start", default=10_000, type=int, help="length before training")
+parser.add_argument("--learning_start", default=2_000, type=int, help="length before training")
+parser.add_argument("--batch_size", default=200, type=int, help="batch size of each iteration of update")
 parser.add_argument("--reward_buffer_ep", default=5, type=int, help="reward_buffer size")
 parser.add_argument("--gamma", default=0.99, type=float, help="discount factor")
 parser.add_argument("--alpha", default=0.2, type=float, help="Temperature param for the relative importance of entropy")
@@ -110,7 +113,7 @@ params.critic_model_dir = "./logs/models/SAC-seed{}/critic/".format(params.seed)
 params.video_dir = "./logs/video/SAC-seed{}/".format(params.seed)
 params.plot_path = "./logs/plots/SAC-seed{}/".format(params.seed)
 
-env = make_grid_env()
+env = make_grid_env(plot_path=params.plot_path)
 
 # set seed
 env.seed(params.seed)
@@ -127,7 +130,8 @@ get_ready(agent.params)
 global_timestep = tf.compat.v1.train.get_or_create_global_step()
 time_buffer = deque(maxlen=agent.params.reward_buffer_ep)
 log = logger(agent.params)
-action_buffer, distance_buffer, eval_epochs = list(), list(), list()
+
+traj = list()
 
 with summary_writer.as_default():
     # for summary purpose, we put all codes in this context
@@ -140,6 +144,7 @@ with summary_writer.as_default():
             done = False
             episode_len = 0
             while not done:
+                traj.append(state)
                 if global_timestep.numpy() < agent.params.learning_start:
                     action = env.action_space.sample()
                 else:
@@ -177,10 +182,10 @@ with summary_writer.as_default():
             time_buffer.append(time.time() - start)
 
             # logging on Tensorboard
-            tf.contrib.summary.scalar("reward", total_reward, step=i)
-            tf.contrib.summary.scalar("exec time", time.time() - start, step=i)
+            tf.contrib.summary.scalar("reward", total_reward, step=global_timestep.numpy())
+            tf.contrib.summary.scalar("exec time", time.time() - start, step=global_timestep.numpy())
             if i >= agent.params.reward_buffer_ep:
-                tf.contrib.summary.scalar("Moving Ave Reward", np.mean(reward_buffer), step=i)
+                tf.contrib.summary.scalar("Moving Ave Reward", np.mean(reward_buffer), step=global_timestep.numpy())
 
             # we log the training progress once in a `reward_buffer_ep` time
             if global_timestep.numpy() > agent.params.learning_start and i % agent.params.reward_buffer_ep == 0:
@@ -188,20 +193,16 @@ with summary_writer.as_default():
 
             # evaluation
             if agent.eval_flg:
-                eval_reward, eval_distance, eval_action = eval_Agent(env, agent)
-                eval_epochs.append(global_timestep.numpy())
-                action_buffer.append(eval_action)
-                distance_buffer.append(eval_distance)
+                eval_Agent(env, agent)
                 agent.eval_flg = False
 
             # check the stopping condition
             if global_timestep.numpy() > agent.params.num_frames:
                 print("=== Training is Done ===")
-                eval_reward, eval_distance, eval_action = eval_Agent(env, agent)
-                eval_epochs.append(global_timestep.numpy())
-                action_buffer.append(eval_action)
-                distance_buffer.append(eval_distance)
-                visualise_act_and_dist(np.array(eval_epochs), np.array(action_buffer), np.array(distance_buffer),
-                                       env_name=agent.params.env_name, file_dir=agent.params.plot_path)
+                eval_Agent(env, agent)
                 env.close()
                 break
+
+traj = np.array(traj)
+env.vis_exploration(traj=traj, file_name="exploration_training.png")
+env.vis_trajectory(traj=traj, file_name="traj_training.png")

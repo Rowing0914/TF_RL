@@ -71,11 +71,11 @@ def train_DQN(agent, env, policy, replay_buffer, reward_buffer, summary_writer):
                 ===== After 1 Episode is Done =====
                 """
 
-                tf.contrib.summary.scalar("reward", total_reward, step=i)
-                tf.contrib.summary.scalar("exec time", time.time() - start, step=i)
+                tf.contrib.summary.scalar("reward", total_reward, step=global_timestep.numpy())
+                tf.contrib.summary.scalar("exec time", time.time() - start, step=global_timestep.numpy())
                 if i >= agent.params.reward_buffer_ep:
-                    tf.contrib.summary.scalar("Moving Ave Reward", np.mean(reward_buffer), step=i)
-                tf.contrib.summary.histogram("taken actions", cnt_action, step=i)
+                    tf.contrib.summary.scalar("Moving Ave Reward", np.mean(reward_buffer), step=global_timestep.numpy())
+                tf.contrib.summary.histogram("taken actions", cnt_action, step=global_timestep.numpy())
 
                 # store the episode reward
                 reward_buffer.append(total_reward)
@@ -163,11 +163,11 @@ def train_DQN_PER(agent, env, policy, replay_buffer, reward_buffer, Beta, summar
                 ===== After 1 Episode is Done =====
                 """
 
-                tf.contrib.summary.scalar("reward", total_reward, step=i)
-                tf.contrib.summary.scalar("exec time", time.time() - start, step=i)
+                tf.contrib.summary.scalar("reward", total_reward, step=global_timestep.numpy())
+                tf.contrib.summary.scalar("exec time", time.time() - start, step=global_timestep.numpy())
                 if i >= agent.params.reward_buffer_ep:
-                    tf.contrib.summary.scalar("Moving Ave Reward", np.mean(reward_buffer), step=i)
-                tf.contrib.summary.histogram("taken actions", cnt_action, step=i)
+                    tf.contrib.summary.scalar("Moving Ave Reward", np.mean(reward_buffer), step=global_timestep.numpy())
+                tf.contrib.summary.histogram("taken actions", cnt_action, step=global_timestep.numpy())
 
                 # store the episode reward
                 reward_buffer.append(total_reward)
@@ -255,11 +255,11 @@ def pretrain_DQfD(expert, agent, env, policy, replay_buffer, reward_buffer, summ
                 ===== After 1 Episode is Done =====
                 """
 
-                tf.contrib.summary.scalar("reward", total_reward, step=i)
-                tf.contrib.summary.scalar("exec time", time.time() - start, step=i)
+                tf.contrib.summary.scalar("reward", total_reward, step=global_timestep.numpy())
+                tf.contrib.summary.scalar("exec time", time.time() - start, step=global_timestep.numpy())
                 if i >= agent.params.reward_buffer_ep:
-                    tf.contrib.summary.scalar("Moving Ave Reward", np.mean(reward_buffer), step=i)
-                tf.contrib.summary.histogram("taken actions", cnt_action, step=i)
+                    tf.contrib.summary.scalar("Moving Ave Reward", np.mean(reward_buffer), step=global_timestep.numpy())
+                tf.contrib.summary.histogram("taken actions", cnt_action, step=global_timestep.numpy())
 
                 # store the episode reward
                 reward_buffer.append(total_reward)
@@ -341,7 +341,7 @@ def train_DQN_afp(agent, expert, env, agent_policy, expert_policy, replay_buffer
                                                            tau=params.soft_update_tau)
 
                     if done:
-                        tf.contrib.summary.scalar("reward", total_reward, step=i)
+                        tf.contrib.summary.scalar("reward", total_reward, step=global_timestep.numpy())
                         # store the episode reward
                         reward_buffer.append(total_reward)
 
@@ -519,10 +519,10 @@ def train_DDPG_original(agent, env, replay_buffer, reward_buffer, summary_writer
                 time_buffer.append(time.time() - start)
 
                 # logging on Tensorboard
-                tf.contrib.summary.scalar("reward", total_reward, step=i)
-                tf.contrib.summary.scalar("exec time", time.time() - start, step=i)
+                tf.contrib.summary.scalar("reward", total_reward, step=global_timestep.numpy())
+                tf.contrib.summary.scalar("exec time", time.time() - start, step=global_timestep.numpy())
                 if i >= agent.params.reward_buffer_ep:
-                    tf.contrib.summary.scalar("Moving Ave Reward", np.mean(reward_buffer), step=i)
+                    tf.contrib.summary.scalar("Moving Ave Reward", np.mean(reward_buffer), step=global_timestep.numpy())
 
                 # logging
                 if global_timestep.numpy() > agent.params.learning_start and i % agent.params.reward_buffer_ep == 0:
@@ -613,10 +613,10 @@ def train_DDPG_onpolicy(agent, env, replay_buffer, reward_buffer, summary_writer
                 time_buffer.append(time.time() - start)
 
                 # logging on Tensorboard
-                tf.contrib.summary.scalar("reward", total_reward, step=i)
-                tf.contrib.summary.scalar("exec time", time.time() - start, step=i)
+                tf.contrib.summary.scalar("reward", total_reward, step=global_timestep.numpy())
+                tf.contrib.summary.scalar("exec time", time.time() - start, step=global_timestep.numpy())
                 if i >= agent.params.reward_buffer_ep:
-                    tf.contrib.summary.scalar("Moving Ave Reward", np.mean(reward_buffer), step=i)
+                    tf.contrib.summary.scalar("Moving Ave Reward", np.mean(reward_buffer), step=global_timestep.numpy())
 
                 # logging
                 if global_timestep.numpy() > agent.params.learning_start and i % agent.params.reward_buffer_ep == 0:
@@ -699,10 +699,10 @@ def train_SAC(agent, env, replay_buffer, reward_buffer, summary_writer):
                 time_buffer.append(time.time() - start)
 
                 # logging on Tensorboard
-                tf.contrib.summary.scalar("reward", total_reward, step=i)
-                tf.contrib.summary.scalar("exec time", time.time() - start, step=i)
+                tf.contrib.summary.scalar("reward", total_reward, step=global_timestep.numpy())
+                tf.contrib.summary.scalar("exec time", time.time() - start, step=global_timestep.numpy())
                 if i >= agent.params.reward_buffer_ep:
-                    tf.contrib.summary.scalar("Moving Ave Reward", np.mean(reward_buffer), step=i)
+                    tf.contrib.summary.scalar("Moving Ave Reward", np.mean(reward_buffer), step=global_timestep.numpy())
 
                 # we log the training progress once in a `reward_buffer_ep` time
                 if global_timestep.numpy() > agent.params.learning_start and i % agent.params.reward_buffer_ep == 0:
