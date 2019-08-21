@@ -7,6 +7,7 @@ env = GridWorld(max_episode_len=500, num_rooms=1, action_limit_max=1.0, silent_m
                 start_position=(8.0, 8.0), goal_position=(22.0, 22.0), goal_reward=+100.0,
                 dense_goals=dense_goals, dense_reward=+5,
                 grid_len=30, plot_path="./logs/plots/RandomAgent/")
+env.show_casing(file_name="cont_grid_world.png")
 
 traj = list()
 max_timestep = 500_000
@@ -30,8 +31,8 @@ for ep in itertools.count():
         if done:
             if flag:
                 flag = False
-                env.vis_exploration(traj=np.array(traj), file_name="exploration_{}.png".format(global_timestep))
-                env.vis_trajectory(traj=np.array(traj), file_name="traj_{}.png".format(global_timestep))
+                env.vis_exploration(traj=np.array(traj), file_name="exploration_random_{}.png".format(global_timestep))
+                env.vis_trajectory(traj=np.array(traj), file_name="traj_random_{}.png".format(global_timestep))
             break
     if global_timestep > max_timestep:
         break

@@ -162,8 +162,8 @@ with summary_writer.as_default():
             # evaluation
             if agent.eval_flg:
                 env.vis_exploration(traj=np.array(traj),
-                                    file_name="exploration_train_{}.png".format(global_timestep.numpy()))
-                env.vis_trajectory(traj=np.array(traj), file_name="traj_train_{}.png".format(global_timestep.numpy()))
+                                    file_name="exploration_train_DDPG_{}.png".format(global_timestep.numpy()))
+                env.vis_trajectory(traj=np.array(traj), file_name="traj_train_DDPG_{}.png".format(global_timestep.numpy()))
                 eval_Agent(env, agent)
                 agent.eval_flg = False
 
@@ -171,8 +171,8 @@ with summary_writer.as_default():
             if global_timestep.numpy() > agent.params.num_frames:
                 print("=== Training is Done ===")
                 traj = np.array(traj)
-                env.vis_exploration(traj=traj, file_name="exploration_during_training.png")
-                env.vis_trajectory(traj=traj, file_name="traj_during_training.png")
+                env.vis_exploration(traj=traj, file_name="exploration_DDPG_during_training.png")
+                env.vis_trajectory(traj=traj, file_name="traj_DDPG_during_training.png")
                 eval_Agent(env, agent)
                 env.close()
                 break

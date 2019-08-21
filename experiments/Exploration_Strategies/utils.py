@@ -22,8 +22,8 @@ def eval_Agent(env, agent, n_trial=1):
 
         traj = np.array(traj)
         env.vis_exploration(traj=traj,
-                            file_name="exploration_eval_{}.png".format(tf.compat.v1.train.get_global_step().numpy()))
-        env.vis_trajectory(traj=traj, file_name="traj_eval_{}.png".format(tf.compat.v1.train.get_global_step().numpy()))
+                            file_name="exploration_eval_DDPG_{}.png".format(tf.compat.v1.train.get_global_step().numpy()))
+        env.vis_trajectory(traj=traj, file_name="traj_eval_DDPG_{}.png".format(tf.compat.v1.train.get_global_step().numpy()))
         tf.contrib.summary.scalar("Evaluation Score", episode_reward, step=agent.index_timestep)
         print("| Ep: {}/{} | Score: {} |".format(ep + 1, n_trial, episode_reward))
 
