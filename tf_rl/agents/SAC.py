@@ -117,7 +117,7 @@ class SAC_debug(Agent):
     def _select_action(self, state):
         return self.actor(state)
 
-    # @tf.contrib.eager.defun(autograph=False)
+    @tf.contrib.eager.defun(autograph=False)
     def _inner_update(self, states, actions, rewards, next_states, dones):
         self.index_timestep = tf.train.get_global_step()
         # Update Critic
@@ -151,16 +151,23 @@ class SAC_debug(Agent):
         # apply processed gradients to the network
         self.actor_optimizer.apply_gradients(zip(actor_grads, self.actor.trainable_variables))
 
+        critic_grads = tf.math.reduce_mean([tf.math.reduce_sum(grad) for grad in critic_grads])
+        actor_grads = tf.math.reduce_mean([tf.math.reduce_sum(grad) for grad in actor_grads])
+
         tf.contrib.summary.histogram("Y", Y, step=self.index_timestep)
-        tf.contrib.summary.histogram("next_action", next_action, step=self.index_timestep)
-        tf.contrib.summary.histogram("next_state_log_pi", next_state_log_pi, step=self.index_timestep)
-        tf.contrib.summary.histogram("next_Q1", next_Q1, step=self.index_timestep)
-        tf.contrib.summary.histogram("next_Q2", next_Q2, step=self.index_timestep)
+        # tf.contrib.summary.histogram("next_action", next_action, step=self.index_timestep)
+        # tf.contrib.summary.histogram("next_state_log_pi", next_state_log_pi, step=self.index_timestep)
+        # tf.contrib.summary.histogram("next_Q1", next_Q1, step=self.index_timestep)
+        # tf.contrib.summary.histogram("next_Q2", next_Q2, step=self.index_timestep)
         tf.contrib.summary.scalar("critic_loss_q1", critic_loss_q1, step=self.index_timestep)
         tf.contrib.summary.scalar("critic_loss_q2", critic_loss_q2, step=self.index_timestep)
         tf.contrib.summary.scalar("actor_loss", actor_loss, step=self.index_timestep)
-        tf.contrib.summary.scalar("mean_next_Q", tf.math.reduce_mean(next_Q), step=self.index_timestep)
-        tf.contrib.summary.scalar("max_next_Q", tf.math.reduce_max(next_Q), step=self.index_timestep)
+
+        tf.contrib.summary.scalar("critic_grad", critic_grads, step=self.index_timestep)
+        tf.contrib.summary.scalar("actor_grad", actor_grads, step=self.index_timestep)
+
+        # tf.contrib.summary.scalar("mean_next_Q", tf.math.reduce_mean(next_Q), step=self.index_timestep)
+        # tf.contrib.summary.scalar("max_next_Q", tf.math.reduce_max(next_Q), step=self.index_timestep)
         tf.contrib.summary.scalar("mean_q1", tf.math.reduce_mean(q1), step=self.index_timestep)
         tf.contrib.summary.scalar("mean_q2", tf.math.reduce_mean(q2), step=self.index_timestep)
         tf.contrib.summary.scalar("max_q1", tf.math.reduce_max(q1), step=self.index_timestep)

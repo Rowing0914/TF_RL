@@ -37,7 +37,7 @@ from tf_rl.common.segment_tree import SumSegmentTree, MinSegmentTree
 
 
 class ReplayBuffer(object):
-    def __init__(self, size, n_step=0, gamma=0.99):
+    def __init__(self, size, n_step=0, gamma=0.99, flg_seq=True):
         """Create Replay buffer.
         Parameters
         ----------
@@ -50,6 +50,7 @@ class ReplayBuffer(object):
         self._n_step = n_step
         self._gamma = gamma
         self._next_idx = 0
+        self._flg_seq = flg_seq
 
     def __len__(self):
         return len(self._storage)
@@ -90,9 +91,41 @@ class ReplayBuffer(object):
             dones.append(done)
         return np.array(obses_t), np.array(actions), np.array(rewards), np.array(obses_tp1), np.array(dones)
 
+    def _encode_sample_n_step_sequence(self, idxes):
+        """
+        n-consecutive time-step sampling method
+        Return:
+            obs, act, rew, next_obs, done FROM t to t+n
+        """
+        obses_t, actions, rewards, obses_tp1, dones = [], [], [], [], []
+        for i in idxes:
+            data = self._storage[i]
+            if i + self._n_step > len(self._storage) - 1:  # avoid the index out of range error!!
+                _idx = (i + self._n_step) - len(self._storage) + 1
+                data_n = self._storage[i: i + self._n_step - _idx]
+            else:
+                data_n = self._storage[i: i + self._n_step]
+            obs_t, action, reward, obs_tp1, done = data
+            obs_t_n, action_n, reward_n, obs_tp1_n, done_n = [], [], [], [], []
+            for _data in data_n:
+                _o, _a, _r, _no, _d = _data
+                obs_t_n.append(np.array(_o, copy=False))
+                action_n.append(_a)
+                reward_n.append(_r)
+                obs_tp1_n.append(np.array(_no, copy=False))
+                done_n.append(_d)
+            obses_t.append(np.concatenate([obs_t[np.newaxis, ...], obs_t_n], axis=0))
+            actions.append(np.array([action] + action_n))
+            rewards.append(np.array([reward] + reward_n))
+            obses_tp1.append(np.concatenate([obs_tp1[np.newaxis, ...], obs_tp1_n], axis=0))
+            dones.append(np.array([done] + done_n))
+        return np.array(obses_t), np.array(actions), np.array(rewards), np.array(obses_tp1), np.array(dones)
+
     def _encode_sample_n_step(self, idxes):
         """
-        n-step sampling method
+        n-step ahead sampling method
+        Return:
+            obs, act, rew, next_obs, done at t as well as t+n
         """
         obses_t, actions, rewards, obses_tp1, dones = [], [], [], [], []
         for i in idxes:
@@ -140,7 +173,10 @@ class ReplayBuffer(object):
         if self._n_step == 0:
             return self._encode_sample(idxes)
         else:
-            return self._encode_sample_n_step(idxes)
+            if self._flg_seq:
+                return self._encode_sample_n_step_sequence(idxes)
+            else:
+                return self._encode_sample_n_step(idxes)
 
     def save(self, dir, save_amount=10000):
         """

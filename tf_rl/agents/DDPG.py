@@ -108,8 +108,6 @@ class DDPG_debug(Agent):
                                                 optimizer=self.critic_optimizer,
                                                 model_dir=params.critic_model_dir)
 
-    # TODO: implement the checkpoints for model
-
     def predict(self, state):
         state = np.expand_dims(state, axis=0).astype(np.float32)
         action = self._select_action(tf.constant(state))
@@ -171,9 +169,14 @@ class DDPG_debug(Agent):
         # apply processed gradients to the network
         self.actor_optimizer.apply_gradients(zip(actor_grads, self.actor.trainable_variables))
 
+        critic_grads = tf.math.reduce_mean([tf.math.reduce_sum(grad) for grad in critic_grads])
+        actor_grads = tf.math.reduce_mean([tf.math.reduce_sum(grad) for grad in actor_grads])
+
         tf.contrib.summary.histogram("Y", Y, step=self.index_timestep)
         tf.contrib.summary.scalar("critic_loss", critic_loss, step=self.index_timestep)
+        tf.contrib.summary.scalar("critic_grad", critic_grads, step=self.index_timestep)
         tf.contrib.summary.scalar("actor_loss", actor_loss, step=self.index_timestep)
+        tf.contrib.summary.scalar("actor_grad", actor_grads, step=self.index_timestep)
         tf.contrib.summary.scalar("mean_next_Q", tf.math.reduce_mean(next_Q), step=self.index_timestep)
         tf.contrib.summary.scalar("max_next_Q", tf.math.reduce_max(next_Q), step=self.index_timestep)
         tf.contrib.summary.scalar("mean_q_value", tf.math.reduce_mean(q_values), step=self.index_timestep)
