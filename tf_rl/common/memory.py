@@ -97,15 +97,21 @@ class ReplayBuffer(object):
         Return:
             obs, act, rew, next_obs, done FROM t to t+n
         """
-        obses_t, actions, rewards, obses_tp1, dones = [], [], [], [], []
+        # Resulting arrays
+        obs_t, action, reward, obs_tp1, done = [], [], [], [], []
+
+        # === Sampling method ===
         for i in idxes:
-            data = self._storage[i]
             if i + self._n_step > len(self._storage) - 1:  # avoid the index out of range error!!
-                _idx = (i + self._n_step) - len(self._storage) + 1
-                data_n = self._storage[i: i + self._n_step - _idx]
+                first_half = len(self._storage) - 1 - i
+                second_half = self._n_step - first_half
+                data_n = self._storage[i: i + first_half] + self._storage[:second_half]
             else:
                 data_n = self._storage[i: i + self._n_step]
-            obs_t, action, reward, obs_tp1, done = data
+
+            # TODO: this is not efficient... because every index, we go through n-step
+            # so that consider using separate bucket for each component(o, a, r, no, d)
+            # then we can just specify the indices of them instead of having for-loop to operate on them.
             obs_t_n, action_n, reward_n, obs_tp1_n, done_n = [], [], [], [], []
             for _data in data_n:
                 _o, _a, _r, _no, _d = _data
@@ -114,12 +120,14 @@ class ReplayBuffer(object):
                 reward_n.append(_r)
                 obs_tp1_n.append(np.array(_no, copy=False))
                 done_n.append(_d)
-            obses_t.append(np.concatenate([obs_t[np.newaxis, ...], obs_t_n], axis=0))
-            actions.append(np.array([action] + action_n))
-            rewards.append(np.array([reward] + reward_n))
-            obses_tp1.append(np.concatenate([obs_tp1[np.newaxis, ...], obs_tp1_n], axis=0))
-            dones.append(np.array([done] + done_n))
-        return np.array(obses_t), np.array(actions), np.array(rewards), np.array(obses_tp1), np.array(dones)
+
+            # Store a data at each time-sequence in the resulting array
+            obs_t.append(np.array(obs_t_n, copy=False))
+            action.append(action_n)
+            reward.append(reward_n)
+            obs_tp1.append(np.array(obs_tp1_n, copy=False))
+            done.append(done_n)
+        return np.array(obs_t), np.array(action), np.array(reward), np.array(obs_tp1), np.array(done)
 
     def _encode_sample_n_step(self, idxes):
         """
