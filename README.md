@@ -272,10 +272,10 @@ env.close()
 
 - OS: Linux Ubuntu LTS 16.04
 - Python: 2.7/3.6 (For MuJoCo Env, 2.7 might not work)
-- GPU: Gefoce GTX1060 Ti Max Q Design
-- Tensorflow: 1.14.0(I have tested codes with 1.13.1 as well)
+- GPU: NVIDIA RTX 2080 Max Q Design
+- Tensorflow: 1.14.0
 - CUDA: 10.0
-- libcudnn: 7.4.1
+- libcudnn: 7.6.2
 
 
 
@@ -304,15 +304,13 @@ sudo apt-get install --no-install-recommends nvidia-410
 # Install development and runtime libraries (~4GB)
 sudo apt-get install --no-install-recommends \
     cuda-10-0 \
-    libcudnn7=7.4.1.5-1+cuda10.0  \
-    libcudnn7-dev=7.4.1.5-1+cuda10.0
+    libcudnn7=7.6.2.24-1+cuda10.0  \
+    libcudnn7-dev=7.6.2.24-1+cuda10.0
 
 
 # Install TensorRT. Requires that libcudnn7 is installed above.
-sudo apt-get update && \
-        sudo apt-get install nvinfer-runtime-trt-repo-ubuntu1604-5.0.2-ga-cuda10.0 \
-        && sudo apt-get update \
-        && sudo apt-get install -y --no-install-recommends libnvinfer-dev=5.0.2-1+cuda10.0
+sudo apt-get install -y --no-install-recommends libnvinfer5=5.1.5-1+cuda10.0 \
+    libnvinfer-dev=5.1.5-1+cuda10.0
 ```
 
 
