@@ -31,71 +31,69 @@ def train_DQN(agent, env, policy, replay_buffer, reward_buffer, summary_writer):
     # normaliser = RunningMeanStd(env.reset().shape[0])
     with summary_writer.as_default():
         # for summary purpose, we put all codes in this context
-        with tf.contrib.summary.always_record_summaries():
+        for i in itertools.count():
+            state = env.reset()
+            total_reward = 0
+            start = time.time()
+            cnt_action = list()
+            done = False
+            while not done:
+                # normaliser.update(state)
+                # normaliser.normalise(state)
+                action = policy.select_action(agent, state)
+                next_state, reward, done, info = env.step(action)
+                replay_buffer.add(state, action, reward, next_state, done)
 
-            for i in itertools.count():
-                state = env.reset()
-                total_reward = 0
-                start = time.time()
-                cnt_action = list()
-                done = False
-                while not done:
-                    # normaliser.update(state)
-                    # normaliser.normalise(state)
-                    action = policy.select_action(agent, state)
-                    next_state, reward, done, info = env.step(action)
-                    replay_buffer.add(state, action, reward, next_state, done)
+                global_timestep.assign_add(1)
+                total_reward += reward
+                state = next_state
+                cnt_action.append(action)
 
-                    global_timestep.assign_add(1)
-                    total_reward += reward
-                    state = next_state
-                    cnt_action.append(action)
+                # for evaluation purpose
+                if global_timestep.numpy() % agent.params.eval_interval == 0:
+                    agent.eval_flg = True
 
-                    # for evaluation purpose
-                    if global_timestep.numpy() % agent.params.eval_interval == 0:
-                        agent.eval_flg = True
+                if (global_timestep.numpy() > agent.params.learning_start) and (
+                        global_timestep.numpy() % agent.params.train_interval == 0):
+                    states, actions, rewards, next_states, dones = replay_buffer.sample(agent.params.batch_size)
 
-                    if (global_timestep.numpy() > agent.params.learning_start) and (
-                            global_timestep.numpy() % agent.params.train_interval == 0):
-                        states, actions, rewards, next_states, dones = replay_buffer.sample(agent.params.batch_size)
+                    loss, batch_loss = agent.update(states, actions, rewards, next_states, dones)
 
-                        loss, batch_loss = agent.update(states, actions, rewards, next_states, dones)
+                # synchronise the target and main models by hard
+                if (global_timestep.numpy() > agent.params.learning_start) and (
+                        global_timestep.numpy() % agent.params.sync_freq == 0):
+                    agent.manager.save()
+                    agent.target_model.set_weights(agent.main_model.get_weights())
 
-                    # synchronise the target and main models by hard
-                    if (global_timestep.numpy() > agent.params.learning_start) and (
-                            global_timestep.numpy() % agent.params.sync_freq == 0):
-                        agent.manager.save()
-                        agent.target_model.set_weights(agent.main_model.get_weights())
+            """
+            ===== After 1 Episode is Done =====
+            """
 
-                """
-                ===== After 1 Episode is Done =====
-                """
+            tf.summary.scalar("reward", total_reward, step=global_timestep.numpy())
+            tf.summary.scalar("exec time", time.time() - start, step=global_timestep.numpy())
+            if i >= agent.params.reward_buffer_ep:
+                tf.summary.scalar("Moving Ave Reward", np.mean(reward_buffer), step=global_timestep.numpy())
+            tf.summary.histogram("taken actions", cnt_action, step=global_timestep.numpy())
 
-                tf.contrib.summary.scalar("reward", total_reward, step=global_timestep.numpy())
-                tf.contrib.summary.scalar("exec time", time.time() - start, step=global_timestep.numpy())
-                if i >= agent.params.reward_buffer_ep:
-                    tf.contrib.summary.scalar("Moving Ave Reward", np.mean(reward_buffer), step=global_timestep.numpy())
-                tf.contrib.summary.histogram("taken actions", cnt_action, step=global_timestep.numpy())
+            # store the episode reward
+            reward_buffer.append(total_reward)
+            time_buffer.append(time.time() - start)
 
-                # store the episode reward
-                reward_buffer.append(total_reward)
-                time_buffer.append(time.time() - start)
+            if global_timestep.numpy() > agent.params.learning_start and i % agent.params.reward_buffer_ep == 0:
+                log.logging(global_timestep.numpy(), i, np.sum(time_buffer), reward_buffer, np.mean(loss),
+                            policy.current_epsilon(), cnt_action)
+                time_buffer = list()
 
-                if global_timestep.numpy() > agent.params.learning_start and i % agent.params.reward_buffer_ep == 0:
-                    log.logging(global_timestep.numpy(), i, np.sum(time_buffer), reward_buffer, np.mean(loss),
-                                policy.current_epsilon(), cnt_action)
-                    time_buffer = list()
+            if agent.eval_flg:
+                eval_Agent(agent, env)
+                agent.eval_flg = False
 
-                if agent.eval_flg:
-                    eval_Agent(agent, env)
-                    agent.eval_flg = False
-
-                # check the stopping condition
-                if global_timestep.numpy() > agent.params.num_frames:
-                    print("=== Training is Done ===")
-                    eval_Agent(agent, env, n_trial=agent.params.test_episodes)
-                    env.close()
-                    break
+            # check the stopping condition
+            if global_timestep.numpy() > agent.params.num_frames:
+                print("=== Training is Done ===")
+                eval_Agent(agent, env, n_trial=agent.params.test_episodes)
+                env.close()
+                break
 
 
 def train_DQN_PER(agent, env, policy, replay_buffer, reward_buffer, Beta, summary_writer):

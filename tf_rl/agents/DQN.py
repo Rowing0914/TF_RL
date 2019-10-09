@@ -26,14 +26,16 @@ class DQN(Agent_atari):
     # TODO: make this available to construct graph when this class is being initialised
     # tf.convert_to_tensor(np.random.random((1, self.state_size)), dtype=tf.float32)
 
-    @tf.contrib.eager.defun(autograph=False)
+    # @tf.contrib.eager.defun(autograph=False)
+    @tf.function
     def _select_action(self, state):
         return self.main_model(state)
 
-    @tf.contrib.eager.defun(autograph=False)
+    # @tf.contrib.eager.defun(autograph=False)
+    @tf.function
     def _inner_update(self, states, actions, rewards, next_states, dones):
         # get the current global-timestep
-        self.index_timestep = tf.train.get_global_step()
+        self.index_timestep = tf.compat.v1.train.get_global_step()
 
         # We divide the grayscale pixel values by 255 here rather than storing
         # normalized values because uint8s are 4x cheaper to store than float32s.
@@ -48,7 +50,7 @@ class DQN(Agent_atari):
 
             # get the q-values which is associated with actually taken actions in a game
             actions_one_hot = tf.one_hot(actions, self.num_action, 1.0, 0.0)
-            chosen_q = tf.math.reduce_sum(tf.math.multiply(actions_one_hot, q_values), reduction_indices=1)
+            chosen_q = tf.math.reduce_sum(tf.math.multiply(actions_one_hot, q_values), axis=-1)
             batch_loss = self.loss_fn(Y, chosen_q, reduction=tf.losses.Reduction.NONE)
             loss = tf.math.reduce_mean(batch_loss)
 
@@ -82,14 +84,14 @@ class DQN_cartpole(Agent_cartpole):
                                          optimizer=self.optimizer,
                                          model_dir=params.model_dir)
 
-    @tf.contrib.eager.defun(autograph=False)
+    @tf.function
     def _select_action(self, state):
         return self.main_model(state)
 
-    @tf.contrib.eager.defun(autograph=False)
+    @tf.function
     def _inner_update(self, states, actions, rewards, next_states, dones):
         # get the current global-timestep
-        self.index_timestep = tf.train.get_global_step()
+        self.index_timestep = tf.compat.v1.train.get_global_step()
 
         # ===== make sure to fit all process to compute gradients within this Tape context!! =====
         with tf.GradientTape() as tape:
@@ -100,7 +102,7 @@ class DQN_cartpole(Agent_cartpole):
 
             # get the q-values which is associated with actually taken actions in a game
             actions_one_hot = tf.one_hot(actions, self.num_action, 1.0, 0.0)
-            chosen_q = tf.math.reduce_sum(tf.math.multiply(actions_one_hot, q_values), reduction_indices=1)
+            chosen_q = tf.math.reduce_sum(tf.math.multiply(actions_one_hot, q_values), axis=-1)
             batch_loss = self.loss_fn(Y, chosen_q, reduction=tf.losses.Reduction.NONE)
             loss = tf.math.reduce_mean(batch_loss)
 
@@ -113,9 +115,9 @@ class DQN_cartpole(Agent_cartpole):
         # apply processed gradients to the network
         self.optimizer.apply_gradients(zip(grads, self.main_model.trainable_weights))
 
-        tf.contrib.summary.scalar("mean Q", tf.math.reduce_mean(q_values), step=self.index_timestep)
-        tf.contrib.summary.scalar("var Q", tf.math.reduce_variance(q_values), step=self.index_timestep)
-        tf.contrib.summary.scalar("max Q", tf.math.reduce_max(q_values), step=self.index_timestep)
+        tf.summary.scalar("mean Q", tf.math.reduce_mean(q_values), step=self.index_timestep)
+        tf.summary.scalar("var Q", tf.math.reduce_variance(q_values), step=self.index_timestep)
+        tf.summary.scalar("max Q", tf.math.reduce_max(q_values), step=self.index_timestep)
 
         return loss, batch_loss
 
@@ -150,7 +152,7 @@ class DQN_debug(Agent_atari):
     # @tf.contrib.eager.defun(autograph=False)
     def _inner_update(self, states, actions, rewards, next_states, dones):
         # get the current global-timestep
-        self.index_timestep = tf.train.get_global_step()
+        self.index_timestep = tf.compat.v1.train.get_global_step()
 
         # We divide the grayscale pixel values by 255 here rather than storing
         # normalized values because uint8s are 4x cheaper to store than float32s.
@@ -165,7 +167,7 @@ class DQN_debug(Agent_atari):
 
             # get the q-values which is associated with actually taken actions in a game
             actions_one_hot = tf.one_hot(actions, self.num_action, 1.0, 0.0)
-            chosen_q = tf.math.reduce_sum(tf.math.multiply(actions_one_hot, q_values), reduction_indices=1)
+            chosen_q = tf.math.reduce_sum(tf.math.multiply(actions_one_hot, q_values), axis=-1)
             batch_loss = self.loss_fn(Y, chosen_q, reduction=tf.losses.Reduction.NONE)
             loss = tf.math.reduce_mean(batch_loss)
 
@@ -180,19 +182,19 @@ class DQN_debug(Agent_atari):
 
         # for log purpose
         for index, grad in enumerate(grads):
-            tf.contrib.summary.histogram("layer_grad_{}".format(index), grad, step=self.index_timestep)
-        tf.contrib.summary.scalar("loss", loss, step=self.index_timestep)
-        tf.contrib.summary.histogram("next_Q(TargetModel)", next_Q, step=self.index_timestep)
-        tf.contrib.summary.histogram("q_values(MainModel)", next_Q, step=self.index_timestep)
-        tf.contrib.summary.histogram("Y(target)", Y, step=self.index_timestep)
-        tf.contrib.summary.scalar("mean_Y(target)", tf.math.reduce_mean(Y), step=self.index_timestep)
-        tf.contrib.summary.scalar("var_Y(target)", tf.math.reduce_variance(Y), step=self.index_timestep)
-        tf.contrib.summary.scalar("max_Y(target)", tf.math.reduce_max(Y), step=self.index_timestep)
-        tf.contrib.summary.scalar("mean_q_value(TargetModel)", tf.math.reduce_mean(next_Q), step=self.index_timestep)
-        tf.contrib.summary.scalar("var_q_value(TargetModel)", tf.math.reduce_variance(next_Q), step=self.index_timestep)
-        tf.contrib.summary.scalar("max_q_value(TargetModel)", tf.math.reduce_max(next_Q), step=self.index_timestep)
-        tf.contrib.summary.scalar("mean_q_value(MainModel)", tf.math.reduce_mean(q_values), step=self.index_timestep)
-        tf.contrib.summary.scalar("var_q_value(MainModel)", tf.math.reduce_variance(q_values), step=self.index_timestep)
-        tf.contrib.summary.scalar("max_q_value(MainModel)", tf.math.reduce_max(q_values), step=self.index_timestep)
+            tf.summary.histogram("layer_grad_{}".format(index), grad, step=self.index_timestep)
+        tf.summary.scalar("loss", loss, step=self.index_timestep)
+        tf.summary.histogram("next_Q(TargetModel)", next_Q, step=self.index_timestep)
+        tf.summary.histogram("q_values(MainModel)", next_Q, step=self.index_timestep)
+        tf.summary.histogram("Y(target)", Y, step=self.index_timestep)
+        tf.summary.scalar("mean_Y(target)", tf.math.reduce_mean(Y), step=self.index_timestep)
+        tf.summary.scalar("var_Y(target)", tf.math.reduce_variance(Y), step=self.index_timestep)
+        tf.summary.scalar("max_Y(target)", tf.math.reduce_max(Y), step=self.index_timestep)
+        tf.summary.scalar("mean_q_value(TargetModel)", tf.math.reduce_mean(next_Q), step=self.index_timestep)
+        tf.summary.scalar("var_q_value(TargetModel)", tf.math.reduce_variance(next_Q), step=self.index_timestep)
+        tf.summary.scalar("max_q_value(TargetModel)", tf.math.reduce_max(next_Q), step=self.index_timestep)
+        tf.summary.scalar("mean_q_value(MainModel)", tf.math.reduce_mean(q_values), step=self.index_timestep)
+        tf.summary.scalar("var_q_value(MainModel)", tf.math.reduce_variance(q_values), step=self.index_timestep)
+        tf.summary.scalar("max_q_value(MainModel)", tf.math.reduce_max(q_values), step=self.index_timestep)
 
         return loss, batch_loss

@@ -7,13 +7,9 @@ import time
 from collections import deque
 from tf_rl.common.wrappers import MyWrapper
 import tensorflow as tf
+from tf_rl.common.utils import eager_setup
 
-config = tf.ConfigProto(allow_soft_placement=True,
-                        intra_op_parallelism_threads=1,
-                        inter_op_parallelism_threads=1)
-config.gpu_options.allow_growth = True
-tf.enable_eager_execution(config=config)
-tf.random.set_random_seed(123)
+eager_setup()
 
 
 class Actor(tf.keras.Model):
@@ -91,8 +87,8 @@ class Actor_Critic:
         self.num_action = num_action
         self.actor = actor(env_type, num_action)
         self.critic = critic(env_type)
-        self.actor_optimizer = tf.train.AdamOptimizer()
-        self.critic_optimizer = tf.train.AdamOptimizer()
+        self.actor_optimizer = tf.optimizers.Adam()
+        self.critic_optimizer = tf.optimizers.Adam()
 
     def predict(self, state):
         # we take an action according to the action distribution produced by policy network
@@ -113,7 +109,7 @@ class Actor_Critic:
             advantage = reward + self.params.gamma * next_state_value - state_value
 
             # MSE loss function: (1/N)*sum(Advantage - V(s))^2
-            critic_loss = tf.reduce_mean(tf.squared_difference(advantage, state_value))
+            critic_loss = tf.math.reduce_mean(tf.math.squared_difference(advantage, state_value))
 
         # get gradients
         critic_grads = tape.gradient(critic_loss, self.critic.trainable_weights)
@@ -133,10 +129,10 @@ class Actor_Critic:
 
             # get the probability according to the taken action in an episode
             actions_one_hot = tf.one_hot(action, self.num_action, 1.0, 0.0)
-            action_probs = tf.reduce_sum(actions_one_hot * action_probs, reduction_indices=-1)
+            action_probs = tf.math.reduce_sum(actions_one_hot * action_probs, axis=-1)
 
             # loss for policy network: TD_error * log p(a|s)
-            actor_loss = -tf.log(action_probs) * advantage
+            actor_loss = -tf.math.log(action_probs) * advantage
 
         # get gradients
         actor_grads = tape.gradient(actor_loss, self.actor.trainable_weights)
@@ -149,20 +145,16 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--mode", default="CartPole", help="game env type: Atari or CartPole")
 parser.add_argument("--seed", default=123, help="seed of randomness")
 parser.add_argument("--loss_fn", default="huber", help="types of loss function: MSE or huber")
-parser.add_argument("--grad_clip_flg", default="",
-                    help="gradient clippings: by value(by_value) or global norm(norm) or nothing")
+parser.add_argument("--grad_clip_flg", default="", help="gradient clippings: by_value or norm or nothing")
 parser.add_argument("--num_episodes", default=500, type=int, help="total episodes in a training")
 parser.add_argument("--train_interval", default=1, type=int, help="a frequency of training occurring in training phase")
-parser.add_argument("--eval_interval", default=2500, type=int,
-                    help="a frequency of evaluation occurring in training phase")  # temp
+parser.add_argument("--eval_interval", default=2500, type=int, help="a frequency of evaluation in training")
 parser.add_argument("--memory_size", default=5000, type=int, help="memory size in a training")
-parser.add_argument("--learning_start", default=100, type=int,
-                    help="frame number which specifies when to start updating the agent")
+parser.add_argument("--learning_start", default=100, type=int, help="when to start learning")
 parser.add_argument("--sync_freq", default=1000, type=int, help="frequency of updating a target model")
 parser.add_argument("--batch_size", default=32, type=int, help="batch size of each iteration of update")
 parser.add_argument("--reward_buffer_ep", default=10, type=int, help="reward_buffer size")
-parser.add_argument("--gamma", default=0.99, type=float,
-                    help="discount factor: gamma > 1.0 or negative => does not converge!!")
+parser.add_argument("--gamma", default=0.99, type=float, help="discount factor")
 parser.add_argument("--tau", default=1e-2, type=float, help="soft update tau")
 parser.add_argument("--ep_start", default=1.0, type=float, help="initial value of epsilon")
 parser.add_argument("--ep_end", default=0.02, type=float, help="final value of epsilon")

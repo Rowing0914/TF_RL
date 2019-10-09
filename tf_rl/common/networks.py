@@ -5,7 +5,8 @@ tfd = tfp.distributions
 
 L2 = tf.keras.regularizers.l2(1e-2)
 KERNEL_INIT = tf.random_uniform_initializer(minval=-3e-3, maxval=3e-3)
-XAVIER_INIT = tf.contrib.layers.xavier_initializer()
+# XAVIER_INIT = tf.contrib.layers.xavier_initializer()
+XAVIER_INIT = tf.initializers.GlorotUniform()
 
 
 class Nature_DQN(tf.keras.Model):
@@ -18,7 +19,8 @@ class Nature_DQN(tf.keras.Model):
         self.fc1 = tf.keras.layers.Dense(512, activation='relu')
         self.pred = tf.keras.layers.Dense(num_action, activation='linear')
 
-    @tf.contrib.eager.defun(autograph=False)
+    # @tf.contrib.eager.defun(autograph=False)
+    @tf.function
     def call(self, inputs):
         x = self.conv1(inputs)
         x = self.conv2(x)
@@ -36,7 +38,8 @@ class CartPole(tf.keras.Model):
         self.dense3 = tf.keras.layers.Dense(16, activation='relu')
         self.pred = tf.keras.layers.Dense(num_action, activation='linear')
 
-    @tf.contrib.eager.defun(autograph=False)
+    # @tf.contrib.eager.defun(autograph=False)
+    @tf.function
     def call(self, inputs):
         x = self.dense1(inputs)
         x = self.dense2(x)
@@ -60,7 +63,8 @@ class Duelling_atari(tf.keras.Model):
                                              bias_regularizer=L2)
         self.v_value = tf.keras.layers.Dense(1, activation='linear', kernel_regularizer=L2, bias_regularizer=L2)
 
-    @tf.contrib.eager.defun(autograph=False)
+    # @tf.contrib.eager.defun(autograph=False)
+    @tf.function
     def call(self, inputs):
         x = self.conv1(inputs)
         x = self.conv2(x)
@@ -96,7 +100,8 @@ class Duelling_cartpole(tf.keras.Model):
                                              bias_regularizer=L2, )
         self.v_value = tf.keras.layers.Dense(1, activation='linear', kernel_regularizer=L2, bias_regularizer=L2, )
 
-    @tf.contrib.eager.defun(autograph=False)
+    # @tf.contrib.eager.defun(autograph=False)
+    @tf.function
     def call(self, inputs):
         x = self.dense1(inputs)
         x = self.dense2(x)
@@ -126,7 +131,8 @@ class DDPG_Actor(tf.keras.Model):
         self.dense2 = tf.keras.layers.Dense(300, activation='relu', kernel_initializer=KERNEL_INIT)
         self.pred = tf.keras.layers.Dense(num_action, activation='tanh', kernel_initializer=KERNEL_INIT)
 
-    @tf.contrib.eager.defun(autograph=False)
+    # @tf.contrib.eager.defun(autograph=False)
+    @tf.function
     def call(self, inputs):
         x = self.dense1(inputs)
         x = self.dense2(x)
@@ -144,7 +150,8 @@ class DDPG_Critic(tf.keras.Model):
         self.pred = tf.keras.layers.Dense(output_shape, activation='linear', kernel_regularizer=L2, bias_regularizer=L2,
                                           kernel_initializer=KERNEL_INIT)
 
-    @tf.contrib.eager.defun(autograph=False)
+    # @tf.contrib.eager.defun(autograph=False)
+    @tf.function
     def call(self, obs, act):
         x = self.dense1(obs)
         x = self.dense2(tf.concat([x, act], axis=-1))
@@ -161,7 +168,8 @@ class BatchNorm_DDPG_Actor(tf.keras.Model):
         self.batch2 = tf.keras.layers.BatchNormalization()
         self.pred = tf.keras.layers.Dense(num_action, activation='tanh', kernel_initializer=KERNEL_INIT)
 
-    @tf.contrib.eager.defun(autograph=False)
+    # @tf.contrib.eager.defun(autograph=False)
+    @tf.function
     def call(self, inputs):
         x = self.dense1(inputs)
         x = self.batch1(x)
@@ -183,7 +191,8 @@ class BatchNorm_DDPG_Critic(tf.keras.Model):
         self.pred = tf.keras.layers.Dense(output_shape, activation='linear', kernel_regularizer=L2, bias_regularizer=L2,
                                           kernel_initializer=KERNEL_INIT)
 
-    @tf.contrib.eager.defun(autograph=False)
+    # @tf.contrib.eager.defun(autograph=False)
+    @tf.function
     def call(self, obs, act):
         x = self.dense1(obs)
         x = self.batch1(x)
@@ -203,7 +212,8 @@ class self_rewarding_DDPG_Actor(tf.keras.Model):
         self.pred = tf.keras.layers.Dense(num_action, activation='tanh', kernel_initializer=KERNEL_INIT)
         self.reward = tf.keras.layers.Dense(1, activation='tanh', kernel_initializer=KERNEL_INIT)
 
-    @tf.contrib.eager.defun(autograph=False)
+    # @tf.contrib.eager.defun(autograph=False)
+    @tf.function
     def call(self, inputs):
         x = self.dense1(inputs)
         # x = self.batch1(x)
@@ -228,7 +238,8 @@ class HER_Actor(tf.keras.Model):
         self.dense3 = tf.keras.layers.Dense(256, activation='relu', kernel_initializer=KERNEL_INIT)
         self.pred = tf.keras.layers.Dense(num_action, activation='tanh', kernel_initializer=KERNEL_INIT)
 
-    @tf.contrib.eager.defun(autograph=False)
+    # @tf.contrib.eager.defun(autograph=False)
+    @tf.function
     def call(self, inputs):
         x = self.dense1(inputs)
         x = self.dense2(x)
@@ -251,7 +262,8 @@ class HER_Critic(tf.keras.Model):
         self.dense3 = tf.keras.layers.Dense(256, activation='relu', kernel_initializer=KERNEL_INIT)
         self.pred = tf.keras.layers.Dense(output_shape, activation='linear', kernel_initializer=KERNEL_INIT)
 
-    @tf.contrib.eager.defun(autograph=False)
+    # @tf.contrib.eager.defun(autograph=False)
+    @tf.function
     def call(self, inputs, act):
         # _input is already concatenated of obs and g
         x = self.dense1(inputs)
@@ -280,7 +292,8 @@ class SAC_Actor(tf.keras.Model):
         self.mean = tf.keras.layers.Dense(num_action, activation='linear', kernel_initializer=XAVIER_INIT)
         self.std = tf.keras.layers.Dense(num_action, activation='linear', kernel_initializer=XAVIER_INIT)
 
-    @tf.contrib.eager.defun(autograph=False)
+    # @tf.contrib.eager.defun(autograph=False)
+    @tf.function
     def call(self, inputs):
         """
         As mentioned in the topic of `policy evaluation` at sec5.2(`ablation study`) in the paper,
@@ -332,7 +345,8 @@ class SAC_Critic(tf.keras.Model):
     #     Q2 = self.Q2(x2)
     #     return Q1, Q2
 
-    @tf.contrib.eager.defun(autograph=False)
+    # @tf.contrib.eager.defun(autograph=False)
+    @tf.function
     def call(self, obs, act):
         """ Original Implementation """
         _concat = tf.concat([obs, act], axis=-1)
@@ -358,7 +372,8 @@ class TRPO_Policy(tf.keras.Model):
         self.mean = tf.keras.layers.Dense(output_shape, activation='linear', kernel_initializer=KERNEL_INIT)
         self.std = tf.get_variable('sigma', (1, output_shape), tf.float32, tf.constant_initializer(0.6))
 
-    @tf.contrib.eager.defun(autograph=False)
+    # @tf.contrib.eager.defun(autograph=False)
+    @tf.function
     def call(self, inputs):
         x = self.dense1(inputs)
         x = self.dense2(x)
@@ -380,7 +395,8 @@ class TRPO_Value(tf.keras.Model):
         self.pred = tf.keras.layers.Dense(output_shape, activation='linear', kernel_regularizer=L2, bias_regularizer=L2,
                                           kernel_initializer=KERNEL_INIT)
 
-    @tf.contrib.eager.defun(autograph=False)
+    # @tf.contrib.eager.defun(autograph=False)
+    @tf.function
     def call(self, inputs):
         x = self.dense1(inputs)
         x = self.dense2(x)

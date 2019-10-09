@@ -53,11 +53,11 @@ anneal_ep = tf.compat.v1.train.polynomial_decay(params.ep_start, global_timestep
 
 # prep for training
 policy = EpsilonGreedyPolicy_eager(Epsilon_fn=anneal_ep)
-optimizer = tf.compat.v1.train.RMSPropOptimizer(learning_rate=0.00025,
-                                                decay=0.95,
-                                                momentum=0.0,
-                                                epsilon=0.00001,
-                                                centered=True)
+optimizer = tf.optimizers.RMSprop(learning_rate=0.00025,
+                                  decay=0.95,
+                                  momentum=0.0,
+                                  epsilon=0.00001,
+                                  centered=True)
 replay_buffer = ReplayBuffer(params.memory_size)
 reward_buffer = deque(maxlen=params.reward_buffer_ep)
 loss_fn = create_loss_func(params.loss_fn)
@@ -65,11 +65,12 @@ grad_clip_fn = gradient_clip_fn(flag=params.grad_clip_flg)
 
 # create a directory for log/model
 params = create_log_model_directory(params, get_alg_name())
-summary_writer = tf.contrib.summary.create_file_writer(params.log_dir)
+summary_writer = tf.summary.create_file_writer(params.log_dir)
 
 # choose env and instantiate the agent correspondingly
 env = wrap_deepmind(make_atari("{}NoFrameskip-v4".format(params.env_name, skip_frame_k=params.skip_frame_k)),
                     skip_frame_k=params.skip_frame_k)
+
 if params.debug_flg:
     agent = DQN_debug(Model, optimizer, loss_fn, grad_clip_fn, env.action_space.n, params)
 else:

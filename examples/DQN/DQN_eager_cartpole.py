@@ -42,15 +42,15 @@ params.goal = 195
 params.test_episodes = 20
 
 # init global time-step
-global_timestep = tf.train.get_or_create_global_step()
+global_timestep = tf.compat.v1.train.create_global_step()
 
 # instantiate annealing funcs for ep and lr
-anneal_ep = tf.train.polynomial_decay(params.ep_start, global_timestep, params.decay_steps, params.ep_end)
-anneal_lr = tf.train.polynomial_decay(params.lr_start, global_timestep, params.decay_steps, params.lr_end)
+anneal_ep = tf.compat.v1.train.polynomial_decay(params.ep_start, global_timestep, params.decay_steps, params.ep_end)
+anneal_lr = tf.compat.v1.train.polynomial_decay(params.lr_start, global_timestep, params.decay_steps, params.lr_end)
 
 # prep for training
 policy = EpsilonGreedyPolicy_eager(Epsilon_fn=anneal_ep)
-optimizer = tf.train.RMSPropOptimizer(anneal_lr, 0.99, 0.0, 1e-6)
+optimizer = tf.optimizers.RMSprop(anneal_lr, 0.99, 0.0, 1e-6)
 replay_buffer = ReplayBuffer(params.memory_size)
 reward_buffer = deque(maxlen=params.reward_buffer_ep)
 loss_fn = create_loss_func(params.loss_fn)
@@ -58,7 +58,7 @@ grad_clip_fn = gradient_clip_fn(flag=params.grad_clip_flg)
 
 # create a directory for log/model
 params = create_log_model_directory(params, get_alg_name())
-summary_writer = tf.contrib.summary.create_file_writer(params.log_dir)
+summary_writer = tf.summary.create_file_writer(params.log_dir)
 
 # choose env and instantiate the agent correspondingly
 agent, env = invoke_agent_env(params, get_alg_name())
@@ -66,6 +66,6 @@ agent = eval(agent)(Model, optimizer, loss_fn, grad_clip_fn, env.action_space.n,
 
 # set seed
 env.seed(params.seed)
-tf.random.set_random_seed(params.seed)
+tf.compat.v1.random.set_random_seed(params.seed)
 
 train_DQN(agent, env, policy, replay_buffer, reward_buffer, summary_writer)

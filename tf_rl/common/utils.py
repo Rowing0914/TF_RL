@@ -13,17 +13,22 @@ TF basic Utility functions
 
 def eager_setup():
     """
-    it eables an eager execution in tensorflow with config that allows us to flexibly access to a GPU
+    it enables an eager execution in tensorflow with config that allows us to flexibly access to a GPU
     from multiple python scripts
-
-    :return:
     """
-    config = tf.compat.v1.ConfigProto(allow_soft_placement=True,
-                                      intra_op_parallelism_threads=1,
-                                      inter_op_parallelism_threads=1)
+
+    # === before TF 2.0 ===
+    # config = tf.compat.v1.ConfigProto(allow_soft_placement=True,
+    #                                   intra_op_parallelism_threads=1,
+    #                                   inter_op_parallelism_threads=1)
+    # config.gpu_options.allow_growth = True
+    # tf.compat.v1.enable_eager_execution(config=config)
+    # tf.compat.v1.enable_resource_variables()
+
+    # === For TF 2.0 ===
+    config = tf.compat.v1.ConfigProto()
     config.gpu_options.allow_growth = True
-    tf.compat.v1.enable_eager_execution(config=config)
-    tf.compat.v1.enable_resource_variables()
+    tf.compat.v1.InteractiveSession(config=config)
 
 
 """
@@ -606,7 +611,8 @@ def soft_target_model_update(sess, target, source, tau=1e-2):
     sess.run(update_ops)
 
 
-@tf.contrib.eager.defun(autograph=False)
+# @tf.contrib.eager.defun(autograph=False)
+@tf.function
 def soft_target_model_update_eager(target, source, tau=1e-2):
     """
     Soft update model parameters.
@@ -697,7 +703,7 @@ def eval_Agent(agent, env, n_trial=1):
             episode_reward += reward
 
         all_rewards.append(episode_reward)
-        tf.contrib.summary.scalar("Evaluation Score", episode_reward, step=agent.index_timestep)
+        tf.summary.scalar("Evaluation Score", episode_reward, step=agent.index_timestep)
         print("| Ep: {}/{} | Score: {} |".format(ep + 1, n_trial, episode_reward))
 
     # if this is running on Google Colab, we would store the log/models to mounted MyDrive
