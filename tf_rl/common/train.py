@@ -13,7 +13,7 @@ so that, we can unify train_DQN and train_DQN_PER
 
 def train_DQN(agent, env, policy, replay_buffer, reward_buffer, summary_writer):
     """
-    Training script for DQN and other advanced models without PER
+    Training train_script for DQN and other advanced models without PER
 
     :param agent:
     :param env:
@@ -98,7 +98,7 @@ def train_DQN(agent, env, policy, replay_buffer, reward_buffer, summary_writer):
 
 def train_DQN_PER(agent, env, policy, replay_buffer, reward_buffer, Beta, summary_writer):
     """
-    Training script for DQN with PER
+    Training train_script for DQN with PER
 
     :param agent:
     :param env:
@@ -283,7 +283,7 @@ def pretrain_DQfD(expert, agent, env, policy, replay_buffer, reward_buffer, summ
 def train_DQN_afp(agent, expert, env, agent_policy, expert_policy, replay_buffer, reward_buffer, params,
                   summary_writer):
     """
-    Training script for DQN and other advanced models without PER
+    Training train_script for DQN and other advanced models without PER
 
     :param agent:
     :param env:
@@ -362,7 +362,7 @@ def train_DQN_afp(agent, expert, env, agent_policy, expert_policy, replay_buffer
 
 def train_DRQN(agent, env, policy, replay_buffer, reward_buffer, params, summary_writer):
     """
-    Training script for DQN and other advanced models without PER
+    Training train_script for DQN and other advanced models without PER
 
     :param agent:
     :param env:

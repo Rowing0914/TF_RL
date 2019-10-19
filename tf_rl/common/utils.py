@@ -17,6 +17,8 @@ def eager_setup():
     from multiple python scripts
     """
 
+    import tf_rl.common.gin_configurables  # need this to load all configurables for gin-config
+
     # === before TF 2.0 ===
     # config = tf.compat.v1.ConfigProto(allow_soft_placement=True,
     #                                   intra_op_parallelism_threads=1,
@@ -49,8 +51,8 @@ def get_alg_name():
     return alg_name
 
 
-def invoke_agent_env(params, alg):
-    """Returns the wrapped env and string name of agent, then Use `eval(agent)` to activate it from main script
+def prepare_env(mode, env_name, skip_frame_k, ):
+    """Returns the wrapped env and string name of agent, then Use `eval(agent)` to activate it from main train_script
     """
     if params.mode == "Atari":
         env = wrap_deepmind(make_atari("{}NoFrameskip-v4".format(params.env_name, skip_frame_k=params.skip_frame_k)),
@@ -339,32 +341,21 @@ def test(sess, agent, env, params):
 
 
 class logger:
-    def __init__(self, params):
-        self.params = params
+    def __init__(self, num_frames, interval_move_ave):
+        self._num_frames = num_frames
+        self._interval_move_ave = interval_move_ave
         self.prev_update_step = 0
 
-    def logging(self, time_step, current_episode, exec_time, reward_buffer, loss, epsilon, cnt_action):
-        """
-        Logging function
-
-        :param time_step:
-        :param max_steps:
-        :param current_episode:
-        :param exec_time:
-        :param reward:
-        :param loss:
-        :param cnt_action:
-        :return:
-        """
+    def logging(self, time_step, exec_time, reward_buffer, loss, epsilon, cnt_action):
+        """ Logging function """
         cnt_actions = dict((x, cnt_action.count(x)) for x in set(cnt_action))
         episode_steps = time_step - self.prev_update_step
         # remaing_time_step/exec_time_for_one_step
-        remaining_time = str(datetime.timedelta(
-            seconds=(self.params.num_frames - time_step) * exec_time / (episode_steps)))
+        remaining_time = str(datetime.timedelta(seconds=(self._num_frames - time_step) * exec_time / (episode_steps)))
         print(
-            "{0}/{1}: Ep: {2}({3:.1f} fps), Remaining: {4}, (R) {5} Ep => [MEAN: {6:.3f}, MAX: {7:.3f}], (last ep) Loss: {8:.3f}, Eps: {9:.3f}, Act: {10}".format(
-                time_step, self.params.num_frames, current_episode, episode_steps / exec_time, remaining_time,
-                self.params.reward_buffer_ep, np.mean(reward_buffer), np.max(reward_buffer), loss,
+            "| {0}/{1}({2:.1f} fps) | Remaining: {3} | (R) In {4} Ep [MEAN: {5:.3f} MAX: {6:.3f}] | (last ep) Loss: {7:.3f}, Eps: {8:.3f} Act: {9} |".format(
+                time_step, self._num_frames, episode_steps / exec_time, remaining_time,
+                self._interval_move_ave, np.mean(reward_buffer), np.max(reward_buffer), loss,
                 epsilon, cnt_actions
             ))
         self.prev_update_step = time_step
@@ -635,27 +626,24 @@ Gradient Clipping
 """
 
 
-def gradient_clip_fn(flag=None):
+def gradient_clip_fn(_min=-1.0, _max=1.0, norm_val=10.0, flag=None):
     """
     given a flag, create the clipping function and returns it as a function
     currently it supports:
         - by_value
         - norm
         - None
-
-    :param flag:
-    :return:
     """
-    if flag == "":
+    if flag is None:
         def _func(grads):
             return grads
     elif flag == "by_value":
         def _func(grads):
-            grads = [ClipIfNotNone(grad, -1., 1.) for grad in grads]
+            grads = [ClipIfNotNone(grad, _min, _max) for grad in grads]
             return grads
     elif flag == "norm":
         def _func(grads):
-            grads, _ = tf.clip_by_global_norm(grads, 10.0)
+            grads, _ = tf.clip_by_global_norm(grads, norm_val)
             return grads
     else:
         assert False, "Choose the gradient clipping function from by_value, norm, or nothing!"
@@ -695,7 +683,7 @@ def eval_Agent(agent, env, n_trial=1):
         while not done:
             # epsilon-greedy for evaluation using a fixed epsilon of 0.05(Nature does this!)
             if np.random.uniform() < 0.05:
-                action = np.random.randint(agent.num_action)
+                action = np.random.randint(agent.dim_action)
             else:
                 action = np.argmax(agent.predict(state))
             next_state, reward, done, _ = env.step(action)
@@ -703,15 +691,8 @@ def eval_Agent(agent, env, n_trial=1):
             episode_reward += reward
 
         all_rewards.append(episode_reward)
-        tf.summary.scalar("Evaluation Score", episode_reward, step=agent.index_timestep)
+        tf.summary.scalar("Evaluation Score", episode_reward, step=tf.compat.v1.train.get_global_step())
         print("| Ep: {}/{} | Score: {} |".format(ep + 1, n_trial, episode_reward))
-
-    # if this is running on Google Colab, we would store the log/models to mounted MyDrive
-    if agent.params.google_colab:
-        delete_files(agent.params.model_dir_colab)
-        delete_files(agent.params.log_dir_colab)
-        copy_dir(agent.params.log_dir, agent.params.log_dir_colab)
-        copy_dir(agent.params.model_dir, agent.params.model_dir_colab)
 
     if n_trial > 2:
         print("=== Evaluation Result ===")

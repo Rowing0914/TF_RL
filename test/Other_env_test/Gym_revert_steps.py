@@ -1,5 +1,5 @@
 """
-This is the script for testing if we can revert the state of game
+This is the train_script for testing if we can revert the state of game
 by directly accessing the internal state of Gym.Env class
 
 """

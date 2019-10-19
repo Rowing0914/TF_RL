@@ -1,0 +1,2 @@
+Model.optimizer = @tf.optimizers.Adam
+Model.activation_fn = @tf.nn.tanh

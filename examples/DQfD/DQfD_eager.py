@@ -8,9 +8,9 @@ import numpy as np
 import tensorflow as tf
 from collections import deque
 from tf_rl.common.wrappers import MyWrapper, wrap_deepmind, make_atari
-from examples.DQN.DQN_eager_cartpole import Model as Model_CartPole_DQN
+from examples.DQN.train_script.DQN_eager_cartpole import Model as Model_CartPole_DQN
 from tf_rl.common.memory import PrioritizedReplayBuffer
-from tf_rl.common.utils import AnnealingSchedule, soft_target_model_update_eager, ClipIfNotNone, eager_setup
+from tf_rl.common.utils import AnnealingSchedule, soft_target_model_update_eager, eager_setup
 from tf_rl.common.policy import EpsilonGreedyPolicy_eager, BoltzmannQPolicy_eager, TestPolicy
 from tf_rl.common.networks import Duelling_atari as Model
 from tf_rl.agents.DQN import DQN

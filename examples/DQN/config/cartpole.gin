@@ -1,0 +1,17 @@
+train_eval.eps_start = 1.0
+train_eval.eps_end = 0.02
+train_eval.lr_start = 0.0025
+train_eval.lr_end = 0.00025
+train_eval.decay_steps = 3000
+train_eval.loss_fn = @tf.losses.huber_loss
+train_eval.grad_clip_flg = None
+train_eval.num_frames = 10000
+train_eval.train_freq = 1
+train_eval.memory_size = 5000
+train_eval.hot_start = 100
+train_eval.sync_freq = 1000
+train_eval.batch_size = 32
+train_eval.interval_move_ave = 10
+train_eval.gamma = 0.99
+train_eval.num_eval_episodes = 1
+train_eval.eval_interval = 3000
