@@ -19,3 +19,4 @@ test/For_Writing_Utils_test/images/
 test/Recording_test/video/
 /test/Continuous_GridWorld/images/
 video
+tmp
