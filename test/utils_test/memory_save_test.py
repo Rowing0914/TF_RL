@@ -13,7 +13,7 @@ for _ in range(1000):
         state = next_state
 env.close()
 print(len(memory))
-memory.save_np(_save_id=0)
+memory.save()
 
 del memory
 memory = ReplayBuffer(size=100000, recover_data=True, traj_dir="./traj/")

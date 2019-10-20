@@ -49,7 +49,6 @@ def train(global_timestep,
                     agent.eval_flg = True
 
                 if (global_timestep.numpy() > hot_start) and (global_timestep.numpy() % train_freq == 0):
-                    # replay_buffer.save()
                     states, actions, rewards, next_states, dones = replay_buffer.sample(batch_size)
                     loss, batch_loss = agent.update(states, actions, rewards, next_states, dones)
 
@@ -78,6 +77,7 @@ def train(global_timestep,
                 time_buffer = list()
 
             if agent.eval_flg:
+                replay_buffer.save()
                 eval_Agent(agent, env)
                 agent.eval_flg = False
 

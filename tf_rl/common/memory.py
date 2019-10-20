@@ -23,7 +23,7 @@ class ReplayBuffer(object):
                  n_step=0,
                  gamma=0.99,
                  flg_seq=True,
-                 traj_dir="/tmp",
+                 traj_dir="./tmp",
                  recover_data=False):
         self._storage = []
         self._maxsize = size
@@ -35,10 +35,14 @@ class ReplayBuffer(object):
         self.traj_dir = check_path(path=traj_dir)
 
         if recover_data:
-            self.load_tf()
+            self.load()
 
     def __len__(self):
         return len(self._storage)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        # just in case, if something wrong happens, we'd save the data
+        self.save()
 
     def add(self, obs_t, action, reward, obs_tp1, done):
         data = (obs_t, action, reward, obs_tp1, done)
@@ -94,25 +98,50 @@ class ReplayBuffer(object):
             else:
                 data_n = self._storage[i: i + self._n_step]
 
-            # TODO: this might not be efficient... because for every index we go through n-step
+            # o_seq, a_seq, r_seq, no_seq, d_seq = data_n  <= this doesn't work....
+
+            # TODO: this is not efficient... because every index, we go through n-step
             # so that consider using separate bucket for each component(o, a, r, no, d)
             # then we can just specify the indices of them instead of having for-loop to operate on them.
-            obs_t_n, action_n, reward_n, obs_tp1_n, done_n = [], [], [], [], []
+            o_seq, a_seq, r_seq, no_seq, d_seq = [], [], [], [], []
             for _data in data_n:
                 _o, _a, _r, _no, _d = _data
-                obs_t_n.append(np.array(_o, copy=False))
-                action_n.append(_a)
-                reward_n.append(_r)
-                obs_tp1_n.append(np.array(_no, copy=False))
-                done_n.append(_d)
+                o_seq.append(np.array(_o, copy=False))
+                a_seq.append(_a)
+                r_seq.append(_r)
+                no_seq.append(np.array(_no, copy=False))
+                d_seq.append(_d)
+
+            o_seq, a_seq, r_seq, no_seq, d_seq = self._check_episode_end(o_seq, a_seq, r_seq, no_seq, d_seq)
 
             # Store a data at each time-sequence in the resulting array
-            obs_t.append(np.array(obs_t_n, copy=False))
-            action.append(action_n)
-            reward.append(reward_n)
-            obs_tp1.append(np.array(obs_tp1_n, copy=False))
-            done.append(done_n)
+            obs_t.append(np.array(o_seq, copy=False))
+            action.append(a_seq)
+            reward.append(r_seq)
+            obs_tp1.append(np.array(no_seq, copy=False))
+            done.append(d_seq)
         return np.array(obs_t), np.array(action), np.array(reward), np.array(obs_tp1), np.array(done)
+
+    def _check_episode_end(self, o_seq, a_seq, r_seq, no_seq, d_seq):
+        """ validate if the extracted part of the memory is semantically correct. """
+        _id = np.argmax(np.asarray(d_seq).astype(np.float32))
+        if _id == 0:
+            return o_seq, a_seq, no_seq, r_seq, d_seq
+        else:
+            o_seq = self._zero_padding(_id, o_seq)
+            a_seq = self._zero_padding(_id, a_seq)
+            no_seq = self._zero_padding(_id, no_seq)
+            r_seq = self._zero_padding(_id, r_seq)
+            d_seq = self._zero_padding(_id, d_seq)
+            return o_seq, a_seq, no_seq, r_seq, d_seq
+
+    def _zero_padding(self, index, data):
+        """ Pad the states after termination by 0s """
+        _sample = np.asarray(data[0])
+        _dtype, _shape = _sample.dtype, _sample.shape
+        before_terminate = data[:index]
+        after_terminate = np.zeros(shape=(self._n_step-index,)+_shape, dtype=_dtype).tolist()
+        return np.asarray(before_terminate + after_terminate)
 
     def _encode_sample_n_step(self, idxes):
         """
@@ -142,43 +171,11 @@ class ReplayBuffer(object):
             dones.append(np.array([done, done_n]))
         return np.array(obses_t), np.array(actions), np.array(rewards), np.array(obses_tp1), np.array(dones)
 
-    def _get_data_to_save(self):
-        """
-        Extract data in the storage to save it at each epoch
-        Typical two pointers approach:
-            - self._save_idx: slow pointer
-            - self._next_idx: fast pointer
-
-        <Example>
-          _____
-            |
-            |<-- self._save_idx
-            |==|
-            |  |
-            |  | upon call this func, we save this area in the storage
-            |  |
-            |==|
-            |<-- self._next_idx
-            |
-          ˉˉˉˉˉ
-        """
-        obses_t, actions, rewards, obses_tp1, dones = [], [], [], [], []
-        for i in range(len(self._storage[self._save_idx:self._next_idx])):
-            data = self._storage[self._save_idx + i]
-            obs_t, action, reward, obs_tp1, done = data
-            obses_t.append(np.array(obs_t, copy=False))
-            actions.append(np.array(action, copy=False))
-            rewards.append(reward)
-            obses_tp1.append(np.array(obs_tp1, copy=False))
-            dones.append(done)
-        self._save_idx = self._next_idx
-        return np.array(obses_t), np.array(actions), np.array(rewards), np.array(obses_tp1), np.array(dones)
-
     def _get_all_data(self):
         """ Extract all data in the storage to save it """
         obses_t, actions, rewards, obses_tp1, dones = [], [], [], [], []
         for i in range(len(self._storage)):
-            data = self._storage[self._save_idx]
+            data = self._storage[i]
             obs_t, action, reward, obs_tp1, done = data
             obses_t.append(np.array(obs_t, copy=False))
             actions.append(np.array(action, copy=False))
@@ -216,33 +213,8 @@ class ReplayBuffer(object):
             else:
                 return self._encode_sample_n_step(idxes)
 
-    def save_json(self, filename):
-        """
-        this is too slow... don't use this unless especially needed
-
-        <Experimental Result>
-        - for 1000 time-step in a trajectory, this took 8.8s to save
-        """
-        o_t, a, r, o_tp1, d = self._get_data_to_save()
-        o_t, a, r, o_tp1, d = o_t.tolist(), a.tolist(), r.tolist(), o_tp1.tolist(), d.tolist()
-        data = {
-            "o": o_t,
-            "a": a,
-            "r": r,
-            "next_o": o_tp1,
-            "done": d
-        }
-        data = json.dumps(data)
-        with open(filename, 'w') as fp:
-            json.dump(data, fp)
-
-    def save_np(self, _save_id):
-        """ this is way quicker than save_json
-
-        <Experimental Result>
-        - for 1000 time-step in a trajectory, this took about 0.25s to save
-        """
-        # o_t, a, r, o_tp1, d = self._get_data_to_save()
+    def save(self):
+        """ save method """
         o_t, a, r, o_tp1, d = self._get_all_data()
 
         if not os.path.isdir(self.traj_dir):
@@ -252,12 +224,6 @@ class ReplayBuffer(object):
             os.makedirs(self.traj_dir)
 
         self._save(o_t, a, r, o_tp1, d)
-
-        # np.save(file=self.traj_dir + "/obs", arr=o_t)
-        # np.save(file=self.traj_dir + "/action", arr=a)
-        # np.save(file=self.traj_dir + "/reward", arr=r)
-        # np.save(file=self.traj_dir + "/obs_tp1", arr=o_tp1)
-        # np.save(file=self.traj_dir + "/done", arr=d)
 
     def _save(self, o_t, a, r, o_tp1, d):
         a = tf.Variable(a)
@@ -305,7 +271,7 @@ class ReplayBuffer(object):
         f.close()
         return data
 
-    def load_tf(self):
+    def load(self):
         # register tables to the checkpoint
         _check_point = tf.train.Checkpoint()
         data = self._load_summary()
@@ -316,26 +282,6 @@ class ReplayBuffer(object):
         o_t, a, r, o_tp1, d = data["o_t"].numpy(), data["a"].numpy(), data["r"].numpy(), data["o_tp1"].numpy(), data["d"].numpy()
         for _o_t, _a, _r, _o_tp1, _d in zip(o_t, a, r, o_tp1, d):
             self.add(_o_t, _a, _r, _o_tp1, _d)
-
-    def load_np(self):
-        """ load trajectories from traj_dir(root dir for all trajectories stored using save_np) """
-        # TODO: according to my experiment(`Test/OtherTest/load_memory_test.py`), this took 37s for loading 10,000 steps
-        # don't you think it's toooooo slow???
-
-        if os.path.isdir(self.traj_dir):
-            print("Loading: {}".format(self.traj_dir))
-            o_t = np.load(file=self.traj_dir + "/obs.npy").tolist()
-            a = np.load(file=self.traj_dir + "/action.npy").tolist()
-            r = np.load(file=self.traj_dir + "/reward.npy").tolist()
-            o_tp1 = np.load(file=self.traj_dir + "/obs_tp1.npy").tolist()
-            d = np.load(file=self.traj_dir + "/done.npy").tolist()
-
-            for _o_t, _a, _r, _o_tp1, _d in zip(o_t, a, r, o_tp1, d):
-                self.add(_o_t, _a, _r, _o_tp1, _d)
-
-            print("=== Finish: {} steps have been loaded ===".format(len(self._storage)))
-        else:
-            print("No previous trajectories are found in {}".format(self.traj_dir))
 
     def refresh(self):
         self._storage = []

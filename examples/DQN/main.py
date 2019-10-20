@@ -71,7 +71,7 @@ def train_eval(env_name,
 
     # prep for training
     env = prep_env(env_name=env_name, video_path=log_dir["video_path"])
-    replay_buffer = ReplayBuffer(memory_size)
+    replay_buffer = ReplayBuffer(memory_size, traj_dir=log_dir["traj_path"])
     reward_buffer = deque(maxlen=interval_move_ave)
     summary_writer = tf.compat.v2.summary.create_file_writer(log_dir["summary_path"])
 
