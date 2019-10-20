@@ -23,7 +23,7 @@ def params_to_markdown(params_str):
 
 def process_text(text):
     # at this point, list_str contains bunch of 'batch_size = 32 '-ish params inside the list
-    list_str = "".join(text.split("\n")[4:-1]).split("main.")[1:]
+    list_str = "".join(text.split("\n")[4:-1]).split("train_eval.")[1:]  # TODO: this is really bad practice
     params = dict()
 
     for _str in list_str:

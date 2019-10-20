@@ -97,7 +97,7 @@ class Double_DQN_cartpole(Agent_cartpole):
     @tf.contrib.eager.defun(autograph=False)
     def _inner_update(self, states, actions, rewards, next_states, dones):
         # get the current global-timestep
-        self.index_timestep = tf.train.get_global_step()
+        self.index_timestep = tf.compat.v1.train.get_global_step()
 
         # ===== make sure to fit all process to compute gradients within this Tape context!! =====
         with tf.GradientTape() as tape:

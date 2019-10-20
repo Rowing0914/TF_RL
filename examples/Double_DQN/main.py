@@ -11,7 +11,7 @@ from tf_rl.common.monitor import Monitor
 from tf_rl.common.wrappers import wrap_deepmind, make_atari
 from examples.DQN.utils.policy import EpsilonGreedyPolicy_eager
 from examples.DQN.utils.network import Nature_DQN, CartPoleModel
-from examples.DQN.utils.agent import DQN
+from examples.Double_DQN.utils.agent import Double_DQN
 from examples.DQN.utils.train import train
 
 
@@ -75,15 +75,15 @@ def train_eval(env_name,
     reward_buffer = deque(maxlen=interval_move_ave)
     summary_writer = tf.compat.v2.summary.create_file_writer(log_dir["summary_path"])
 
-    agent = DQN(model=prep_model(env_name),
-                policy=EpsilonGreedyPolicy_eager(dim_action=env.action_space.n, epsilon_fn=anneal_ep),
-                optimizer=tf.keras.optimizers.RMSprop(anneal_lr, rho=0.99, momentum=0.0, epsilon=1e-6),
-                loss_fn=loss_fn,
-                grad_clip_fn=gradient_clip_fn(flag=grad_clip_flg),
-                dim_action=env.action_space.n,
-                model_dir=log_dir["model_path"],
-                gamma=gamma,
-                obs_prc_fn=prep_obs_processor(env_name))
+    agent = Double_DQN(model=prep_model(env_name),
+                       policy=EpsilonGreedyPolicy_eager(dim_action=env.action_space.n, epsilon_fn=anneal_ep),
+                       optimizer=tf.keras.optimizers.RMSprop(anneal_lr, rho=0.99, momentum=0.0, epsilon=1e-6),
+                       loss_fn=loss_fn,
+                       grad_clip_fn=gradient_clip_fn(flag=grad_clip_flg),
+                       dim_action=env.action_space.n,
+                       model_dir=log_dir["model_path"],
+                       gamma=gamma,
+                       obs_prc_fn=prep_obs_processor(env_name))
 
     train(global_timestep,
           agent,
@@ -111,11 +111,11 @@ def main(gin_file, log_dir_name, env_name, random_seed):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    # parser.add_argument("--gin_file", default="./config/cartpole.gin", help="cartpole or atari")
-    parser.add_argument("--gin_file", default="./config/atari.gin", help="cartpole or atari")
-    # parser.add_argument("--env_name", default="cartpole", help="env name, pls DO NOT add NoFrameskip-v4")
-    parser.add_argument("--env_name", default="Pong", help="env name, pls DO NOT add NoFrameskip-v4")
-    parser.add_argument("--log_dir_name", default="DQN", help="name of log directory")
+    parser.add_argument("--gin_file", default="./config/cartpole.gin", help="cartpole or atari")
+    # parser.add_argument("--gin_file", default="./config/atari.gin", help="cartpole or atari")
+    parser.add_argument("--env_name", default="cartpole", help="env name, pls DO NOT add NoFrameskip-v4")
+    # parser.add_argument("--env_name", default="Pong", help="env name, pls DO NOT add NoFrameskip-v4")
+    parser.add_argument("--log_dir_name", default="Double_DQN", help="name of log directory")
     parser.add_argument("--random_seed", default=123, help="seed of randomness")
     params = parser.parse_args()
 
