@@ -1,56 +1,41 @@
 """
-===== Ofcourse I modified decently... but mainly I borrowed the source code from baselines! =====
-
-
-Replay Buffer and Prioritised Experience Replay Buffer implementation of OpenAI Baselines
+Design reference
 https://github.com/openai/baselines/blob/master/baselines/deepq/replay_buffer.py
-
-The MIT License
-
-Copyright (c) 2017 OpenAI (http://openai.com)
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-
 """
 
+import tensorflow as tf
 import numpy as np
+import shutil
 import random
 import json
+import os
 
-from tf_rl.common.segment_tree import SumSegmentTree, MinSegmentTree
-
+def check_path(path):
+    if path[-1] == "/":
+        return path[:-1]
+    else:
+        return path
 
 class ReplayBuffer(object):
-    def __init__(self, size, n_step=0, gamma=0.99, flg_seq=True):
-        """Create Replay buffer.
-        Parameters
-        ----------
-        size: int
-            Max number of transitions to store in the buffer. When the buffer
-            overflows the old memories are dropped.
-        """
+    """ Experience Replay Memory Buffer """
+
+    def __init__(self, size,
+                 n_step=0,
+                 gamma=0.99,
+                 flg_seq=True,
+                 traj_dir="/tmp",
+                 recover_data=False):
         self._storage = []
         self._maxsize = size
         self._n_step = n_step
         self._gamma = gamma
         self._next_idx = 0
+        self._save_idx = 0
         self._flg_seq = flg_seq
+        self.traj_dir = check_path(path=traj_dir)
+
+        if recover_data:
+            self.load_tf()
 
     def __len__(self):
         return len(self._storage)
@@ -109,7 +94,7 @@ class ReplayBuffer(object):
             else:
                 data_n = self._storage[i: i + self._n_step]
 
-            # TODO: this is not efficient... because every index, we go through n-step
+            # TODO: this might not be efficient... because for every index we go through n-step
             # so that consider using separate bucket for each component(o, a, r, no, d)
             # then we can just specify the indices of them instead of having for-loop to operate on them.
             obs_t_n, action_n, reward_n, obs_tp1_n, done_n = [], [], [], [], []
@@ -157,6 +142,51 @@ class ReplayBuffer(object):
             dones.append(np.array([done, done_n]))
         return np.array(obses_t), np.array(actions), np.array(rewards), np.array(obses_tp1), np.array(dones)
 
+    def _get_data_to_save(self):
+        """
+        Extract data in the storage to save it at each epoch
+        Typical two pointers approach:
+            - self._save_idx: slow pointer
+            - self._next_idx: fast pointer
+
+        <Example>
+          _____
+            |
+            |<-- self._save_idx
+            |==|
+            |  |
+            |  | upon call this func, we save this area in the storage
+            |  |
+            |==|
+            |<-- self._next_idx
+            |
+          ˉˉˉˉˉ
+        """
+        obses_t, actions, rewards, obses_tp1, dones = [], [], [], [], []
+        for i in range(len(self._storage[self._save_idx:self._next_idx])):
+            data = self._storage[self._save_idx + i]
+            obs_t, action, reward, obs_tp1, done = data
+            obses_t.append(np.array(obs_t, copy=False))
+            actions.append(np.array(action, copy=False))
+            rewards.append(reward)
+            obses_tp1.append(np.array(obs_tp1, copy=False))
+            dones.append(done)
+        self._save_idx = self._next_idx
+        return np.array(obses_t), np.array(actions), np.array(rewards), np.array(obses_tp1), np.array(dones)
+
+    def _get_all_data(self):
+        """ Extract all data in the storage to save it """
+        obses_t, actions, rewards, obses_tp1, dones = [], [], [], [], []
+        for i in range(len(self._storage)):
+            data = self._storage[self._save_idx]
+            obs_t, action, reward, obs_tp1, done = data
+            obses_t.append(np.array(obs_t, copy=False))
+            actions.append(np.array(action, copy=False))
+            rewards.append(reward)
+            obses_tp1.append(np.array(obs_tp1, copy=False))
+            dones.append(done)
+        return np.array(obses_t), np.array(actions), np.array(rewards), np.array(obses_tp1), np.array(dones)
+
     def sample(self, batch_size):
         """Sample a batch of experiences.
         Parameters
@@ -186,148 +216,130 @@ class ReplayBuffer(object):
             else:
                 return self._encode_sample_n_step(idxes)
 
-    def save(self, dir, save_amount=10000):
+    def save_json(self, filename):
         """
-        maybe don't use this!!! memory consumption is disastrous....
+        this is too slow... don't use this unless especially needed
 
-        :param dir:
-        :param save_amount:
-        :return:
+        <Experimental Result>
+        - for 1000 time-step in a trajectory, this took 8.8s to save
         """
-        obses_t, actions, rewards, obses_tp1, dones = self.sample(batch_size=save_amount)
-        obses_t, actions, rewards, obses_tp1, dones = obses_t.tolist(), actions.tolist(), rewards.tolist(), obses_tp1.tolist(), dones.tolist()
+        o_t, a, r, o_tp1, d = self._get_data_to_save()
+        o_t, a, r, o_tp1, d = o_t.tolist(), a.tolist(), r.tolist(), o_tp1.tolist(), d.tolist()
         data = {
-            "index": save_amount,
-            "o": obses_t,
-            "a": actions,
-            "r": rewards,
-            "next_o": obses_tp1,
-            "done": dones
+            "o": o_t,
+            "a": a,
+            "r": r,
+            "next_o": o_tp1,
+            "done": d
         }
         data = json.dumps(data)
-        json.dump(data, dir)
+        with open(filename, 'w') as fp:
+            json.dump(data, fp)
+
+    def save_np(self, _save_id):
+        """ this is way quicker than save_json
+
+        <Experimental Result>
+        - for 1000 time-step in a trajectory, this took about 0.25s to save
+        """
+        # o_t, a, r, o_tp1, d = self._get_data_to_save()
+        o_t, a, r, o_tp1, d = self._get_all_data()
+
+        if not os.path.isdir(self.traj_dir):
+            os.makedirs(self.traj_dir)
+        else:
+            shutil.rmtree(self.traj_dir)
+            os.makedirs(self.traj_dir)
+
+        self._save(o_t, a, r, o_tp1, d)
+
+        # np.save(file=self.traj_dir + "/obs", arr=o_t)
+        # np.save(file=self.traj_dir + "/action", arr=a)
+        # np.save(file=self.traj_dir + "/reward", arr=r)
+        # np.save(file=self.traj_dir + "/obs_tp1", arr=o_tp1)
+        # np.save(file=self.traj_dir + "/done", arr=d)
+
+    def _save(self, o_t, a, r, o_tp1, d):
+        a = tf.Variable(a)
+        o_t = tf.Variable(o_t)
+        o_tp1 = tf.Variable(o_tp1)
+        r = tf.Variable(r)
+        d = tf.Variable(d)
+
+        # register tables to the checkpoint
+        _check_point = tf.train.Checkpoint()
+
+        data = {
+            "a": a,
+            "o_t": o_t,
+            "o_tp1": o_tp1,
+            "r": r,
+            "d": d
+        }
+
+        self._summarise_data(data=data)
+        _check_point.mapped = data
+        tf.train.CheckpointManager(_check_point, self.traj_dir, max_to_keep=1).save()
+
+    def _summarise_data(self, data):
+        with open(self.traj_dir+"/var_summary.txt", "w") as f:
+            for key, value in data.items():
+                txt = self._process_dtype_text(value.dtype)
+                f.write("{}\t{}\t{}\n".format(key, txt, value.shape))
+            f.close()
+
+    def _process_dtype_text(self, dtype):
+        txt = str(dtype)[1:-1]
+        txt = txt.replace("'", "")
+        txt = txt.split(": ")[1]
+        txt = "tf." + txt
+        return txt
+
+    def _load_summary(self):
+        data = dict()
+        with open(self.traj_dir+"/var_summary.txt", "r") as f:
+            lines = f.read()
+            for line in lines.split("\n")[:-1]:
+                var_name, dtype, shape = line.split("\t")
+                data[var_name] = tf.Variable(tf.zeros(shape=eval(shape), dtype=eval(dtype)))
+        f.close()
+        return data
+
+    def load_tf(self):
+        # register tables to the checkpoint
+        _check_point = tf.train.Checkpoint()
+        data = self._load_summary()
+        _check_point.mapped = data
+
+        _manager = tf.train.CheckpointManager(_check_point, self.traj_dir, max_to_keep=1)
+        _check_point.restore(_manager.latest_checkpoint)
+        o_t, a, r, o_tp1, d = data["o_t"].numpy(), data["a"].numpy(), data["r"].numpy(), data["o_tp1"].numpy(), data["d"].numpy()
+        for _o_t, _a, _r, _o_tp1, _d in zip(o_t, a, r, o_tp1, d):
+            self.add(_o_t, _a, _r, _o_tp1, _d)
+
+    def load_np(self):
+        """ load trajectories from traj_dir(root dir for all trajectories stored using save_np) """
+        # TODO: according to my experiment(`Test/OtherTest/load_memory_test.py`), this took 37s for loading 10,000 steps
+        # don't you think it's toooooo slow???
+
+        if os.path.isdir(self.traj_dir):
+            print("Loading: {}".format(self.traj_dir))
+            o_t = np.load(file=self.traj_dir + "/obs.npy").tolist()
+            a = np.load(file=self.traj_dir + "/action.npy").tolist()
+            r = np.load(file=self.traj_dir + "/reward.npy").tolist()
+            o_tp1 = np.load(file=self.traj_dir + "/obs_tp1.npy").tolist()
+            d = np.load(file=self.traj_dir + "/done.npy").tolist()
+
+            for _o_t, _a, _r, _o_tp1, _d in zip(o_t, a, r, o_tp1, d):
+                self.add(_o_t, _a, _r, _o_tp1, _d)
+
+            print("=== Finish: {} steps have been loaded ===".format(len(self._storage)))
+        else:
+            print("No previous trajectories are found in {}".format(self.traj_dir))
 
     def refresh(self):
         self._storage = []
         self._next_idx = 0
-
-
-class PrioritizedReplayBuffer(ReplayBuffer):
-    def __init__(self, size, alpha, n_step=0, gamma=0.99):
-        """Create Prioritized Replay buffer.
-        Parameters
-        ----------
-        size: int
-            Max number of transitions to store in the buffer. When the buffer
-            overflows the old memories are dropped.
-        alpha: float
-            how much prioritization is used
-            (0 - no prioritization, 1 - full prioritization)
-        See Also
-        --------
-        ReplayBuffer.__init__
-        """
-        super(PrioritizedReplayBuffer, self).__init__(size, n_step, gamma)
-        assert alpha >= 0
-        self._alpha = alpha
-
-        it_capacity = 1
-        while it_capacity < size:
-            it_capacity *= 2
-
-        self._it_sum = SumSegmentTree(it_capacity)
-        self._it_min = MinSegmentTree(it_capacity)
-        self._max_priority = 1.0
-
-    def add(self, *args, **kwargs):
-        """See ReplayBuffer.store_effect"""
-        idx = self._next_idx
-        super().add(*args, **kwargs)
-        self._it_sum[idx] = self._max_priority ** self._alpha
-        self._it_min[idx] = self._max_priority ** self._alpha
-
-    def _sample_proportional(self, batch_size):
-        res = []
-        p_total = self._it_sum.sum(0, len(self._storage) - 1)
-        every_range_len = p_total / batch_size
-        for i in range(batch_size):
-            mass = random.random() * every_range_len + i * every_range_len
-            idx = self._it_sum.find_prefixsum_idx(mass)
-            res.append(idx)
-        return res
-
-    def sample(self, batch_size, beta):
-        """Sample a batch of experiences.
-        compared to ReplayBuffer.sample
-        it also returns importance weights and idxes
-        of sampled experiences.
-        Parameters
-        ----------
-        batch_size: int
-            How many transitions to sample.
-        beta: float
-            To what degree to use importance weights
-            (0 - no corrections, 1 - full correction)
-        Returns
-        -------
-        obs_batch: np.array
-            batch of observations
-        act_batch: np.array
-            batch of actions executed given obs_batch
-        rew_batch: np.array
-            rewards received as results of executing act_batch
-        next_obs_batch: np.array
-            next set of observations seen after executing act_batch
-        done_mask: np.array
-            done_mask[i] = 1 if executing act_batch[i] resulted in
-            the end of an episode and 0 otherwise.
-        weights: np.array
-            Array of shape (batch_size,) and dtype np.float32
-            denoting importance weight of each sampled transition
-        idxes: np.array
-            Array of shape (batch_size,) and dtype np.int32
-            idexes in buffer of sampled experiences
-        """
-        assert beta > 0
-
-        idxes = self._sample_proportional(batch_size)
-
-        weights = []
-        p_min = self._it_min.min() / self._it_sum.sum()
-        max_weight = (p_min * len(self._storage)) ** (-beta)
-
-        for idx in idxes:
-            p_sample = self._it_sum[idx] / self._it_sum.sum()
-            weight = (p_sample * len(self._storage)) ** (-beta)
-            weights.append(weight / max_weight)
-        weights = np.array(weights)
-        if self._n_step == 0:
-            encoded_sample = self._encode_sample(idxes)
-        else:
-            encoded_sample = self._encode_sample_n_step(idxes)
-        return tuple(list(encoded_sample) + [weights, idxes])
-
-    def update_priorities(self, idxes, priorities):
-        """Update priorities of sampled transitions.
-        sets priority of transition at index idxes[i] in buffer
-        to priorities[i].
-        Parameters
-        ----------
-        idxes: [int]
-            List of idxes of sampled transitions
-        priorities: [float]
-            List of updated priorities corresponding to
-            transitions at the sampled idxes denoted by
-            variable `idxes`.
-        """
-        assert len(idxes) == len(priorities)
-        for idx, priority in zip(idxes, priorities):
-            assert priority > 0
-            assert 0 <= idx < len(self._storage)
-            self._it_sum[idx] = priority ** self._alpha
-            self._it_min[idx] = priority ** self._alpha
-
-            self._max_priority = max(self._max_priority, priority)
 
 
 """

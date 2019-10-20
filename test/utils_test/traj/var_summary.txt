@@ -1,0 +1,5 @@
+a	tf.int64	(23058,)
+o_t	tf.float64	(23058, 4)
+o_tp1	tf.float64	(23058, 4)
+r	tf.float64	(23058,)
+d	tf.bool	(23058,)

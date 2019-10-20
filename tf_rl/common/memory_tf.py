@@ -35,7 +35,7 @@ class Table:
         self._storage = tf.Variable(tf.zeros(self._shape, dtype=self._dtype), dtype=self._dtype)
 
 
-class Buffer:
+class ReplayBuffer:
     def __init__(self,
                  capacity,
                  n_step,
@@ -153,8 +153,37 @@ class Buffer:
         done_seq = self._done_table.read_seq(_start, _end)
         return obs_seq, action_seq, next_obs_seq, reward_seq, done_seq
 
-    @tf.function
     def sample(self, batch_size):
+        """Sample a batch of experiences.
+        Parameters
+        ----------
+        batch_size: int
+            How many transitions to sample.
+        Returns
+        -------
+        obs_batch: np.array
+            batch of observations
+        act_batch: np.array
+            batch of actions executed given obs_batch
+        rew_batch: np.array
+            rewards received as results of executing act_batch
+        next_obs_batch: np.array
+            next set of observations seen after executing act_batch
+        done_mask: np.array
+            done_mask[i] = 1 if executing act_batch[i] resulted in
+            the end of an episode and 0 otherwise.
+        """
+        # generate random numbers to collect samples from the storages
+        idxes = tf.py_function(func=lambda: np.random.randint(low=0, high=self._len_idx-1, size=batch_size),
+                               inp=[],
+                               Tout=tf.int32)
+        if self._n_step == 0:
+            return self._encode_sample(idxes, batch_size)
+        else:
+            return self._encode_sample_n_step_sequence(idxes, batch_size)
+
+    @tf.function
+    def sample_tf(self, batch_size):
         """Sample a batch of experiences.
         Parameters
         ----------

@@ -48,26 +48,25 @@ def train(global_timestep,
                 if global_timestep.numpy() % eval_interval == 0:
                     agent.eval_flg = True
 
-                if (global_timestep.numpy() > hot_start) and (
-                        global_timestep.numpy() % train_freq == 0):
+                if (global_timestep.numpy() > hot_start) and (global_timestep.numpy() % train_freq == 0):
+                    # replay_buffer.save()
                     states, actions, rewards, next_states, dones = replay_buffer.sample(batch_size)
-
                     loss, batch_loss = agent.update(states, actions, rewards, next_states, dones)
 
                 # synchronise the target and main models by hard
-                if (global_timestep.numpy() > hot_start) and (
-                        global_timestep.numpy() % sync_freq == 0):
+                if (global_timestep.numpy() > hot_start) and (global_timestep.numpy() % sync_freq == 0):
                     agent.manager.save()
                     agent.target_model.set_weights(agent.main_model.get_weights())
 
             """
             ===== After 1 Episode is Done =====
             """
-            tf.summary.scalar("reward", total_reward, step=global_timestep.numpy())
-            tf.summary.scalar("exec time", time.time() - start, step=global_timestep.numpy())
-            if epoch >= interval_move_ave:
-                tf.summary.scalar("Moving Ave Reward", np.mean(reward_buffer), step=global_timestep.numpy())
-            tf.summary.histogram("taken actions", cnt_action, step=global_timestep.numpy())
+            with tf.name_scope("Train"):
+                tf.compat.v2.summary.scalar("reward", total_reward, step=global_timestep.numpy())
+                tf.compat.v2.summary.scalar("exec time", time.time() - start, step=global_timestep.numpy())
+                if epoch >= interval_move_ave:
+                    tf.compat.v2.summary.scalar("Moving Ave Reward", np.mean(reward_buffer), step=global_timestep.numpy())
+                tf.compat.v2.summary.histogram("taken actions", cnt_action, step=global_timestep.numpy())
 
             # store the episode reward
             reward_buffer.append(total_reward)

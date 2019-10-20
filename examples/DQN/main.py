@@ -21,7 +21,7 @@ def prep_env(env_name, video_path):
         env.record_start = lambda: None
         env.record_end = lambda: None
     else:
-        env = wrap_deepmind(make_atari(env_name+"NoFrameskip-v4"))  # make sure to add NoFrameskip-v4
+        env = wrap_deepmind(make_atari(env_name + "NoFrameskip-v4"))  # make sure to add NoFrameskip-v4
         env = Monitor(env=env, directory=video_path, force=True)
     return env
 

@@ -1,15 +1,15 @@
 import tensorflow as tf
-from tf_rl.common.memory_tf import Buffer
+from tf_rl.common.memory_tf import ReplayBuffer
 from tf_rl.common.wrappers import wrap_deepmind, make_atari
 
 env = wrap_deepmind(make_atari("PongNoFrameskip-v4"))
 state = env.reset()
-memory = Buffer(capacity=100,
-                n_step=0,
-                act_shape=(),
-                obs_shape=state.shape,
-                obs_dtype=tf.int8,
-                checkpoint_dir="./tmp")
+memory = ReplayBuffer(capacity=100,
+                      n_step=0,
+                      act_shape=(),
+                      obs_shape=state.shape,
+                      obs_dtype=tf.int8,
+                      checkpoint_dir="./tmp")
 
 done = False
 for t in range(100):
@@ -26,12 +26,12 @@ path = memory.save()
 # recover phase
 print("=== Recover Phase ===")
 del memory
-memory = Buffer(capacity=100,
-                n_step=0,
-                act_shape=(),
-                obs_shape=state.shape,
-                obs_dtype=tf.int8,
-                checkpoint_dir="./tmp")
+memory = ReplayBuffer(capacity=100,
+                      n_step=0,
+                      act_shape=(),
+                      obs_shape=state.shape,
+                      obs_dtype=tf.int8,
+                      checkpoint_dir="./tmp")
 print(len(memory))
 obs, action, next_obs, reward, done = memory.sample(batch_size=10)
 print(obs.shape, action.shape, next_obs.shape, reward.shape, done.shape)

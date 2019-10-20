@@ -46,16 +46,17 @@ class DQN(object):
     def _select_action(self, state):
         return self.main_model(state)
 
+    @tf.function
     def update(self, states, actions, rewards, next_states, dones):
+        states = tf.cast(states, dtype=tf.float32)
+        next_states = tf.cast(next_states, dtype=tf.float32)
+        actions = tf.cast(actions, dtype=tf.int32)
+        rewards = tf.cast(rewards, dtype=tf.float32)
+        dones = tf.cast(dones, dtype=tf.float32)
         states, next_states = self._obs_prc_fn(states), self._obs_prc_fn(next_states)
-        states = np.array(states, dtype=np.float32)
-        next_states = np.array(next_states, dtype=np.float32)
-        actions = np.array(actions, dtype=np.uint8)
-        rewards = np.array(rewards, dtype=np.float32)
-        dones = np.array(dones, dtype=np.float32)
         return self._update(states, actions, rewards, next_states, dones)
 
-    @tf.function
+    # @tf.function
     def _update(self, states, actions, rewards, next_states, dones):
         # get the current global time-step
         self._timestep = tf.compat.v1.train.get_global_step()
