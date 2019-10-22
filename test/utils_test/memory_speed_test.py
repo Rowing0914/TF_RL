@@ -6,11 +6,11 @@ from tf_rl.common.wrappers import wrap_deepmind, make_atari
 env = wrap_deepmind(make_atari("PongNoFrameskip-v4"))
 state = env.reset()
 memory_tf = ReplayBuffer_tf(capacity=1000,
-                      n_step=0,
-                      act_shape=(),
-                      obs_shape=state.shape,
-                      obs_dtype=tf.int8,
-                      checkpoint_dir="./tmp")
+                            n_step=0,
+                            act_shape=(),
+                            obs_shape=state.shape,
+                            obs_dtype=tf.int8,
+                            checkpoint_dir="./tmp")
 memory = ReplayBuffer(size=1000)
 done = False
 for t in range(100):

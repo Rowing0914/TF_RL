@@ -20,3 +20,4 @@ test/Recording_test/video/
 /test/Continuous_GridWorld/images/
 video
 tmp
+traj

@@ -77,7 +77,7 @@ def train(global_timestep,
                 time_buffer = list()
 
             if agent.eval_flg:
-                replay_buffer.save()
+                # replay_buffer.save()
                 eval_Agent(agent, env)
                 agent.eval_flg = False
 
