@@ -341,9 +341,9 @@ def test(sess, agent, env, params):
 
 
 class logger:
-    def __init__(self, num_frames, interval_move_ave):
+    def __init__(self, num_frames, interval_MAR):
         self._num_frames = num_frames
-        self._interval_move_ave = interval_move_ave
+        self._interval_MAR = interval_MAR
         self.prev_update_step = 0
 
     def logging(self, time_step, exec_time, reward_buffer, loss, epsilon, cnt_action):
@@ -351,12 +351,19 @@ class logger:
         cnt_actions = dict((x, cnt_action.count(x)) for x in set(cnt_action))
         episode_steps = time_step - self.prev_update_step
         # remaing_time_step/exec_time_for_one_step
-        remaining_time = str(datetime.timedelta(seconds=(self._num_frames - time_step) * exec_time / (episode_steps)))
+        if self._num_frames - time_step >= 0:
+            remaining_time = str(datetime.timedelta(seconds=(self._num_frames - time_step) * exec_time / (episode_steps)))
+        else:
+            remaining_time = "0"
+
         print(
-            "| {0}/{1}({2:.1f} fps) | Remaining: {3} | (R) In {4} Ep [MEAN: {5:.3f} MAX: {6:.3f}] | (last ep) Loss: {7:.3f}, Eps: {8:.3f} Act: {9} |".format(
-                time_step, self._num_frames, episode_steps / exec_time, remaining_time,
-                self._interval_move_ave, np.mean(reward_buffer), np.max(reward_buffer), loss,
-                epsilon, cnt_actions
+            "| {0}/{1}({2:.1f} fps) "
+            "| Remaining: {3} "
+            "| (R) In {4} Ep [MEAN: {5:.3f} MAX: {6:.3f}] "
+            "| (last ep) Loss: {7:.3f}, Eps: {8:.3f} Act: {9} |".format(
+                time_step, self._num_frames, episode_steps / exec_time,
+                remaining_time, self._interval_MAR, np.mean(reward_buffer),
+                np.max(reward_buffer), loss, epsilon, cnt_actions
             ))
         self.prev_update_step = time_step
 

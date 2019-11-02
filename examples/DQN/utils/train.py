@@ -21,9 +21,9 @@ def train(global_timestep,
           train_freq,
           batch_size,
           sync_freq,
-          interval_move_ave):
+          interval_MAR):
     time_buffer = list()
-    log = logger(num_frames=num_frames, interval_move_ave=interval_move_ave)
+    log = logger(num_frames=num_frames, interval_MAR=interval_MAR)
     with summary_writer.as_default():
         tf.compat.v2.summary.text(name="Hyper-params",
                                   data=params_to_markdown(gin.operative_config_str()),
@@ -60,18 +60,17 @@ def train(global_timestep,
             """
             ===== After 1 Episode is Done =====
             """
-            with tf.name_scope("Train"):
-                tf.compat.v2.summary.scalar("reward", total_reward, step=global_timestep.numpy())
-                tf.compat.v2.summary.scalar("exec time", time.time() - start, step=global_timestep.numpy())
-                if epoch >= interval_move_ave:
-                    tf.compat.v2.summary.scalar("Moving Ave Reward", np.mean(reward_buffer), step=global_timestep.numpy())
-                tf.compat.v2.summary.histogram("taken actions", cnt_action, step=global_timestep.numpy())
+            tf.compat.v2.summary.scalar("train/reward", total_reward, step=global_timestep.numpy())
+            tf.compat.v2.summary.scalar("train/exec time", time.time() - start, step=global_timestep.numpy())
+            if epoch >= interval_MAR:
+                tf.compat.v2.summary.scalar("train/MAR", np.mean(reward_buffer), step=global_timestep.numpy())
+            tf.compat.v2.summary.histogram("train/taken actions", cnt_action, step=global_timestep.numpy())
 
             # store the episode reward
             reward_buffer.append(total_reward)
             time_buffer.append(time.time() - start)
 
-            if global_timestep.numpy() > hot_start and epoch % interval_move_ave == 0:
+            if global_timestep.numpy() > hot_start and epoch % interval_MAR == 0:
                 log.logging(global_timestep.numpy(), np.sum(time_buffer), reward_buffer, np.mean(loss),
                             agent.policy.current_epsilon(), cnt_action)
                 time_buffer = list()

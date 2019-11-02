@@ -43,13 +43,18 @@ def prep_model(env_name):
 
 
 @gin.configurable
-def train_eval(env_name,
-               log_dir,
+def train_eval(log_dir_name,
+               random_seed,
+               env_name="CartPole",
                eps_start=1.0,
                eps_end=0.02,
-               lr_start=0.0025,
-               lr_end=0.00025,
                decay_steps=3000,
+               optimizer=tf.keras.optimizers.RMSprop,
+               learning_rate=0.00025,
+               decay=0.95,
+               momentum=0.0,
+               epsilon=0.00001,
+               centered=True,
                loss_fn=tf.compat.v1.losses.huber_loss,
                grad_clip_flg=None,
                num_frames=10000,
@@ -58,29 +63,29 @@ def train_eval(env_name,
                hot_start=100,
                sync_freq=1000,
                batch_size=32,
-               interval_move_ave=10,
+               interval_MAR=10,
                gamma=0.99,
                num_eval_episodes=1,
                eval_interval=1000):
     # init global time-step
     global_timestep = tf.compat.v1.train.create_global_step()
 
-    # instantiate annealing funcs for ep and lr
+    # instantiate annealing funcs for ep
     anneal_ep = tf.compat.v1.train.polynomial_decay(eps_start, global_timestep, decay_steps, eps_end)
-    anneal_lr = tf.compat.v1.train.polynomial_decay(lr_start, global_timestep, decay_steps, lr_end)
 
     # prep for training
+    log_dir = set_up_for_training(log_dir_name=log_dir_name, env_name=env_name, seed=random_seed)
     env = prep_env(env_name=env_name, video_path=log_dir["video_path"])
     replay_buffer = ReplayBuffer(memory_size, traj_dir=log_dir["traj_path"])
-    reward_buffer = deque(maxlen=interval_move_ave)
+    reward_buffer = deque(maxlen=interval_MAR)
     summary_writer = tf.compat.v2.summary.create_file_writer(log_dir["summary_path"])
 
     agent = DQN(model=prep_model(env_name),
                 policy=EpsilonGreedyPolicy_eager(dim_action=env.action_space.n, epsilon_fn=anneal_ep),
-                optimizer=tf.keras.optimizers.RMSprop(anneal_lr, rho=0.99, momentum=0.0, epsilon=1e-6),
+                optimizer=optimizer(learning_rate, decay, momentum, epsilon, centered),
                 loss_fn=loss_fn,
                 grad_clip_fn=gradient_clip_fn(flag=grad_clip_flg),
-                dim_action=env.action_space.n,
+                num_action=env.action_space.n,
                 model_dir=log_dir["model_path"],
                 gamma=gamma,
                 obs_prc_fn=prep_obs_processor(env_name))
@@ -98,28 +103,25 @@ def train_eval(env_name,
           train_freq,
           batch_size,
           sync_freq,
-          interval_move_ave)
+          interval_MAR)
 
 
-def main(gin_file, log_dir_name, env_name, random_seed):
+def main(gin_file, log_dir_name, random_seed):
     eager_setup()
     gin.parse_config_file(gin_file)
     tf.compat.v1.random.set_random_seed(random_seed)
-    log_dir = set_up_for_training(log_dir_name=log_dir_name, env_name=env_name, seed=random_seed)
-    train_eval(env_name=env_name, log_dir=log_dir)
+    train_eval(log_dir_name=log_dir_name,
+               random_seed=random_seed)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     # parser.add_argument("--gin_file", default="./config/cartpole.gin", help="cartpole or atari")
     parser.add_argument("--gin_file", default="./config/atari.gin", help="cartpole or atari")
-    # parser.add_argument("--env_name", default="cartpole", help="env name, pls DO NOT add NoFrameskip-v4")
-    parser.add_argument("--env_name", default="Pong", help="env name, pls DO NOT add NoFrameskip-v4")
     parser.add_argument("--log_dir_name", default="DQN", help="name of log directory")
     parser.add_argument("--random_seed", default=123, help="seed of randomness")
     params = parser.parse_args()
 
     main(gin_file=params.gin_file,
          log_dir_name=params.log_dir_name,
-         env_name=params.env_name,
          random_seed=params.random_seed)
