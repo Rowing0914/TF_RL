@@ -1,5 +1,7 @@
 import tensorflow as tf
 
+UNIFORM = tf.keras.initializers.GlorotUniform()
+
 class CartPoleModel(tf.keras.Model):
     def __init__(self, num_action):
         super(CartPoleModel, self).__init__()
@@ -19,12 +21,17 @@ class CartPoleModel(tf.keras.Model):
 class Nature_DQN(tf.keras.Model):
     def __init__(self, num_action):
         super(Nature_DQN, self).__init__()
+        # self.conv1 = tf.keras.layers.Conv2D(32, kernel_size=8, strides=8, activation='relu', kernel_initializer=UNIFORM)
         self.conv1 = tf.keras.layers.Conv2D(32, kernel_size=8, strides=8, activation='relu')
+        # self.conv2 = tf.keras.layers.Conv2D(64, kernel_size=4, strides=2, activation='relu', kernel_initializer=UNIFORM)
         self.conv2 = tf.keras.layers.Conv2D(64, kernel_size=4, strides=2, activation='relu')
+        # self.conv3 = tf.keras.layers.Conv2D(64, kernel_size=3, strides=1, activation='relu', kernel_initializer=UNIFORM)
         self.conv3 = tf.keras.layers.Conv2D(64, kernel_size=3, strides=1, activation='relu')
         self.flat = tf.keras.layers.Flatten()
-        self.fc1 = tf.keras.layers.Dense(512, activation='relu')
+        self.fc1 = tf.keras.layers.Dense(256, activation='relu')
+        # self.fc1 = tf.keras.layers.Dense(256, activation='relu', kernel_initializer=UNIFORM)
         self.pred = tf.keras.layers.Dense(num_action, activation='linear')
+        # self.pred = tf.keras.layers.Dense(num_action, activation='linear', kernel_initializer=UNIFORM)
 
     @tf.function
     def call(self, inputs):

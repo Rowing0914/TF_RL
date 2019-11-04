@@ -50,7 +50,7 @@ def train(global_timestep,
 
                 if (global_timestep.numpy() > hot_start) and (global_timestep.numpy() % train_freq == 0):
                     states, actions, rewards, next_states, dones = replay_buffer.sample(batch_size)
-                    loss, batch_loss = agent.update(states, actions, rewards, next_states, dones)
+                    agent.update(states, actions, rewards, next_states, dones)
 
                 # synchronise the target and main models by hard
                 if (global_timestep.numpy() > hot_start) and (global_timestep.numpy() % sync_freq == 0):
@@ -60,29 +60,34 @@ def train(global_timestep,
             """
             ===== After 1 Episode is Done =====
             """
-            tf.compat.v2.summary.scalar("train/reward", total_reward, step=global_timestep.numpy())
-            tf.compat.v2.summary.scalar("train/exec time", time.time() - start, step=global_timestep.numpy())
-            if epoch >= interval_MAR:
-                tf.compat.v2.summary.scalar("train/MAR", np.mean(reward_buffer), step=global_timestep.numpy())
-            tf.compat.v2.summary.histogram("train/taken actions", cnt_action, step=global_timestep.numpy())
+            ts = global_timestep.numpy()
+            tf.compat.v2.summary.scalar("train/reward", total_reward, step=ts)
+            tf.compat.v2.summary.scalar("train/exec_time", time.time() - start, step=ts)
+            if ts > hot_start:
+                tf.compat.v2.summary.scalar("train/MAR", np.mean(reward_buffer), step=ts)
+            tf.compat.v2.summary.histogram("train/taken actions", cnt_action, step=ts)
 
             # store the episode reward
             reward_buffer.append(total_reward)
             time_buffer.append(time.time() - start)
 
-            if global_timestep.numpy() > hot_start and epoch % interval_MAR == 0:
-                log.logging(global_timestep.numpy(), np.sum(time_buffer), reward_buffer, np.mean(loss),
-                            agent.policy.current_epsilon(), cnt_action)
+            if ts > hot_start and epoch % interval_MAR == 0:
+                log.logging(time_step=ts,
+                            exec_time=np.sum(time_buffer),
+                            reward_buffer=reward_buffer,
+                            epsilon=agent.policy.current_epsilon())
                 time_buffer = list()
 
             if agent.eval_flg:
                 # replay_buffer.save()
-                eval_Agent(agent, env)
+                score = eval_Agent(agent, env)
+                tf.compat.v2.summary.scalar("eval/Score", score, step=ts)
                 agent.eval_flg = False
 
             # check the stopping condition
-            if global_timestep.numpy() >= num_frames:
+            if ts >= num_frames:
                 print("=== Training is Done ===")
-                eval_Agent(agent, env, n_trial=num_eval_episodes)
+                score = eval_Agent(agent, env, n_trial=num_eval_episodes)
+                tf.compat.v2.summary.scalar("eval/Score", score, step=ts)
                 env.close()
                 break

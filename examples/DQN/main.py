@@ -1,6 +1,7 @@
 import gym
 import gin
 import argparse
+import numpy as np
 import tensorflow as tf
 from collections import deque
 from tf_rl.common.memory import ReplayBuffer
@@ -21,7 +22,7 @@ def prep_env(env_name, video_path):
         env.record_start = lambda: None
         env.record_end = lambda: None
     else:
-        env = wrap_deepmind(make_atari(env_name + "NoFrameskip-v4"))  # make sure to add NoFrameskip-v4
+        env = wrap_deepmind(make_atari(env_name + "NoFrameskip-v4"), frame_stack=True)  # make sure to add NoFrameskip-v4
         env = Monitor(env=env, directory=video_path, force=True)
     return env
 
@@ -30,7 +31,7 @@ def prep_obs_processor(env_name):
     if env_name.lower() == "cartpole":
         obs_prc_fn = lambda x: x
     else:
-        obs_prc_fn = lambda x: x / 255.
+        obs_prc_fn = lambda x: np.array(x) / 255.
     return obs_prc_fn
 
 
@@ -81,7 +82,7 @@ def train_eval(log_dir_name,
     summary_writer = tf.compat.v2.summary.create_file_writer(log_dir["summary_path"])
 
     agent = DQN(model=prep_model(env_name),
-                policy=EpsilonGreedyPolicy_eager(dim_action=env.action_space.n, epsilon_fn=anneal_ep),
+                policy=EpsilonGreedyPolicy_eager(num_action=env.action_space.n, epsilon_fn=anneal_ep),
                 optimizer=optimizer(learning_rate, decay, momentum, epsilon, centered),
                 loss_fn=loss_fn,
                 grad_clip_fn=gradient_clip_fn(flag=grad_clip_flg),
@@ -110,14 +111,18 @@ def main(gin_file, log_dir_name, random_seed):
     eager_setup()
     gin.parse_config_file(gin_file)
     tf.compat.v1.random.set_random_seed(random_seed)
+    np.random.seed(seed=random_seed)
     train_eval(log_dir_name=log_dir_name,
                random_seed=random_seed)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+    # parser.add_argument("--gin_file", default="./config/test.gin", help="cartpole or atari")
     # parser.add_argument("--gin_file", default="./config/cartpole.gin", help="cartpole or atari")
     parser.add_argument("--gin_file", default="./config/atari.gin", help="cartpole or atari")
+    # parser.add_argument("--gin_file", default="./config/experimental/atari_adam.gin", help="cartpole or atari")
+    # parser.add_argument("--gin_file", default="./config/experimental/atari2.gin", help="cartpole or atari")
     parser.add_argument("--log_dir_name", default="DQN", help="name of log directory")
     parser.add_argument("--random_seed", default=123, help="seed of randomness")
     params = parser.parse_args()
