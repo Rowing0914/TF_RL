@@ -26,6 +26,6 @@ def eval_Agent(agent, env, n_trial=1, google_colab=True):
     score = np.array([all_rewards]).mean()
 
     if google_colab:
-        delete_files(folder="/content/gdrive/My Drive/TF_RL/logs/")
-        copy_dir(src=ROOT_DIR+"/logs/", dst="/content/gdrive/My Drive/TF_RL/logs/")
+        delete_files(folder="/content/gdrive/My Drive/TF_RL/logs/", verbose=True)
+        copy_dir(src=ROOT_DIR+"/logs/", dst="/content/gdrive/My Drive/TF_RL/logs/", verbose=True)
     return score
