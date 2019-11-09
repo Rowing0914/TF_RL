@@ -1,0 +1,29 @@
+# Hyperparameters used in Mnih et al. (2015).
+
+# Common params for training
+# ==================================
+train_eval.env_name = "Pong"
+train_eval.num_frames = 10000000
+train_eval.eval_interval = 250000
+train_eval.hot_start = 50000
+train_eval.train_freq = 4
+train_eval.sync_freq = 10000
+train_eval.batch_size = 32
+train_eval.num_eval_episodes = 1
+train_eval.interval_MAR = 100
+train_eval.memory_size = 10000
+
+# DQN specific params
+# ==================================
+train_eval.gamma = 0.99
+train_eval.eps_start = 1.0
+train_eval.eps_end = 0.1
+train_eval.decay_steps = 1000000
+train_eval.loss_fn = @tf.losses.huber_loss
+train_eval.grad_clip_flg = None
+train_eval.optimizer = @tf.train.RMSPropOptimizer
+train_eval.learning_rate = 0.00025
+train_eval.decay = 0.95
+train_eval.momentum = 0.0
+train_eval.epsilon = 0.00001
+train_eval.centered = True
