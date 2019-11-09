@@ -1,0 +1,5 @@
+mock.a = "a"
+mock.b = "b"
+mock.c = "c"
+mock.d = "d"
+mock.e = "e"

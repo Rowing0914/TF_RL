@@ -13,9 +13,12 @@ train_eval.batch_size = 32
 train_eval.num_eval_episodes = 1
 train_eval.interval_MAR = 100
 train_eval.memory_size = 10000
+train_eval.gpu_id = 0
+train_eval.seed = 123
 
 # DQN specific params
 # ==================================
+train_eval.network_type = "fast"
 train_eval.gamma = 0.99
 train_eval.eps_start = 1.0
 train_eval.eps_end = 0.01

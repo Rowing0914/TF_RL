@@ -3,6 +3,7 @@ import gin
 import argparse
 import numpy as np
 import tensorflow as tf
+import functools
 from collections import deque
 from tf_rl.common.memory import ReplayBuffer
 from tf_rl.common.utils import gradient_clip_fn
@@ -36,11 +37,11 @@ def prep_obs_processor(env_name):
     return obs_prc_fn
 
 
-def prep_model(env_name):
+def prep_model(env_name, network_type=None):
     if env_name.lower() == "cartpole":
         model = cartpole_net
     else:
-        model = atari_net
+        model = functools.partial(atari_net, network_type=network_type)
     return model
 
 
@@ -50,6 +51,7 @@ def train_eval(log_dir="DQN",
                seed=123,
                gpu_id=0,
                env_name="CartPole",
+               network_type="fast",
                eps_start=1.0,
                eps_end=0.02,
                decay_steps=3000,
@@ -71,6 +73,9 @@ def train_eval(log_dir="DQN",
                gamma=0.99,
                num_eval_episodes=1,
                eval_interval=1000):
+    tf.compat.v1.set_random_seed(seed)
+    np.random.seed(seed=seed)
+
     # init global time-step
     global_timestep = tf.compat.v1.train.create_global_step()
 
@@ -84,7 +89,7 @@ def train_eval(log_dir="DQN",
     reward_buffer = deque(maxlen=interval_MAR)
     summary_writer = tf.compat.v2.summary.create_file_writer(log_dir["summary_path"])
 
-    agent = dqn_agent(model=prep_model(env_name),
+    agent = dqn_agent(model=prep_model(env_name, network_type=network_type),
                       policy=EpsilonGreedyPolicy_eager(num_action=env.action_space.n, epsilon_fn=anneal_ep),
                       optimizer=optimizer(learning_rate, decay, momentum, epsilon, centered),
                       loss_fn=loss_fn,
@@ -110,15 +115,14 @@ def train_eval(log_dir="DQN",
           interval_MAR)
 
 
-def main(gin_file, log_dir, prev_log, seed, gpu_id):
+def main(gin_file, gin_params, log_dir, prev_log):
     eager_setup()
     gin.parse_config_file(gin_file)
-    tf.compat.v1.set_random_seed(seed)
-    np.random.seed(seed=seed)
+    if gin_params:
+        gin_params_flat = [param[0] for param in gin_params]
+        gin.parse_config_files_and_bindings([params.gin_file], gin_params_flat)
     train_eval(log_dir=log_dir,
-               prev_log=prev_log,
-               seed=seed,
-               gpu_id=gpu_id)
+               prev_log=prev_log)
 
 
 if __name__ == '__main__':
@@ -129,15 +133,12 @@ if __name__ == '__main__':
     # parser.add_argument("--gin_file", default="./config/experimental/adam_mse.gin", help="cartpole or atari")
     # parser.add_argument("--gin_file", default="./config/experimental/adam_huber.gin", help="cartpole or atari")
     # parser.add_argument("--gin_file", default="./config/experimental/rmsprop_mse.gin", help="cartpole or atari")
-    parser.add_argument("--network_type", default="fast", help="nature: Nature DQN, fast: it converges faster!")
+    parser.add_argument("--gin_params", default=None, action='append', nargs='+', help="extra gin params to override")
     parser.add_argument("--log_dir", default="DQN", help="name of log directory")
-    parser.add_argument("--seed", default=123, help="seed of randomness")
     parser.add_argument("--prev_log", default="", help="Previous training directories")
-    parser.add_argument("--gpu_id", default=0, help="gpu id")
     params = parser.parse_args()
 
     main(gin_file=params.gin_file,
+         gin_params=params.gin_params,
          log_dir=params.log_dir,
-         prev_log=params.prev_log,
-         seed=params.seed,
-         gpu_id=params.gpu_id)
+         prev_log=params.prev_log)
