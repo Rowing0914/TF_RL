@@ -4,7 +4,7 @@ from tf_rl.common.abs_path import ROOT_DIR as ROOT
 from tf_rl.common.colab_utils import copy_dir
 
 
-def set_up_for_training(env_name, seed, gpu_id, log_dir="Test", prev_log="", google_colab=True):
+def set_up_for_training(env_name, seed, gpu_id, log_dir="Test", prev_log="", google_colab=False):
     os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
 
     if prev_log == "":

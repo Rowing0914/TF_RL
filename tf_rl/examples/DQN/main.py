@@ -84,7 +84,12 @@ def train_eval(log_dir="DQN",
     anneal_ep = tf.compat.v1.train.polynomial_decay(eps_start, global_timestep, decay_steps, eps_end)
 
     # prep for training
-    log_dir = set_up_for_training(env_name=env_name, seed=seed, gpu_id=gpu_id, log_dir=log_dir, prev_log=prev_log)
+    log_dir = set_up_for_training(env_name=env_name,
+                                  seed=seed,
+                                  gpu_id=gpu_id,
+                                  log_dir=log_dir,
+                                  prev_log=prev_log,
+                                  google_colab=google_colab)
     env = prep_env(env_name=env_name, video_path=log_dir["video_path"])
     replay_buffer = ReplayBuffer(memory_size, traj_dir=log_dir["traj_path"])
     reward_buffer = deque(maxlen=interval_MAR)
