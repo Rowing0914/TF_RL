@@ -119,6 +119,7 @@ def train_eval(log_dir="DQN",
           batch_size,
           sync_freq,
           interval_MAR,
+          log_dir,
           google_colab)
 
 
