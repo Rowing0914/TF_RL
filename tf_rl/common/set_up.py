@@ -3,8 +3,13 @@ import datetime
 from tf_rl.common.abs_path import ROOT_DIR as ROOT
 
 
-def set_up_for_training(env_name, seed, gpu_id, log_dir="Test", prev_log=""):
+def set_up_for_training(env_name, seed, gpu_id, log_dir="Test", prev_log="", google_colab=False):
     os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
+
+    if google_colab:
+        # mount your drive on google colab
+        from google.colab import drive
+        drive.mount("/content/gdrive")
 
     if prev_log == "":
         exp_date = datetime.datetime.now().strftime("%Y%m%d%H%M%S")  # dir_name format
