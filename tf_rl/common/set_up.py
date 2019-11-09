@@ -15,22 +15,25 @@ def set_up_for_training(env_name, seed, gpu_id, log_dir="Test", prev_log="", goo
             "video_path": ROOT + "/logs/videos/{}/{}-{}-seed{}".format(log_dir, env_name, exp_date, seed),
             "model_path": ROOT + "/logs/models/{}/{}-{}-seed{}".format(log_dir, env_name, exp_date, seed),
             "traj_path": ROOT + "/logs/trajs/{}/{}-{}-seed{}".format(log_dir, env_name, exp_date, seed),
-            "controller_path": ROOT + "/logs/controllers/{}/{}-{}-seed{}".format(log_dir, env_name, exp_date, seed),
         }
+
+        for key, value in log_dir.items():
+            if os.path.isdir(value):
+                assert False, "We found the previous log dirs with the same name as {}".format(value)
+            else:
+                os.makedirs(value)
     else:
         # check if the specified previous training dir exists
         assert os.path.isdir(ROOT + "/logs/logs/{}".format(prev_log)), "Previous logs not found!!"
         assert os.path.isdir(ROOT + "/logs/videos/{}".format(prev_log)), "Previous video not found!!"
         assert os.path.isdir(ROOT + "/logs/models/{}".format(prev_log)), "Previous model not found!!"
         assert os.path.isdir(ROOT + "/logs/trajs/{}".format(prev_log)), "Previous trajs not found!!"
-        assert os.path.isdir(ROOT + "/logs/controllers/{}".format(prev_log)), "Previous controller not found!!"
 
         log_dir = {
             "summary_path": ROOT + "/logs/logs/{}".format(prev_log),
             "video_path": ROOT + "/logs/videos/{}".format(prev_log),
             "model_path": ROOT + "/logs/models/{}".format(prev_log),
             "traj_path": ROOT + "/logs/trajs/{}".format(prev_log),
-            "controller_path": ROOT + "/logs/controllers/{}".format(prev_log)
         }
 
     if google_colab:
