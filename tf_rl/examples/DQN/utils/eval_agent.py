@@ -3,7 +3,7 @@ from tf_rl.common.utils import copy_dir, delete_files
 from tf_rl.common.abs_path import ROOT_DIR
 
 
-def eval_Agent(agent, env, n_trial=1, google_colab=False):
+def eval_Agent(agent, env, n_trial=1, google_colab=True):
     """ Evaluate the trained agent """
     all_rewards = list()
     for ep in range(n_trial):
