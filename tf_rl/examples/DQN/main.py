@@ -48,6 +48,7 @@ def prep_model(env_name, network_type=None):
 @gin.configurable
 def train_eval(log_dir="DQN",
                prev_log="",
+               google_colab=False,
                seed=123,
                gpu_id=0,
                env_name="CartPole",
@@ -112,17 +113,19 @@ def train_eval(log_dir="DQN",
           train_freq,
           batch_size,
           sync_freq,
-          interval_MAR)
+          interval_MAR,
+          google_colab)
 
 
-def main(gin_file, gin_params, log_dir, prev_log):
+def main(gin_file, gin_params, log_dir, prev_log, google_colab):
     eager_setup()
     gin.parse_config_file(gin_file)
     if gin_params:
         gin_params_flat = [param[0] for param in gin_params]
         gin.parse_config_files_and_bindings([params.gin_file], gin_params_flat)
     train_eval(log_dir=log_dir,
-               prev_log=prev_log)
+               prev_log=prev_log,
+               google_colab=google_colab)
 
 
 if __name__ == '__main__':
@@ -136,9 +139,11 @@ if __name__ == '__main__':
     parser.add_argument("--gin_params", default=None, action='append', nargs='+', help="extra gin params to override")
     parser.add_argument("--log_dir", default="DQN", help="name of log directory")
     parser.add_argument("--prev_log", default="", help="Previous training directories")
+    parser.add_argument("--google_colab", default=False, help="if you run this on google_colab")
     params = parser.parse_args()
 
     main(gin_file=params.gin_file,
          gin_params=params.gin_params,
          log_dir=params.log_dir,
-         prev_log=params.prev_log)
+         prev_log=params.prev_log,
+         google_colab=params.google_colab)
