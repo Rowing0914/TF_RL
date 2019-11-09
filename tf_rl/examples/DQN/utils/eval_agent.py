@@ -1,7 +1,9 @@
 import numpy as np
+from tf_rl.common.colab_utils import copy_dir, delete_files
+from tf_rl.common.abs_path import ROOT_DIR
 
 
-def eval_Agent(agent, env, n_trial=1):
+def eval_Agent(agent, env, n_trial=1, google_colab=False):
     """ Evaluate the trained agent """
     all_rewards = list()
     for ep in range(n_trial):
@@ -21,6 +23,7 @@ def eval_Agent(agent, env, n_trial=1):
         all_rewards.append(episode_reward)
         print("| Evaluation | Ep: {}/{} | Score: {} |".format(ep + 1, n_trial, episode_reward))
 
-    score = np.array([all_rewards]).mean()
-    return score
-
+    if google_colab:
+        delete_files(folder="/content/gdrive/My Drive/TF_RL/logs/")
+        copy_dir(src=ROOT_DIR+"/logs/", dst="/content/gdrive/My Drive/TF_RL/logs/", verbose=True)
+    return np.array([all_rewards]).mean()

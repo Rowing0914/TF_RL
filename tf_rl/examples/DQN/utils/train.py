@@ -21,7 +21,8 @@ def train(global_timestep,
           train_freq,
           batch_size,
           sync_freq,
-          interval_MAR):
+          interval_MAR,
+          google_colab):
     time_buffer = list()
     log = logger(num_frames=num_frames, interval_MAR=interval_MAR)
     with summary_writer.as_default():
@@ -80,14 +81,14 @@ def train(global_timestep,
 
             if agent.eval_flg:
                 # replay_buffer.save()
-                score = eval_Agent(agent, env)
+                score = eval_Agent(agent, env, google_colab=google_colab)
                 tf.compat.v2.summary.scalar("eval/Score", score, step=ts)
                 agent.eval_flg = False
 
             # check the stopping condition
             if ts >= num_frames:
                 print("=== Training is Done ===")
-                score = eval_Agent(agent, env, n_trial=num_eval_episodes)
+                score = eval_Agent(agent, env, n_trial=num_eval_episodes, google_colab=google_colab)
                 tf.compat.v2.summary.scalar("eval/Score", score, step=ts)
                 env.close()
                 break

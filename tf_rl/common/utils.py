@@ -235,14 +235,7 @@ class AnnealingSchedule:
 
 
 def copy_dir(src, dst, symlinks=False, ignore=None, verbose=False):
-    """
-    copy the all contents in `src` directory to `dst` directory
-
-    Usage:
-        ```python
-        delete_files("./bb/")
-        ```
-    """
+    """ copy the all contents in `src` directory to `dst` directory """
     for item in os.listdir(src):
         s = os.path.join(src, item)
         d = os.path.join(dst, item)
@@ -254,24 +247,12 @@ def copy_dir(src, dst, symlinks=False, ignore=None, verbose=False):
             shutil.copy2(s, d)
 
 
-def delete_files(folder, verbose=False):
-    """
-    delete the all contents in `folder` directory
-
-    Usage:
-        ```python
-        copy_dir("./aa/", "./bb/")
-        ```
-    """
-    for the_file in os.listdir(folder):
-        file_path = os.path.join(folder, the_file)
-        try:
-            if os.path.isfile(file_path):
-                os.unlink(file_path)
-                if verbose:
-                    print("{} has been deleted".format(file_path))
-        except Exception as e:
-            print(e)
+def delete_files(folder):
+    """ delete the all contents in `folder` directory """
+    if os.path.isdir(folder):
+        shutil.rmtree(folder)
+        print("{} has been refreshed".format(folder))
+        os.makedirs(folder)
 
 
 class RunningMeanStd:
