@@ -3,7 +3,7 @@ import datetime
 from tf_rl.common.abs_path import ROOT_DIR as ROOT
 
 
-def set_up_for_training(env_name, seed, gpu_id, log_dir="Test", prev_log="", google_colab=False):
+def set_up_for_training(env_name, seed, gpu_id, log_dir="Test", prev_log="", google_colab=True):
     os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
 
     if google_colab:
