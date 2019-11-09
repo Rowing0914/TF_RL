@@ -1,6 +1,7 @@
 import os
 import datetime
 from tf_rl.common.abs_path import ROOT_DIR as ROOT
+from tf_rl.common.utils import copy_dir
 
 
 def set_up_for_training(env_name, seed, gpu_id, log_dir="Test", prev_log="", google_colab=True):
@@ -36,7 +37,13 @@ def set_up_for_training(env_name, seed, gpu_id, log_dir="Test", prev_log="", goo
         # mount your drive on google colab
         from google.colab import drive
         drive.mount("/content/gdrive")
-        logdir.update({
-            "log_dir_colab": "/content/gdrive/My Drive/TF_RL/logs/"  # we take everything under the log dir
-        })
+        log_dir_colab = "/content/gdrive/My Drive/TF_RL/logs/"  # we take everything under the log dir
+
+        if os.path.isdir(log_dir_colab):
+            print("=== {} IS FOUND ===".format(log_dir_colab))
+            copy_dir(log_dir_colab, log_dir, verbose=True)
+        else:
+            print("=== {} IS NOT FOUND ===".format(log_dir_colab))
+            os.makedirs(log_dir_colab)
+            print("=== FINISHED CREATING THE DIRECTORY ===")
     return logdir
