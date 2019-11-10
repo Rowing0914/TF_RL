@@ -23,6 +23,6 @@ train_eval.eps_start = 1.0
 train_eval.eps_end = 0.01
 train_eval.decay_steps = 250000
 train_eval.loss_fn = @tf.losses.mean_squared_error
-train_eval.grad_clip_flg = None
+train_eval.grad_clip_flg = "norm"
 train_eval.optimizer = @tf.train.AdamOptimizer
 train_eval.learning_rate = 1e-5

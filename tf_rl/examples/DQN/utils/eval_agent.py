@@ -1,4 +1,5 @@
 import numpy as np
+import datetime
 from tf_rl.common.colab_utils import transfer_log_dirs
 
 
@@ -20,7 +21,8 @@ def eval_Agent(agent, env, n_trial=1, log_dir=None, google_colab=False):
         if ep == 0: env.record_end()
 
         all_rewards.append(episode_reward)
-        print("| Evaluation | Ep: {}/{} | Score: {} |".format(ep + 1, n_trial, episode_reward))
+        _time = datetime.datetime.now()
+        print("[{}] | Evaluation | Ep: {}/{} | Score: {} |".format(_time, ep + 1, n_trial, episode_reward))
 
     if google_colab: transfer_log_dirs(log_dir)
     return np.array([all_rewards]).mean()
