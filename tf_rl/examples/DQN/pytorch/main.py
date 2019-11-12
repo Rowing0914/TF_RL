@@ -141,7 +141,6 @@ if __name__ == '__main__':
     parser.add_argument("--eval_interval", default=250000, help="name of log directory")
     parser.add_argument("--cuda", default=True, help="name of log directory")
     parser.add_argument("--log_dir", default="DQN", help="name of log directory")
-    parser.add_argument("--seed", default=123, help="seed of randomness")
     parser.add_argument("--prev_log", default="", help="Previous training directories")
     parser.add_argument("--gpu_id", default=0, help="gpu id")
     params = parser.parse_args()

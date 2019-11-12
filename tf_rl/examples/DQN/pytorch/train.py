@@ -2,7 +2,7 @@ import time
 import itertools
 import numpy as np
 from tf_rl.common.utils import logger
-from tf_rl.examples.DQN import eval_Agent
+from tf_rl.examples.DQN.utils.eval_agent import eval_Agent
 
 
 def train(global_timestep,
