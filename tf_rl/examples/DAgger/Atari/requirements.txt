@@ -1,0 +1,6 @@
+gym==0.11.0
+tensorflow
+keras
+keras-rl
+numpy
+seaborn
