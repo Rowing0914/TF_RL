@@ -1,4 +1,3 @@
-# original code: https://gist.github.com/andrewliao11/d52125b52f76a4af73433e1cf8405a8f
 import gym
 import argparse
 import numpy as np
