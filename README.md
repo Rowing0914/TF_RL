@@ -281,37 +281,8 @@ env.close()
 
 ### GPU Env Maintenance on Ubuntu 16.04 (CUDA 10)
 
-  Check this link as well: <https://www.tensorflow.org/install/gpu>
-
-```shell
-# Add NVIDIA package repositories
-# Add HTTPS support for apt-key
-sudo apt-get install gnupg-curl
-wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/cuda-repo-ubuntu1604_10.0.130-1_amd64.deb
-sudo dpkg -i cuda-repo-ubuntu1604_10.0.130-1_amd64.deb
-sudo apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/7fa2af80.pub
-sudo apt-get update
-wget http://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1604/x86_64/nvidia-machine-learning-repo-ubuntu1604_1.0.0-1_amd64.deb
-sudo apt install ./nvidia-machine-learning-repo-ubuntu1604_1.0.0-1_amd64.deb
-sudo apt-get update
-
-# Install NVIDIA Driver
-# Issue with driver install requires creating /usr/lib/nvidia
-sudo mkdir /usr/lib/nvidia
-sudo apt-get install --no-install-recommends nvidia-410
-# Reboot. Check that GPUs are visible using the command: nvidia-smi
-
-# Install development and runtime libraries (~4GB)
-sudo apt-get install --no-install-recommends \
-    cuda-10-0 \
-    libcudnn7=7.6.2.24-1+cuda10.0  \
-    libcudnn7-dev=7.6.2.24-1+cuda10.0
-
-
-# Install TensorRT. Requires that libcudnn7 is installed above.
-sudo apt-get install -y --no-install-recommends libnvinfer5=5.1.5-1+cuda10.0 \
-    libnvinfer-dev=5.1.5-1+cuda10.0
-```
+- Check [this link](https://www.tensorflow.org/install/gpu)
+- if you encounter some error related to the `unmet dependencies`, pls check [this link](https://devtalk.nvidia.com/default/topic/1043184/cuda-setup-and-installation/cuda-install-unmet-dependencies-cuda-depends-cuda-10-0-gt-10-0-130-but-it-is-not-going-to-be-installed/post/5362151/#5362151)
 
 
 
