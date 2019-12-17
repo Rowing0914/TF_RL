@@ -137,8 +137,8 @@ def main(gin_file, gin_params, log_dir, prev_log, google_colab):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     # parser.add_argument("--gin_file", default="./config/test.gin", help="cartpole or atari")
-    parser.add_argument("--gin_file", default="./config/cartpole.gin", help="cartpole or atari")
-    # parser.add_argument("--gin_file", default="./config/dopamine.gin", help="cartpole or atari")
+    # parser.add_argument("--gin_file", default="./config/cartpole.gin", help="cartpole or atari")
+    parser.add_argument("--gin_file", default="./config/dopamine.gin", help="cartpole or atari")
     # parser.add_argument("--gin_file", default="./config/experimental/adam_mse.gin", help="cartpole or atari")
     # parser.add_argument("--gin_file", default="./config/experimental/adam_huber.gin", help="cartpole or atari")
     # parser.add_argument("--gin_file", default="./config/experimental/rmsprop_mse.gin", help="cartpole or atari")

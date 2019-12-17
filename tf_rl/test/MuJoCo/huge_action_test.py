@@ -3,7 +3,6 @@
 
 import gym
 import numpy as np
-import time
 from tf_rl.common.params import ROBOTICS_ENV_LIST
 
 for env_name, goal_score in ROBOTICS_ENV_LIST.items():

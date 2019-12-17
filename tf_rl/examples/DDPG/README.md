@@ -21,16 +21,6 @@ DQN implementation of TensorFlow/PyTorch
 - To override the existing `gin_file` by command line args, pls check [here](https://github.com/google/gin-config/blob/master/docs/index.md#experiments-with-multiple-gin-files-and-extra-command-line-bindings)
 
 
-## Goals
-- Ant-v2: 3500
-- HalfCheetah-v2: 7000
-- Hopper-v2: 1500
-- Humanoid-v2: 2000
-- InvertedDoublePendulum-v2: 6000
-- InvertedPendulum-v2: 800
-- Reacher-v2: -6
-- Swimmer-v2: 40
-- Walker2d-v2: 2500
 
 
 ## Hyper-params

@@ -1,0 +1,21 @@
+# Common params for training
+# ==================================
+train_eval.env_name = "HalfCheetah-v2"
+train_eval.num_frames = 10000
+train_eval.eval_interval = 2500
+train_eval.hot_start = 1000
+train_eval.batch_size = 200
+train_eval.num_eval_episodes = 1
+train_eval.interval_MAR = 10
+train_eval.memory_size = 30000
+train_eval.gpu_id = 0
+train_eval.seed = 123
+
+# DQN specific params
+# ==================================
+train_eval.gamma = 0.99
+train_eval.L2_reg = 0.5
+train_eval.random_process = "ou"
+train_eval.mu = 0.3
+train_eval.sigma = 0.2
+train_eval.tau = 1e-2
