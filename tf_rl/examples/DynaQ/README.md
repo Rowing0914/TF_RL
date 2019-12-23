@@ -21,7 +21,7 @@ python tf_rl/examples/DynaQ/main.py
 ## General Framework of Model-based RL
 Source: [Hado van Hasselt et al., 2019](https://arxiv.org/pdf/1906.05243.pdf)
 
-<img src="./mbrl_framework.png">
+<img src="./MBRL.png">
 
 
 
