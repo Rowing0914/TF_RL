@@ -81,7 +81,7 @@ def main(num_episode=100, num_train=5, hot_start=100):
 
 
 if __name__ == '__main__':
-    num_episode = 100
+    num_episode = 100*3
     num_train = 10
     hot_start = 100
     main(num_episode=num_episode,
