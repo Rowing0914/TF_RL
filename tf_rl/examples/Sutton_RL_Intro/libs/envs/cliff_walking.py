@@ -61,7 +61,7 @@ class CliffWalkingEnv(discrete.DiscreteEnv):
         if close:
             return
 
-        outfile = StringIO() if mode == 'ansi' else sys.stdout
+        outfile = sys.stdout
 
         for s in range(self.nS):
             position = np.unravel_index(s, self.shape)

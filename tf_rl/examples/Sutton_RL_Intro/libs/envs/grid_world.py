@@ -85,11 +85,11 @@ class GridworldEnv(discrete.DiscreteEnv):
 
         super(GridworldEnv, self).__init__(nS, nA, P, isd)
 
-    def _render(self, mode='human', close=False):
+    def render(self, mode='human', close=False):
         if close:
             return
 
-        outfile = StringIO() if mode == 'ansi' else sys.stdout
+        outfile = sys.stdout
 
         grid = np.arange(self.nS).reshape(self.shape)
         it = np.nditer(grid, flags=['multi_index'])
