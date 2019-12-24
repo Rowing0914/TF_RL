@@ -1,3 +1,4 @@
+# Master branch is not maintained anymore, please check `tf2` branch!!
 
 <p align="center"><img src="./assets/logo1.png"></p>
 
