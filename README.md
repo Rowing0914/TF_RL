@@ -1,4 +1,4 @@
-# Master branch is not maintained anymore, please check `tf2` branch!!
+# This repo is not maintained anymore, please see [HERE](https://github.com/Rowing0914/TF2_RL)
 
 <p align="center"><img src="./assets/logo1.png"></p>
 
