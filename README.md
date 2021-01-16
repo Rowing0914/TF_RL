@@ -267,7 +267,7 @@ for _ in range(100):
 env.close()
 
 ```
-
+### MuJoCo annotation flag: https://github.com/Rowing0914/gym_modified/blob/11696be8bba436db36c1caa0457040d06ca05b50/gym/envs/mujoco/mujoco_env.py#L129
 
 ## PC Envs
 
